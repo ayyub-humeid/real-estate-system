@@ -27,6 +27,15 @@ class CompanyResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
     protected static ?string $navigationGroup = '🏢 Core';
     protected static ?int $navigationSort = 1;
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->withCount([
+                'users',
+                'users as active_users_count' => fn($query) => $query->whereIn('role', ['company_admin', 'property_manager']),
+                'users as tenants_count' => fn($query) => $query->where('role', 'tenant')
+            ]);
+    }
 
     public static function form(Form $form): Form
     {
