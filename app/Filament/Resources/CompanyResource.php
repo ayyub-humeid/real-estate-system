@@ -117,16 +117,13 @@ class CompanyResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\ImageColumn::make('logo')
-                    ->circular()
-                    ->getStateUsing(function ($record) {
-                        if (!$record->logo) return null;
-                        return Storage::url($record->logo);
-                    })
-                    ->defaultImageUrl(
-                        fn($record) =>
-                        'https://ui-avatars.com/api/?name=' . urlencode($record->name) . '&color=7F9CF5&background=EBF4FF'
-                    ),
+               Tables\Columns\ImageColumn::make('logo')
+    ->circular()
+    ->disk('public') 
+    ->defaultImageUrl(
+        fn($record) =>
+        'https://ui-avatars.com/api/?name=' . urlencode($record->name) . '&color=7F9CF5&background=EBF4FF'
+    ),
 
                 Tables\Columns\TextColumn::make('name')
                     ->searchable()
@@ -202,13 +199,20 @@ class CompanyResource extends Resource
             ->poll('30s');
     }
 
-    public static function getRelations(): array
-    {
-        return [
-             RelationManagers\UsersRelationManager::class, // 🔥 Add this
-
-        ];
-    }
+//   public static function getRelations(): array
+// {
+//     return [
+//         RelationManagers\UsersRelationManager::class,
+//     ];
+// }
+public static function getRelations(): array
+{
+    return [
+        RelationManagers\UsersRelationManager::make([
+            'lazy' => true,
+        ]),
+    ];
+}
 
     public static function getPages(): array
     {
