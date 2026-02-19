@@ -19,6 +19,10 @@ class ViewCompany extends ViewRecord
             Actions\DeleteAction::make(),
         ];
     }
+    public function getContentTabLabel(): ?string
+{
+    return 'Overview';
+}
 
     public function infolist(Infolist $infolist): Infolist
     {
@@ -65,8 +69,7 @@ class ViewCompany extends ViewRecord
                     ])
                     ->columns(2),
 
-                // 🔥 Statistics as CARDS
-                  // 🔥 Clean Statistics - No HTML!
+              // 🔥 Statistics with fallback
             Infolists\Components\Section::make('Statistics')
                 ->schema([
                     Infolists\Components\TextEntry::make('users_count')
@@ -74,21 +77,24 @@ class ViewCompany extends ViewRecord
                         ->badge()
                         ->size(Infolists\Components\TextEntry\TextEntrySize::Large)
                         ->color('info')
-                        ->icon('heroicon-m-users'),
+                        ->icon('heroicon-m-users')
+                        ->state(fn($record) => $record->users_count ?? $record->users()->count()), // 🔥 Fallback
 
                     Infolists\Components\TextEntry::make('active_users_count')
                         ->label('Active Staff')
                         ->badge()
                         ->size(Infolists\Components\TextEntry\TextEntrySize::Large)
                         ->color('success')
-                        ->icon('heroicon-m-user-group'),
+                        ->icon('heroicon-m-user-group')
+                        ->state(fn($record) => $record->active_users_count ?? $record->users()->whereIn('role', ['company_admin', 'property_manager'])->count()), // 🔥 Fallback
 
                     Infolists\Components\TextEntry::make('tenants_count')
                         ->label('Tenants')
                         ->badge()
                         ->size(Infolists\Components\TextEntry\TextEntrySize::Large)
                         ->color('gray')
-                        ->icon('heroicon-m-user'),
+                        ->icon('heroicon-m-user')
+                        ->state(fn($record) => $record->tenants_count ?? $record->users()->where('role', 'tenant')->count()), // 🔥 Fallback
 
                     Infolists\Components\TextEntry::make('created_at')
                         ->label('Member Since')
