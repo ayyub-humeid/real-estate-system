@@ -21,7 +21,13 @@ class PropertyResource extends Resource
 
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
-        return parent::getEloquentQuery()->with(['company', 'location']);
+        return parent::getEloquentQuery()
+            ->with([
+                'company:id,name',
+                'location:id,name',
+                'primaryImage:id,imageable_type,imageable_id,path',
+            ])
+            ->withCount('units');
     }
 
     public static function form(Form $form): Form
@@ -92,7 +98,6 @@ class PropertyResource extends Resource
                     ->icon('heroicon-m-map-pin'),
 
                 Tables\Columns\TextColumn::make('units_count')
-                    ->counts('units')
                     ->label('Units')
                     ->badge()
                     ->color('success'),

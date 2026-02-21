@@ -10,6 +10,7 @@ use Filament\Tables\Table;
 
 class ImagesRelationManager extends RelationManager
 {
+    protected static bool $isLazy = true;
     // Uses the morphMany('images') on the Unit model.
     // Filament scopes automatically by imageable_type=Unit + imageable_id.
     protected static string $relationship = 'images';

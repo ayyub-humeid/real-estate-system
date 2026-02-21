@@ -10,6 +10,7 @@ use Filament\Tables\Table;
 
 class UnitsRelationManager extends RelationManager
 {
+    protected static bool $isLazy = true;
     protected static string $relationship = 'units';
     protected static ?string $title = 'Units';
 

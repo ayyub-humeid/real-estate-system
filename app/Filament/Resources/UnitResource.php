@@ -20,7 +20,11 @@ class UnitResource extends Resource
 
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
-        return parent::getEloquentQuery()->with(['property']);
+        return parent::getEloquentQuery()
+            ->with([
+                'property:id,name',
+                'primaryImage:id,imageable_type,imageable_id,path',
+            ]);
     }
 
     public static function form(Form $form): Form

@@ -62,11 +62,10 @@ class Unit extends Model
     /**
      * Fast single-query primary image lookup.
      */
-    public function primaryImage(): MorphMany
+    public function primaryImage(): \Illuminate\Database\Eloquent\Relations\MorphOne
     {
-        return $this->morphMany(Image::class, 'imageable')
-            ->where('is_primary', true)
-            ->limit(1);
+        return $this->morphOne(Image::class, 'imageable')
+            ->where('is_primary', true);
     }
 
     // --- Helpers ---
