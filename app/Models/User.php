@@ -9,6 +9,9 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class User extends Authenticatable implements FilamentUser
 {
@@ -65,4 +68,20 @@ class User extends Authenticatable implements FilamentUser
     {
         return $this->role === 'tenant';
     }
+    // app/Models/User.php
+
+public function leasesAsTenant(): HasMany
+{
+    return $this->hasMany(Lease::class, 'tenant_id');
+}
+
+public function currentLease(): HasOne
+{
+    return $this->hasOne(Lease::class, 'tenant_id')->where('status', 'active');
+}
+
+public function payments(): HasManyThrough
+{
+    return $this->hasManyThrough(Payment::class, Lease::class, 'tenant_id', 'lease_id');
+}
 }

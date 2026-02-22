@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Unit extends Model
@@ -74,4 +75,16 @@ class Unit extends Model
     {
         return $this->status === 'available';
     }
+
+
+public function currentLease(): HasOne
+{
+    return $this->hasOne(Lease::class)->where('status', 'active')->latest();
 }
+
+public function documents(): MorphMany
+{
+    return $this->morphMany(Document::class, 'documentable');
+}
+}
+
