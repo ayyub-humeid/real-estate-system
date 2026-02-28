@@ -34,8 +34,13 @@ class Company extends Model
         return $this->hasMany(Lease::class);
     }
 
-    // public function expenses(): HasMany
-    // {
-    //     return $this->hasMany(Expense::class);
-    // }
+    public function rentalRequests(): HasMany
+    {
+        return $this->hasMany(RentalRequest::class);
+    }
+
+    public function expenses(): HasMany
+    {
+        return $this->hasMany(Expense::class);
+    }
 }

@@ -27,9 +27,10 @@ class LeaseResource extends Resource
     {
         return parent::getEloquentQuery()
             ->with([
-                'tenant:id,name,email,phone', // ✅ Select only needed columns
-                'unit:id,unit_number,property_id', // ✅ Minimum columns
-                'unit.property:id,name', // ✅ Nested eager loading
+                'tenant:id,user_id',                   // ✅ Only the FK needed
+                'tenant.user:id,name,email,phone',      // ✅ User data from correct table
+                'unit:id,unit_number,property_id',
+                'unit.property:id,name',
             ])
             ->withCount([
                 'payments', // ✅ Count without loading all payments
@@ -75,28 +76,15 @@ class LeaseResource extends Resource
                         Forms\Components\Select::make('tenant_id')
                             ->label('Tenant')
                             ->required()
-                            ->searchable(['name', 'email']) // ✅ Search specific columns
+                            ->searchable()
                             ->preload()
                             ->relationship(
                                 'tenant',
-                                'name',
-                                // 🔥 PERFORMANCE: Only load tenants, not all users
-                                fn(Builder $query) => $query
-                                    ->where('role', 'tenant')
-                                    ->select('id', 'name', 'email', 'phone') // ✅ Select only needed
+                                'id',
+                                fn(Builder $query) => $query->with('user:id,name,email')
                             )
-                            ->getSearchResultsUsing(function (string $search) {
-                                // ✅ Custom search to avoid loading all columns
-                                return User::where('role', 'tenant')
-                                    ->where(function($query) use ($search) {
-                                        $query->where('name', 'like', "%{$search}%")
-                                            ->orWhere('email', 'like', "%{$search}%");
-                                    })
-                                    ->limit(50) // ✅ Limit results
-                                    ->pluck('name', 'id');
-                            })
-                            ->getOptionLabelFromRecordUsing(fn($record) => 
-                                $record->name . ' (' . $record->email . ')'
+                            ->getOptionLabelFromRecordUsing(
+                                fn($record) => ($record->user->name ?? 'N/A') . ' (' . ($record->user->email ?? '') . ')'
                             ),
 
                         Forms\Components\DatePicker::make('start_date')
@@ -205,10 +193,9 @@ class LeaseResource extends Resource
                     ->badge()
                     ->color('info'),
 
-                // 🔥 WHY: tenant.name is already loaded - zero extra queries
-                Tables\Columns\TextColumn::make('tenant.name')
+                Tables\Columns\TextColumn::make('tenant.user.name')
                     ->label('Tenant')
-                    ->searchable(['name', 'email']) // ✅ Search in these columns only
+                    ->searchable()
                     ->sortable()
                     ->icon('heroicon-m-user'),
 

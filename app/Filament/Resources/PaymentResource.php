@@ -40,7 +40,9 @@ class PaymentResource extends Resource
                 'lease.unit.property:id,name',
                 
                 // 🎯 Load tenant info (who is paying)
-                'lease.tenant:id,name,email',
+                // 'lease.tenant:id,name,email'
+                'lease.tenant:id,user_id',
+                'lease.tenant.user:id,name,email',
                 
                 // 🎯 Load who recorded the payment (for audit trail)
                 'recordedBy:id,name',
@@ -72,15 +74,17 @@ class PaymentResource extends Resource
                                 fn(Builder $query) => $query
                                     ->where('status', 'active')
                                     ->with([
-                                        'unit.property:id,name', // ✅ Eager load for display
-                                        'tenant:id,name', // ✅ Eager load tenant
+                                        // 'tenant:id,name'
+                                        'unit.property:id,name',
+                                        'tenant:id,user_id',
+                                        'tenant.user:id,name',
                                     ])
                             )
                             // 🎯 WHY: Custom label format shows context without extra queries
                             // Data is already loaded via with() above - zero cost!
-                            ->getOptionLabelFromRecordUsing(fn($record) => 
+                            ->getOptionLabelFromRecordUsing(fn($record) =>
                                 "#{$record->id} - {$record->unit->property->name} - " .
-                                "Unit {$record->unit->unit_number} - {$record->tenant->name}"
+                                "Unit {$record->unit->unit_number} - " . ($record->tenant->user->name ?? 'N/A')
                             )
                             // 🔥 PERFORMANCE: Custom search to search across relationships
                             // WHY: Default search only searches lease.id
@@ -89,7 +93,7 @@ class PaymentResource extends Resource
                                 return Lease::where('status', 'active')
                                     ->where(function($query) use ($search) {
                                         $query->where('id', 'like', "%{$search}%")
-                                            ->orWhereHas('tenant', fn($q) => 
+                                            ->orWhereHas('tenant.user', fn($q) =>
                                                 $q->where('name', 'like', "%{$search}%")
                                             )
                                             ->orWhereHas('unit.property', fn($q) => 
@@ -127,7 +131,7 @@ class PaymentResource extends Resource
                                 // ✅ PERFORMANCE: Find from collection if possible
                                 // WHY: If lease is already loaded in form, reuse it
                                 // Avoid extra database query
-                                $lease = Lease::with(['unit.property', 'tenant'])->find($leaseId);
+                                $lease = Lease::with(['unit.property', 'tenant.user'])->find($leaseId);
                                 
                                 if (!$lease) return '';
 
@@ -135,7 +139,7 @@ class PaymentResource extends Resource
                                     <div class='bg-gray-50 dark:bg-gray-800 p-3 rounded-lg space-y-1 text-sm'>
                                         <div><strong>Property:</strong> {$lease->unit->property->name}</div>
                                         <div><strong>Unit:</strong> {$lease->unit->unit_number}</div>
-                                        <div><strong>Tenant:</strong> {$lease->tenant->name}</div>
+                                        <div><strong>Tenant:</strong> {$lease->tenant->user?->name}</div>
                                         <div><strong>Rent Amount:</strong> \${$lease->rent_amount}</div>
                                         <div><strong>Payment Frequency:</strong> " . ucfirst($lease->payment_frequency) . "</div>
                                     </div>
