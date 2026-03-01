@@ -267,7 +267,7 @@ class PaymentResource extends Resource
                     ->badge()
                     ->color('info'),
 
-                Tables\Columns\TextColumn::make('lease.tenant.name')
+                Tables\Columns\TextColumn::make('lease.tenant.user.name')
                     ->label('Tenant')
                     ->searchable()
                     ->sortable()

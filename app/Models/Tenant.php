@@ -17,7 +17,7 @@ class Tenant extends Model
     protected $fillable = [
         'user_id',
         'avatar',
-        'company_id',
+        // 'company_id',
         'emergency_contact_name',
         'emergency_contact_phone',
         'emergency_contact_relationship',
@@ -97,12 +97,12 @@ class Tenant extends Model
         return $this->hasMany(RentalRequest::class);
     }
     // ✅ In Tenant.php — makes perfect sense
-public function currentLease(): HasOne
-{
-    return $this->hasOne(Lease::class, 'tenant_id')
-        ->where('status', 'active')
-        ->latest();
-}
+    public function currentLease(): HasOne
+    {
+        return $this->hasOne(Lease::class, 'tenant_id')
+            ->where('status', 'active')
+            ->latest();
+    }
     // 🔥 Scopes
     public function scopeActive($query)
     {
@@ -117,12 +117,12 @@ public function currentLease(): HasOne
     //         $q->where('status', 'active')
     //     );
     // }
-    
+
 
     // 🔥 Accessors
     public function getCurrentLeaseAttribute()
     {
-        return $this->user->currentLease ?? null;
+        return $this->currentLease;  // ✅ Use Tenant's own relationship
     }
 
     public function getIsActiveAttribute(): bool

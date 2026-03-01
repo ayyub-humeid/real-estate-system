@@ -16,9 +16,12 @@ class LeaseSeeder extends Seeder
         $company = \App\Models\Company::first();
         
         // Get a tenant user
-        $tenant = User::where('company_id', $company->id)
-            ->where('role', 'tenant')
-            ->first();
+        // $tenant = User::where('company_id', $company->id)
+        //     ->where('role', 'tenant')
+        //     ->first();
+        $tenant = \App\Models\Tenant::whereHas('user', fn($q) => 
+    $q->where('company_id', $company->id)
+)->first();
         
         // Get an available unit
         $unit = Unit::where('status', 'available')->first();
