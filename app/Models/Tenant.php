@@ -44,7 +44,7 @@ class Tenant extends Model
         'background_check_notes',
         'status',
         'notes',
-        'company_id', 
+        'company_id',
     ];
 
     protected $casts = [
@@ -76,22 +76,25 @@ class Tenant extends Model
     //     return $this->hasMany(Lease::class, 'tenant_id', 'user_id');
     // }
     public function leases(): HasMany
-{
-    return $this->hasMany(Lease::class, 'tenant_id');
-}
-// ✅ 4. Tenant → Payments (THROUGH Leases)
-public function payments(): HasManyThrough
-{
-    return $this->hasManyThrough(
-        Payment::class,      // Final model
-        Lease::class,        // Intermediate model
-        'tenant_id',         // Foreign key on leases table
-        'lease_id',          // Foreign key on payments table
-        'id',                // Local key on tenants table
-        'id'                 // Local key on leases table
-    );
-}
-
+    {
+        return $this->hasMany(Lease::class, 'tenant_id');
+    }
+    // ✅ 4. Tenant → Payments (THROUGH Leases)
+    public function payments(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            Payment::class,      // Final model
+            Lease::class,        // Intermediate model
+            'tenant_id',         // Foreign key on leases table
+            'lease_id',          // Foreign key on payments table
+            'id',                // Local key on tenants table
+            'id'                 // Local key on leases table
+        );
+    }
+    public function rentalRequest(): HasMany
+    {
+        return $this->hasMany(RentalRequest::class);
+    }
     // 🔥 Scopes
     public function scopeActive($query)
     {
@@ -100,7 +103,9 @@ public function payments(): HasManyThrough
 
     public function scopeWithCurrentLease($query)
     {
-        return $query->whereHas('user.leasesAsTenant', fn($q) => 
+        return $query->whereHas(
+            'user.leasesAsTenant',
+            fn($q) =>
             $q->where('status', 'active')
         );
     }
