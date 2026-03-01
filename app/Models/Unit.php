@@ -50,6 +50,10 @@ class Unit extends Model
     {
         return $this->hasMany(UnitFeature::class);
     }
+    public function rentalRequest(): HasMany
+    {
+        return $this->hasMany(RentalRequest::class);
+    }
 
 
 
