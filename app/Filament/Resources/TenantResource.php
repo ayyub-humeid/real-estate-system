@@ -43,6 +43,7 @@ class TenantResource extends Resource
             // Instead of loading all leases + all payments (heavy!)
             // Let database do the aggregation (fast!)
             // ->withSum('leases.payments as total_paid', 'paid_amount')
+            ->withSum('payments as total_paid', 'paid_amount');
         ;
     }
 

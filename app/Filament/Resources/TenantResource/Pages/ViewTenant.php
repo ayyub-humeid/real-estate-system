@@ -23,7 +23,11 @@ class ViewTenant extends ViewRecord
         $this->record->load([
             'user:id,name,email,phone,company_id',    // User basic info
             'company:id,name',                         // ✅ DIRECT company relationship
-            'leases.unit.property',                    // Lease details
+            'leases.unit.property', 
+            'payments' => function($query) {
+                $query->where('status', 'paid'); // Only load paid payments for the total
+            },
+                              // Lease details
         ]);
     }
 
@@ -136,19 +140,11 @@ class ViewTenant extends ViewRecord
 
                             // Card 3: Total Paid
                             Infolists\Components\Group::make([
-                                Infolists\Components\TextEntry::make('total_paid')
-                                    ->label('Total Paid')
-                                    ->state(function($record) {
-                                        // ✅ GOOD: Database does the filtering and summing
-
-                                      return '$' . number_format($record->payments()
-                                        ->where('payments.status', 'paid') // ← Specify table
-                                      ->sum('paid_amount'), 2);
-                                    })
-                                    ->size(Infolists\Components\TextEntry\TextEntrySize::Large)
-                                    ->color('warning')
-                                    ->icon('heroicon-m-banknotes')
-                                    ->badge(),
+                       Infolists\Components\TextEntry::make('total_paid')
+    ->label('Total Payments Received')
+    ->money('USD') 
+    ->badge()
+    ->color('info'),
                                 
                                 Infolists\Components\TextEntry::make('paid_label')
                                     ->label('')

@@ -151,6 +151,7 @@ class DocumentResource extends Resource
                                 return match ($type) {
                                     'App\Models\Lease' => \App\Models\Lease::query()
                                         ->with(['unit.property', 'tenant.user'])
+                                        ->get() 
                                         ->mapWithKeys(fn($lease) => [
                                             $lease->id => "Lease #{$lease->id} - " . ($lease->tenant->user->name ?? 'N/A')
                                         ]),
