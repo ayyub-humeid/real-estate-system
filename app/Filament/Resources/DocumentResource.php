@@ -328,15 +328,12 @@ class DocumentResource extends Resource
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
 
-                // 🔥 Quick download action
-                Tables\Actions\Action::make('download')
-                    ->label('Download')
-                    ->icon('heroicon-o-arrow-down-tray')
-                    ->color('success')
-                    ->action(function ($record) {
-                        // ✅ WHY: Use model method - encapsulates business logic
-                        return $record->download();
-                    }),
+               Tables\Actions\Action::make('download')
+        ->label('Download')
+        ->icon('heroicon-o-arrow-down-tray')
+        ->color('success')
+        ->url(fn($record) => asset('storage/' . $record->file_path))
+        ->openUrlInNewTab(),
 
                 Tables\Actions\DeleteAction::make()
                     // ✅ Auto-delete file when record deleted (handled in model boot)
