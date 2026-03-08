@@ -156,6 +156,8 @@ class PaymentResource extends Resource
                             ->required()
                             ->numeric()
                             ->prefix('$')
+                            ->disabled()// ✅ Show amount but disable editing in table
+                            ->dehydrated()// ✅ Save to database even though disabled
                             ->step(0.01)
                             ->minValue(0)
                             ->default(0)
