@@ -139,13 +139,22 @@ class ViewTenant extends ViewRecord
                             ])->extraAttributes(['class' => 'bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-100 dark:border-green-800']),
 
                             // Card 3: Total Paid
-                            Infolists\Components\Group::make([
-                       Infolists\Components\TextEntry::make('total_paid')
-    ->label('Total Payments Received')
-    ->money('USD') 
-    ->badge()
-    ->color('info'),
-                                
+             Infolists\Components\Group::make([
+                                Infolists\Components\TextEntry::make('total_paid')
+                                    ->label('Total Payments Received')
+                                    ->state(function ($record) {
+                                        // ✅ Use query aggregation, NOT collection methods
+                                        // This runs a single SQL query instead of loading all payments
+                                        return $record->payments()
+                                            ->where('payments.status', 'paid')
+                                            ->sum('payments.paid_amount') ?? 0;
+                                    })
+                                    ->money('USD')
+                                    ->badge()
+                                    ->size(Infolists\Components\TextEntry\TextEntrySize::Large)
+                                    ->color('success')
+                                    ->icon('heroicon-m-banknotes'), 
+                                             
                                 Infolists\Components\TextEntry::make('paid_label')
                                     ->label('')
                                     ->state('All-time payments')
