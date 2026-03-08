@@ -470,6 +470,8 @@ class TenantResource extends Resource
     {
         return [
             // We'll add LeaseRelationManager later
+        TenantResource\RelationManagers\PaymentsRelationManager::class,
+
         ];
     }
 

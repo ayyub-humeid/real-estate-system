@@ -24,10 +24,8 @@ class ViewTenant extends ViewRecord
             'user:id,name,email,phone,company_id',    // User basic info
             'company:id,name',                         // ✅ DIRECT company relationship
             'leases.unit.property', 
-            'payments' => function($query) {
-                $query->where('payments.status', 'paid'); // Only load paid payments for the total
-            },
-                              // Lease details
+            // 'payments as all_payments'
+
         ]);
     }
 
@@ -140,7 +138,7 @@ class ViewTenant extends ViewRecord
 
                             // Card 3: Total Paid
              Infolists\Components\Group::make([
-                                Infolists\Components\TextEntry::make('total_paid')
+                                 Infolists\Components\TextEntry::make('total_paid')
                                     ->label('Total Payments Received')
                                     ->state(function ($record) {
                                         // ✅ Use query aggregation, NOT collection methods
@@ -154,7 +152,7 @@ class ViewTenant extends ViewRecord
                                     ->size(Infolists\Components\TextEntry\TextEntrySize::Large)
                                     ->color('success')
                                     ->icon('heroicon-m-banknotes'), 
-                                             
+
                                 Infolists\Components\TextEntry::make('paid_label')
                                     ->label('')
                                     ->state('All-time payments')
