@@ -8,6 +8,7 @@ use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Storage;
 
 class DocumentsRelationManager extends RelationManager
 {
@@ -81,7 +82,9 @@ class DocumentsRelationManager extends RelationManager
                 Tables\Actions\Action::make('download')
                     ->icon('heroicon-o-arrow-down-tray')
                     ->color('success')
-                    ->action(fn($record) => $record->download()),
+                    ->action(function ($record) {
+        return Storage::disk('public')->download($record->file_path);
+    }),
                 
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
