@@ -107,17 +107,24 @@ class PaymentResource extends Resource
                                         $lease->id => "#{$lease->id} - {$lease->unit->property->name} - Unit {$lease->unit->unit_number}"
                                     ]);
                             })
-                            ->afterStateUpdated(function ($state, Forms\Set $set) {
-                                // 🔥 Auto-fill amount from lease rent
-                                // WHY: User convenience + data accuracy
-                                if ($state) {
-                                    $lease = Lease::find($state);
-                                    if ($lease) {
-                                        $set('amount', $lease->rent_amount);
-                                        $set('remaining_amount', $lease->rent_amount);
-                                    }
-                                }
-                            }),
+          ->afterStateUpdated(function ($state, Forms\Set $set) {
+    if ($state) {
+        $lease = Lease::find($state);
+        if ($lease) {
+            $set('amount', $lease->rent_amount);
+            
+            // فقط للشهري املأ paid_amount
+            if ($lease->payment_frequency === 'monthly') {
+                $set('paid_amount', $lease->rent_amount);
+                $set('remaining_amount', 0);
+            } else {
+                // سنوي: خليه فاضي
+                $set('paid_amount', 0);
+                $set('remaining_amount', $lease->rent_amount);
+            }
+        }
+    }
+}),
 
                         // 🔥 Show lease details when selected (no extra query - data cached)
                         Forms\Components\Placeholder::make('lease_details')
@@ -141,6 +148,7 @@ class PaymentResource extends Resource
                                         <div><strong>Unit:</strong> {$lease->unit->unit_number}</div>
                                         <div><strong>Tenant:</strong> {$lease->tenant->user?->name}</div>
                                         <div><strong>Rent Amount:</strong> \${$lease->rent_amount}</div>
+                                       <div><strong>Current Outstanding Balance:</strong> <span class='text-red-600 font-bold'>\$" . number_format($lease->outstanding_balance ?? 0, 2) . "</span></div>
                                         <div><strong>Payment Frequency:</strong> " . ucfirst($lease->payment_frequency) . "</div>
                                     </div>
                                 ");
@@ -152,55 +160,108 @@ class PaymentResource extends Resource
                             ->default(now())
                             ->native(false),
 
-                        Forms\Components\TextInput::make('amount')
-                            ->required()
-                            ->numeric()
-                            ->prefix('$')
-                            ->disabled()// ✅ Show amount but disable editing in table
-                            ->dehydrated()// ✅ Save to database even though disabled
-                            ->step(0.01)
-                            ->minValue(0)
-                            ->default(0)
-                            ->live(debounce: 500) // 🔥 Update remaining amount when changed
-                            ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
-                                $paidAmount = $get('paid_amount') ?? 0;
-                                $set('remaining_amount', $state - $paidAmount);
-                            }),
-
-                        Forms\Components\DatePicker::make('payment_date')
-                            ->label('Payment Date (when paid)')
-                            ->helperText('Leave empty if not yet paid')
-                            ->native(false)
-                            ->maxDate(now()),
+                       // 🔥 CONDITIONAL AMOUNT FIELD
+                        // Hidden for monthly (auto-filled), Visible for annual/custom
+                      Forms\Components\TextInput::make('amount')
+    ->label(function (Forms\Get $get) {
+        $leaseId = $get('lease_id');
+        if ($leaseId) {
+            $lease = Lease::find($leaseId);
+            if ($lease?->payment_frequency === 'monthly') {
+                return 'Payment Amount (Monthly Rent)';
+            }
+        }
+        return 'Payment Amount (Installment)';
+    })
+    ->required()
+    ->numeric()
+    ->prefix('$')
+    ->step(0.01)
+    ->minValue(0)
+    ->default(0)
+    ->disabled(function (Forms\Get $get) {
+        $leaseId = $get('lease_id');
+        if (!$leaseId) return true;
+        
+        $lease = Lease::find($leaseId);
+        return $lease?->payment_frequency === 'monthly';
+    })
+    ->dehydrated()
+    ->helperText(function (Forms\Get $get) {
+        $leaseId = $get('lease_id');
+        if ($leaseId) {
+            $lease = Lease::find($leaseId);
+            if ($lease?->payment_frequency === 'monthly') {
+                return 'Fixed monthly rent amount';
+            }
+        }
+        return 'Enter installment amount';
+    })
+    ->live(debounce: 500)
+    ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
+        // Update paid_amount to match (for convenience)
+        // $set('paid_amount', $state);
+    }),
+                          
 
                         Forms\Components\TextInput::make('paid_amount')
-                            ->numeric()
-                            ->prefix('$')
-                            ->step(0.01)
-                            ->minValue(0)
-                            ->default(0)
-                            ->live(debounce: 500) // 🔥 Update remaining amount
-                            ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
-                                $amount = $get('amount') ?? 0;
-                                $set('remaining_amount', $amount - $state);
-                                
-                                // 🔥 Auto-update status based on payment
-                                if ($state >= $amount) {
-                                    $set('status', 'paid');
-                                } elseif ($state > 0) {
-                                    $set('status', 'partial');
-                                } else {
-                                    $set('status', 'pending');
-                                }
-                            }),
-
+    ->label('Amount Paid')
+    ->numeric()
+    ->prefix('$')
+    ->step(0.01)
+    ->minValue(0)
+    ->default(function (Forms\Get $get) {
+        $leaseId = $get('lease_id');
+        if (!$leaseId) return 0;
+        
+        $lease = Lease::find($leaseId);
+        // شهري: املأ تلقائي
+        if ($lease?->payment_frequency === 'monthly') {
+            return $lease->rent_amount;
+        }
+        return 0;
+    })
+    ->disabled(function (Forms\Get $get) {
+        $leaseId = $get('lease_id');
+        if (!$leaseId) return false;
+        
+        $lease = Lease::find($leaseId);
+        return $lease?->payment_frequency === 'monthly';
+    })
+    ->dehydrated()
+    ->live(debounce: 500)
+    ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
+        $amount = $get('amount') ?? 0;
+        $set('remaining_amount', $amount - $state);
+        
+        if ($state >= $amount) {
+            $set('status', 'paid');
+        } elseif ($state > 0) {
+            $set('status', 'partial');
+        } else {
+            $set('status', 'pending');
+        }
+    }),
+ 
                         Forms\Components\TextInput::make('remaining_amount')
+                            ->label('Remaining (This Payment)')
                             ->numeric()
                             ->prefix('$')
-                            ->disabled() // ✅ Auto-calculated, user can't edit
-                            ->dehydrated(), // ✅ Save to database even though disabled
-
+                            ->disabled()
+                            ->dehydrated()
+                        ->helperText(function (Forms\Get $get) {
+                        $leaseId = $get('lease_id');
+                    if ($leaseId) {
+                    $lease = Lease::find($leaseId);
+                 if ($lease?->payment_frequency === 'monthly') {
+                    return 'Monthly: Amount - Paid Amount';
+             }
+        return 'Annual: This Payment Remaining';
+    }
+    return 'Auto-calculated';
+}),
                         Forms\Components\Select::make('payment_method')
+                        ->required()
                             ->options([
                                 'cash' => 'Cash',
                                 'bank_transfer' => 'Bank Transfer',

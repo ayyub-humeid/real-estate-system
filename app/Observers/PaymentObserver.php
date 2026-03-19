@@ -7,47 +7,53 @@ use App\Models\Payment;
 
 class PaymentObserver
 {
-    /**
-     * Handle the Payment "created" event.
-     */
-    public function created(Payment $payment): void
+    public function saved(Payment $payment): void
     {
-        $this->updateLeaseBalance($payment);
+        $this->updateLeaseBalanceAndStatus($payment);
     }
 
-    /**
-     * Handle the Payment "updated" event.
-     */
-    public function updated(Payment $payment): void
-    {
-        $this->updateLeaseBalance($payment);
-    }
-
-    /**
-     * Handle the Payment "deleted" event.
-     */
     public function deleted(Payment $payment): void
     {
-        $this->updateLeaseBalance($payment);
+        $this->updateLeaseBalanceAndStatus($payment);
     }
 
-    /**
-     * Update the lease outstanding balance
-     */
-    protected function updateLeaseBalance(Payment $payment): void
+    protected function updateLeaseBalanceAndStatus(Payment $payment): void
     {
-        if (!$payment->lease) {
-            return;
+        $lease = $payment->lease;
+        
+        // إذا تم حذف العقد أو غير موجود، نوقف التنفيذ
+        if (!$lease) return;
+
+        // 1️⃣ حساب الرصيد المتبقي (Outstanding Balance)
+        if ($lease->payment_frequency === 'monthly') {
+            $totalRemaining = $lease->payments()
+                ->whereNotIn('status', ['cancelled'])
+                ->sum('remaining_amount');
+        } else {
+            $totalPaid = $lease->payments()
+                ->whereNotIn('status', ['cancelled'])
+                ->sum('paid_amount');
+            // تأكد إن rent_amount موجودة عشان ما يعطي سالب بالغلط
+            $totalRemaining = max(0, $lease->rent_amount - $totalPaid);
         }
 
-        // Calculate total remaining amount from all payments for this lease
-        $totalRemaining = $payment->lease->payments()
-            ->whereNotIn('status', ['cancelled'])
-            ->sum('remaining_amount');
+        // 2️⃣ تحديد حالة العقد تلقائياً (Auto-update Lease Status)
+        $newStatus = $lease->status; // الحالة الافتراضية هي الحالة الحالية
 
-        // Update the lease outstanding balance
-        $payment->lease->update([
-            'outstanding_balance' => $totalRemaining
-        ]);
+        $hasOverduePayments = $lease->payments()->where('status', 'overdue')->exists();
+
+        if ($hasOverduePayments) {
+            // إذا في دفعة متأخرة، العقد يصبح متأخر/متعثر
+            $newStatus = 'defaulted'; // أو 'overdue' حسب المسميات في موديل العقد عندك
+        } elseif ($totalRemaining <= 0) {
+            $newStatus = 'paid'; // أو 'active' أو 'completed'
+        } else {
+            $newStatus = 'active'; 
+        }
+
+        $lease->forceFill([
+            'outstanding_balance' => $totalRemaining,
+            'status' => $newStatus
+        ])->saveQuietly();
     }
 }
