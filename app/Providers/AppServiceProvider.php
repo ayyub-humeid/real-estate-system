@@ -14,7 +14,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-                Payment::observe(PaymentObserver::class);
+        
+        // Register the PaymentObserver
+        // \App\Models\Payment::observe(PaymentObserver::class);
 
     }
 
@@ -24,5 +26,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Schema::defaultStringLength(191);
+        Payment::observe(PaymentObserver::class);
+
     }
 }
