@@ -5,6 +5,7 @@ namespace App\Providers;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 use App\Observers\PaymentObserver;
+use App\Models\Payment;
 
 
 class AppServiceProvider extends ServiceProvider
