@@ -44,6 +44,7 @@ class Lease extends Model
         'termination_reason',
         'notes',
         'special_terms',
+        'outstanding_balance'
     ];
 
     protected $casts = [
@@ -53,6 +54,7 @@ class Lease extends Model
         'rent_amount' => 'decimal:2',
         'deposit_amount' => 'decimal:2',
         'payment_day' => 'integer',
+        'outstanding_balance' => 'decimal:2',
     ];
 
     // Relationships
