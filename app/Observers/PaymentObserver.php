@@ -1,4 +1,5 @@
 <?php
+// app/Observers/PaymentObserver.php
 
 namespace App\Observers;
 
@@ -11,7 +12,7 @@ class PaymentObserver
      */
     public function created(Payment $payment): void
     {
-        //
+        $this->updateLeaseBalance($payment);
     }
 
     /**
@@ -19,7 +20,7 @@ class PaymentObserver
      */
     public function updated(Payment $payment): void
     {
-        //
+        $this->updateLeaseBalance($payment);
     }
 
     /**
@@ -27,22 +28,26 @@ class PaymentObserver
      */
     public function deleted(Payment $payment): void
     {
-        //
+        $this->updateLeaseBalance($payment);
     }
 
     /**
-     * Handle the Payment "restored" event.
+     * Update the lease outstanding balance
      */
-    public function restored(Payment $payment): void
+    protected function updateLeaseBalance(Payment $payment): void
     {
-        //
-    }
+        if (!$payment->lease) {
+            return;
+        }
 
-    /**
-     * Handle the Payment "force deleted" event.
-     */
-    public function forceDeleted(Payment $payment): void
-    {
-        //
+        // Calculate total remaining amount from all payments for this lease
+        $totalRemaining = $payment->lease->payments()
+            ->whereNotIn('status', ['cancelled'])
+            ->sum('remaining_amount');
+
+        // Update the lease outstanding balance
+        $payment->lease->update([
+            'outstanding_balance' => $totalRemaining
+        ]);
     }
 }
