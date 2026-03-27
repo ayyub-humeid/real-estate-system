@@ -110,10 +110,12 @@ class PaymentResource extends Resource
                             })
                             ->afterStateUpdated(function ($state, Forms\Set $set) {
                                 if ($state) {
-                                    $lease = Lease::find($state);
+                                    $lease = Lease::query()
+                                 ->withSum('payments as total_paid', 'paid_amount') 
+                                ->find($state);
                             
                                     if ($lease) {
-                                        $set('amount', $lease->rent_amount);
+                                        // $set('amount', $lease->rent_amount);
                             
                             
                                         if ($lease->payment_frequency === 'monthly') {

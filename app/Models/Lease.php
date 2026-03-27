@@ -128,7 +128,14 @@ class Lease extends Model
 
     public function getTotalPaidAttribute(): float
     {
-        return $this->payments()->where('status', 'paid')->sum('paid_amount');
+        // 🎯 PERFORMANCE OPTIMIZATION: 
+        // نتحقق أولاً إذا كان المجموع قد تم تحميله مسبقاً باستخدام withSum في الـ Query
+        // هذا يمنع تنفيذ استعلام إضافي (N+1) إذا كنا قد جلبنا المجموع مسبقاً
+        if (array_key_exists('total_paid', $this->attributes)) {
+            return (float) $this->attributes['total_paid'];
+        }
+
+        return (float) $this->payments()->where('status', 'paid')->sum('paid_amount');
     }
     public function getRemainingAmountAttribute()
 {
@@ -137,10 +144,7 @@ class Lease extends Model
 
 public function getTotalOutstandingAttribute(): float
 {
-    return $this->payments()
-        ->whereIn('status', ['pending', 'overdue', 'partial'])
-        ->get()
-        ->sum(fn($payment) => $payment->amount - $payment->paid_amount);
+    return max(0, $this->rent_amount - $this->total_paid);
 }
 
     public function getDurationInMonthsAttribute(): ?int
