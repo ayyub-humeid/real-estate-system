@@ -126,34 +126,42 @@ class PaymentResource extends Resource
     }
 }),
 
-                        // 🔥 Show lease details when selected (no extra query - data cached)
-                        Forms\Components\Placeholder::make('lease_details')
-                            ->label('Lease Details')
-                            ->content(function (Forms\Get $get) {
-                                $leaseId = $get('lease_id');
-                                if (!$leaseId) {
-                                    return 'Select a lease to see details';
-                                }
+        Forms\Components\Placeholder::make('lease_details')
+    ->label('Lease Details')
+    ->content(function (Forms\Get $get) {
+        $leaseId = $get('lease_id');
+        if (!$leaseId) {
+            return 'Select a lease to see details';
+        }
 
-                                // ✅ PERFORMANCE: Find from collection if possible
-                                // WHY: If lease is already loaded in form, reuse it
-                                // Avoid extra database query
-                                $lease = Lease::with(['unit.property', 'tenant.user'])->find($leaseId);
-                                
-                                if (!$lease) return '';
+        $lease = Lease::with(['unit.property', 'tenant.user'])->find($leaseId);
+        
+        if (!$lease) return '';
 
-                                return new \Illuminate\Support\HtmlString("
-                                    <div class='bg-gray-50 dark:bg-gray-800 p-3 rounded-lg space-y-1 text-sm'>
-                                        <div><strong>Property:</strong> {$lease->unit->property->name}</div>
-                                        <div><strong>Unit:</strong> {$lease->unit->unit_number}</div>
-                                        <div><strong>Tenant:</strong> {$lease->tenant->user?->name}</div>
-                                        <div><strong>Rent Amount:</strong> \${$lease->rent_amount}</div>
-                                       <div><strong>Current Outstanding Balance:</strong> <span class='text-red-600 font-bold'>\$" . number_format($lease->outstanding_balance ?? 0, 2) . "</span></div>
-                                        <div><strong>Payment Frequency:</strong> " . ucfirst($lease->payment_frequency) . "</div>
-                                    </div>
-                                ");
-                            })
-                            ->visible(fn(Forms\Get $get) => filled($get('lease_id'))),
+        // ✅ حساب الرصيد المتبقي الحالي للعقد
+        $currentOutstanding = $lease->outstanding_balance ?? 0;
+        
+        // ✅ حساب الرصيد بعد هذه الدفعة الجديدة
+        $newPaidAmount = $get('paid_amount') ?? 0;
+        $remainingAfterThisPayment = max(0, $currentOutstanding - $newPaidAmount);
+
+        return new \Illuminate\Support\HtmlString("
+            <div class='bg-gray-50 dark:bg-gray-800 p-3 rounded-lg space-y-1 text-sm'>
+                <div><strong>Property:</strong> {$lease->unit->property->name}</div>
+                <div><strong>Unit:</strong> {$lease->unit->unit_number}</div>
+                <div><strong>Tenant:</strong> {$lease->tenant->user?->name}</div>
+                <div><strong>Rent Amount:</strong> \${$lease->rent_amount}</div>
+                <div class='pt-2 border-t border-gray-200 dark:border-gray-700'>
+                    <div><strong>Current Outstanding Balance:</strong> <span class='text-red-600 font-bold'>\$" . number_format($currentOutstanding, 2) . "</span></div>
+                    " . ($newPaidAmount > 0 ? "
+                    <div><strong>After This Payment:</strong> <span class='text-" . ($remainingAfterThisPayment > 0 ? 'orange' : 'green') . "-600 font-bold'>\$" . number_format($remainingAfterThisPayment, 2) . "</span></div>
+                    " : "") . "
+                </div>
+                <div><strong>Payment Frequency:</strong> " . ucfirst($lease->payment_frequency) . "</div>
+            </div>
+        ");
+    })
+    ->visible(fn(Forms\Get $get) => filled($get('lease_id'))),
 
                         Forms\Components\DatePicker::make('due_date')
                             ->required()
