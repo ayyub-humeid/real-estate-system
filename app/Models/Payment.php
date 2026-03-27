@@ -84,6 +84,32 @@ class Payment extends Model
     }
 
     // Accessors
+    // app/Models/Payment.php
+
+public function getPaymentSummaryAttribute(): string
+{
+    // جلب العقد المرتبط
+    $lease = $this->lease;
+    
+    if (!$lease) {
+        return 'يرجى اختيار عقد أولاً';
+    }
+
+    $totalContractAmount = (float) $lease->rent_amount; // أو القيمة الإجمالية للعقد حسب تسمية الحقل عندك
+    
+    // حساب مجموع كل المبالغ المدفوعة في هذا العقد (باستثناء الدفعة الحالية إذا كانت موجودة)
+    $totalPaidSoFar = (float) $lease->payments()
+        ->where('status', 'paid')
+        ->when($this->id, fn($query) => $query->where('id', '!=', $this->id))
+        ->sum('paid_amount');
+
+    $remaining = $totalContractAmount - $totalPaidSoFar;
+
+    // إرجاع النص بالشكل الذي طلبته: 90000 - 30000 = 60000
+    return number_format($totalContractAmount, 2) . " - " . 
+           number_format($totalPaidSoFar, 2) . " = " . 
+           number_format($remaining, 2);
+}
     public function getIsPaidAttribute(): bool
     {
         return $this->status === 'paid';
