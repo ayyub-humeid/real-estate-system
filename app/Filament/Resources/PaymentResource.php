@@ -100,6 +100,7 @@ class PaymentResource extends Resource
                                                 $q->where('name', 'like', "%{$search}%")
                                             );
                                     })
+                                    ->withSum('payments as total_paid', 'paid_amount')
                                     ->with(['unit.property', 'tenant.user']) // ✅ Eager load for display
                                     ->limit(50) // ✅ PERFORMANCE: Limit results
                                     ->get()
