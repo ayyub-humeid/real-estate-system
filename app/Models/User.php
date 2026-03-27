@@ -109,6 +109,11 @@ public function tenant(): HasOne
     return $this->hasOne(Tenant::class);
 }
 
+public function employee(): HasOne
+{
+    return $this->hasOne(Employee::class);
+}
+
 public function isTenant(): bool
 {
     return $this->role === 'tenant' && $this->tenant()->exists();
