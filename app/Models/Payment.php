@@ -15,7 +15,7 @@ class Payment extends Model
 
     protected $fillable = [
         'lease_id',
-        'amount',
+        // 'amount',
         'due_date',
         'payment_date',
         'payment_method',
@@ -23,7 +23,7 @@ class Payment extends Model
         'check_number',
         'status',
         'paid_amount',
-        'remaining_amount',
+        // 'remaining_amount',
         'notes',
         'recorded_by',
     ];

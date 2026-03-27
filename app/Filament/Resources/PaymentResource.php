@@ -108,24 +108,24 @@ class PaymentResource extends Resource
                                         $lease->id => "#{$lease->id} - {$lease->unit->property->name} - Unit {$lease->unit->unit_number}"
                                     ]);
                             })
-          ->afterStateUpdated(function ($state, Forms\Set $set) {
-    if ($state) {
-        $lease = Lease::find($state);
-        if ($lease) {
-            $set('amount', $lease->rent_amount);
-            
-            // فقط للشهري املأ paid_amount
-            if ($lease->payment_frequency === 'monthly') {
-                $set('paid_amount', $lease->rent_amount);
-                $set('remaining_amount', 0);
-            } else {
-                // سنوي: خليه فاضي
-                $set('paid_amount', 0);
-                $set('remaining_amount', $lease->rent_amount);
-            }
-        }
-    }
-}),
+                            ->afterStateUpdated(function ($state, Forms\Set $set) {
+                                if ($state) {
+                                    $lease = Lease::find($state);
+                            
+                                    if ($lease) {
+                                        $set('amount', $lease->rent_amount);
+                            
+                            
+                                        if ($lease->payment_frequency === 'monthly') {
+                                            $set('paid_amount', $lease->rent_amount);
+                                            $set('remaining_amount', 0);
+                                        } else {
+                                            $set('paid_amount', 0);
+                                            $set('remaining_amount', $lease->remaining_amount);
+                                        }
+                                    }
+                                }
+                            }),
 
                         // 🔥 Show lease details when selected (no extra query - data cached)
                         Forms\Components\Placeholder::make('lease_details')

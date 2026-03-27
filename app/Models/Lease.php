@@ -130,6 +130,10 @@ class Lease extends Model
     {
         return $this->payments()->where('status', 'paid')->sum('paid_amount');
     }
+    public function getRemainingAmountAttribute()
+{
+    return max(0, $this->rent_amount - $this->total_paid);
+}
 
     public function getTotalOutstandingAttribute(): float
     {
