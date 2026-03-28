@@ -116,11 +116,11 @@ class PaymentResource extends Resource
 
                                     if ($lease) {
                                         // ✅ Only auto-fill Amount Due (the installment target)
-                                        // Amount Paid is left for the admin to enter manually
-                                        // Status defaults to 'pending' since nothing is paid yet
-                                        $set('amount', $lease->rent_amount);
-                                        $set('paid_amount', null);
-                                        $set('remaining_amount', $lease->rent_amount);
+                                         // Amount Paid is left for the admin to enter manually
+                                         // Status defaults to 'pending' since nothing is paid yet
+                                         $set('amount', $lease->rent_amount);
+                                         $set('paid_amount', 0);
+                                         $set('remaining_amount', $lease->rent_amount);
                                         $set('status', 'pending');
                                     }
                                 }
@@ -206,7 +206,6 @@ class PaymentResource extends Resource
                             ->label('Amount Paid')
                             ->numeric()
                             ->prefix('$')
-                            ->default(0)
                             ->live(debounce: 500)
                             ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
                                 $due = (float) ($get('amount') ?? 0);
