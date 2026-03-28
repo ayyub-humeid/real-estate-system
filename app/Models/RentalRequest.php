@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class RentalRequest extends Model
 {
+    use \App\Traits\HasCompany;
+
     protected $fillable = [
         'company_id',
         'tenant_id',
@@ -41,11 +43,6 @@ class RentalRequest extends Model
     const PRIORITY_LOW    = 'low';
     const PRIORITY_MEDIUM = 'medium';
     const PRIORITY_HIGH   = 'high';
-
-    public function company(): BelongsTo
-    {
-        return $this->belongsTo(Company::class);
-    }
 
     public function tenant(): BelongsTo
     {

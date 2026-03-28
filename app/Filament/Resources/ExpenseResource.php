@@ -94,12 +94,7 @@ class ExpenseResource extends Resource
                         ->description('Link this expense to a specific property or unit')
                         ->schema([
                             Forms\Components\Select::make('property_id')
-                                ->label('Property')
-                                ->options(fn (Forms\Get $get) => 
-                                    \App\Models\Property::query()
-                                        ->where('company_id', $get('company_id') ?? auth()->user()->company_id)
-                                        ->pluck('name', 'id')
-                                )
+                                ->relationship('property', 'name')
                                 ->searchable()
                                 ->preload()
                                 ->live()
@@ -107,15 +102,8 @@ class ExpenseResource extends Resource
 
                             Forms\Components\Select::make('unit_id')
                                 ->label('Unit')
-                                ->options(fn (Forms\Get $get) => 
-                                    \App\Models\Unit::query()
-                                        ->when($get('property_id'), fn ($q, $id) => $q->where('property_id', $id))
-                                        ->unless($get('property_id'), fn ($q) => 
-                                            $q->whereHas('property', fn ($qp) => 
-                                                $qp->where('company_id', $get('company_id') ?? auth()->user()->company_id)
-                                            )
-                                        )
-                                        ->pluck('unit_number', 'id')
+                                ->relationship('unit', 'unit_number', fn (Builder $q, Forms\Get $get) =>
+                                    $q->when($get('property_id'), fn ($q, $id) => $q->where('property_id', $id))
                                 )
                                 ->searchable()
                                 ->preload(),

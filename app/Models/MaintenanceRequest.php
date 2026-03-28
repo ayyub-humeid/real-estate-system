@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class MaintenanceRequest extends Model
 {
+    use \App\Traits\HasCompany;
+
     protected $fillable = [
         'unit_id',
         'company_id',
@@ -45,11 +47,6 @@ class MaintenanceRequest extends Model
     public function unit(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Unit::class);
-    }
-
-    public function company(): \Illuminate\Database\Eloquent\Relations\BelongsTo
-    {
-        return $this->belongsTo(Company::class);
     }
 
     public function reporter(): \Illuminate\Database\Eloquent\Relations\BelongsTo

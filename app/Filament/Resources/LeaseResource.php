@@ -43,12 +43,28 @@ class LeaseResource extends Resource
             ->withSum(['payments as total_outstanding' => fn($q) => $q->where('status', '!=', 'cancelled')], 'remaining_amount');
     }
 
+    /**
+     * Reusable company field logic
+     */
+    private static function companyField(): Forms\Components\Component
+    {
+        return Forms\Components\Select::make('company_id')
+            ->label('Company')
+            ->relationship('company', 'name')
+            ->searchable()
+            ->preload()
+            ->required()
+            ->visible(fn () => auth()->user()->isSuperAdmin());
+    }
+
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
                 Forms\Components\Section::make('Lease Information')
                     ->schema([
+                        self::companyField(),
+
                         Forms\Components\Select::make('unit_id')
                             ->label('Unit')
                             ->required()
@@ -247,6 +263,14 @@ class LeaseResource extends Resource
                     ->color('danger')
                     ->sortable(),
 
+                Tables\Columns\TextColumn::make('company.name')
+                    ->label('Company')
+                    ->searchable()
+                    ->sortable()
+                    ->badge()
+                    ->color('info')
+                    ->visible(fn () => auth()->user()->isSuperAdmin()),
+
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -254,6 +278,12 @@ class LeaseResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                Tables\Filters\SelectFilter::make('company')
+                    ->relationship('company', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->visible(fn () => auth()->user()->isSuperAdmin()),
+
                 Tables\Filters\SelectFilter::make('status')
                     ->options([
                         'draft' => 'Draft',

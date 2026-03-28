@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CompanySetting extends Model
 {
+    use \App\Traits\HasCompany;
+
     protected $fillable = [
         'company_id',
         'logo',
@@ -35,11 +37,6 @@ class CompanySetting extends Model
         'late_payment_fee_percentage' => 'decimal:2',
     ];
 
-    public function company(): BelongsTo
-    {
-        return $this->belongsTo(Company::class);
-    }
-    
     // ✅ Helper: Get logo URL
     public function getLogoUrlAttribute(): ?string
     {

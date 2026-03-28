@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Tenant extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, \App\Traits\HasCompany;
 
     protected $fillable = [
         'user_id',
@@ -67,15 +67,6 @@ class Tenant extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function company(): BelongsTo
-    {
-        return $this->belongsTo(Company::class);
-    }
-
-    // public function leases(): HasMany
-    // {
-    //     return $this->hasMany(Lease::class, 'tenant_id', 'user_id');
-    // }
     public function leases(): HasMany
     {
         return $this->hasMany(Lease::class, 'tenant_id');

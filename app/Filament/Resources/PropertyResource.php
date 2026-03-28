@@ -30,6 +30,20 @@ class PropertyResource extends Resource
             ->withCount('units');
     }
 
+    /**
+     * Reusable company field logic
+     */
+    private static function companyField(): Forms\Components\Component
+    {
+        return Forms\Components\Select::make('company_id')
+            ->label('Company')
+            ->relationship('company', 'name')
+            ->searchable()
+            ->preload()
+            ->required()
+            ->visible(fn () => auth()->user()->isSuperAdmin());
+    }
+
     public static function form(Form $form): Form
     {
         return $form->schema([
@@ -37,14 +51,7 @@ class PropertyResource extends Resource
             Forms\Components\Section::make('Property Information')
                 ->description('Basic details about the property')
                 ->schema([
-                    Forms\Components\Select::make('company_id')
-                        ->label('Company')
-                        ->relationship('company', 'name')
-                        ->searchable()
-                        ->preload()
-                        ->required()
-                        ->native(false)
-                        ->prefixIcon('heroicon-m-building-office'),
+                    self::companyField(),
 
                     Forms\Components\Select::make('location_id')
                         ->label('Location')

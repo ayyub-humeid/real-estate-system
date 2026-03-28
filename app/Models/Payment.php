@@ -11,18 +11,29 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Payment extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, \App\Traits\HasCompany;
     
     protected static function boot()
     {
         parent::boot();
         
+        static::creating(function ($payment) {
+            // Automatically set company_id from the lease if not set
+            if (!$payment->company_id && $payment->lease_id) {
+                $lease = Lease::find($payment->lease_id);
+                if ($lease) {
+                    $payment->company_id = $lease->company_id;
+                }
+            }
+        });
+
         static::saving(function ($payment) {
             $payment->remaining_amount = max(0, (float) ($payment->amount ?? 0) - (float) ($payment->paid_amount ?? 0));
         });
     }
 
     protected $fillable = [
+        'company_id',
         'lease_id',
         'amount',
         'due_date',

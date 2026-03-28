@@ -12,14 +12,15 @@ use Carbon\Carbon;
 
 class Lease extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, \App\Traits\HasCompany;
     
     protected static function boot()
     {
         parent::boot();
         
         static::creating(function ($lease) {
-            // Automatically set company_id from the unit's property
+            // If company_id is still not set by the trait (e.g. if created outside an Auth session),
+            // try to fetch it from the unit's property.
             if (!$lease->company_id && $lease->unit_id) {
                 $unit = Unit::with('property')->find($lease->unit_id);
                 if ($unit && $unit->property) {
@@ -58,11 +59,6 @@ class Lease extends Model
     ];
 
     // Relationships
-    public function company(): BelongsTo
-    {
-        return $this->belongsTo(Company::class);
-    }
-
     public function unit(): BelongsTo
     {
         return $this->belongsTo(Unit::class);

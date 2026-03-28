@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class User extends Authenticatable implements FilamentUser
 {
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, \App\Traits\HasCompany;
 
     protected $fillable = [
         'company_id',
@@ -41,12 +41,7 @@ class User extends Authenticatable implements FilamentUser
 
     public function canAccessPanel(Panel $panel): bool
     {
-        return in_array($this->role, ['super_admin', 'company_admin', 'property_manager']);
-    }
-
-    public function company(): BelongsTo
-    {
-        return $this->belongsTo(Company::class);
+        return in_array($this->role, ['super_admin', 'company_admin', 'property_manager', 'tenant']);
     }
 
     public function isSuperAdmin(): bool

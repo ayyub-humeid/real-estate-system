@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Expense extends Model
 {
+    use \App\Traits\HasCompany;
+
     protected $fillable = [
         'company_id',
         'property_id',
@@ -47,11 +49,6 @@ class Expense extends Model
     const STATUS_PENDING   = 'pending';
     const STATUS_PAID      = 'paid';
     const STATUS_CANCELLED = 'cancelled';
-
-    public function company(): BelongsTo
-    {
-        return $this->belongsTo(Company::class);
-    }
 
     public function property(): BelongsTo
     {

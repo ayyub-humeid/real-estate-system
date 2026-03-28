@@ -47,6 +47,20 @@ class TenantResource extends Resource
         ;
     }
 
+    /**
+     * Reusable company field logic
+     */
+    private static function companyField(): Forms\Components\Component
+    {
+        return Forms\Components\Select::make('company_id')
+            ->label('Company')
+            ->relationship('company', 'name')
+            ->searchable()
+            ->preload()
+            ->required()
+            ->visible(fn () => auth()->user()->isSuperAdmin());
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -54,8 +68,9 @@ class TenantResource extends Resource
                 // 🔥 SECTION 1: Basic Information (saves to users table)
                 Forms\Components\Section::make('Basic Information')
                     ->description('This information will be saved in the user account')
-                    // ->relationship('user')
                     ->schema([
+                        self::companyField(),
+
                         Forms\Components\TextInput::make('user.name')
                             ->label('Full Name')
                             ->required()
@@ -108,29 +123,9 @@ class TenantResource extends Resource
                                     : 'Leave empty to keep current password'
                             ),
 
-                        // 🔥 Hidden fields (auto-filled)
-                        // Forms\Components\Hidden::make('user.company_id')
-                        //     ->default(fn() => auth()->user()->company_id),
-                        Forms\Components\Select::make('user.company_id')
-                            ->label('Company')
-                            ->relationship('company', 'name') // لازم علاقة company() في User Model
-                            ->searchable()
-                            ->preload()
-                            ->required(fn() => auth()->user()->role === 'super_admin')
-                            ->visible(fn() => auth()->user()->role === 'super_admin')
-                            ->default(fn() => auth()->user()->company_id ?? null),
-
-                        Forms\Components\Hidden::make('user.company_id')
-                            ->default(fn() => auth()->user()->company_id)
-                            ->visible(fn() => auth()->user()->role !== 'super_admin')
-                            ->dehydrated(),
-
                         Forms\Components\Hidden::make('user.role')
                             ->default('tenant'),
 
-
-                        // Forms\Components\Hidden::make('company_id')
-                        //     ->default(fn() => auth()->user()->company_id),
                         Forms\Components\FileUpload::make('avatar')
                             ->label('Tenant Photo')
                             ->image()

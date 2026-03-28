@@ -29,12 +29,28 @@ class UnitResource extends Resource
             ]);
     }
 
+    /**
+     * Reusable company field logic
+     */
+    private static function companyField(): Forms\Components\Component
+    {
+        return Forms\Components\Select::make('company_id')
+            ->label('Company')
+            ->relationship('company', 'name')
+            ->searchable()
+            ->preload()
+            ->required()
+            ->visible(fn () => auth()->user()->isSuperAdmin());
+    }
+
     public static function form(Form $form): Form
     {
         return $form->schema([
 
             Forms\Components\Section::make('Unit Details')
                 ->schema([
+                    self::companyField(),
+
                     Forms\Components\Select::make('property_id')
                         ->label('Property')
                         ->relationship('property', 'name')
@@ -126,6 +142,14 @@ class UnitResource extends Resource
                     ->sortable()
                     ->icon('heroicon-m-building-office-2'),
 
+                Tables\Columns\TextColumn::make('company.name')
+                    ->label('Company')
+                    ->searchable()
+                    ->sortable()
+                    ->badge()
+                    ->color('info')
+                    ->visible(fn () => auth()->user()->isSuperAdmin()),
+
                 Tables\Columns\TextColumn::make('unit_number')
                     ->label('Unit #')
                     ->searchable()
@@ -159,6 +183,12 @@ class UnitResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                Tables\Filters\SelectFilter::make('company')
+                    ->relationship('company', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->visible(fn () => auth()->user()->isSuperAdmin()),
+
                 Tables\Filters\SelectFilter::make('property')
                     ->relationship('property', 'name')
                     ->searchable()

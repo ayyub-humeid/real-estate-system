@@ -74,14 +74,7 @@ class RentalRequestResource extends Resource
                         ->schema([
                             Forms\Components\Select::make('preferred_type')
                                 ->options(function (Forms\Get $get) {
-                                    $companyId = $get('company_id') ?? auth()->user()->company_id;
-                                    
-                                    if (! $companyId) {
-                                        return [];
-                                    }
-
                                     return \App\Models\Unit::query()
-                                        ->whereHas('property', fn ($q) => $q->where('company_id', $companyId))
                                         ->whereNotNull('type')
                                         ->distinct()
                                         ->pluck('type', 'type')
@@ -110,15 +103,8 @@ class RentalRequestResource extends Resource
                         ->schema([
                             Forms\Components\Select::make('unit_id')
                                 ->label('Assigned Unit (Optional)')
-                                ->options(fn (Forms\Get $get) => 
-                                    \App\Models\Unit::query()
-                                        ->whereHas('property', fn ($q) => 
-                                            $q->where('company_id', $get('company_id') ?? auth()->user()->company_id)
-                                        )
-                                        ->with('property')
-                                        ->get()
-                                        ->mapWithKeys(fn ($u) => [$u->id => "{$u->property->name} - Unit {$u->unit_number}"])
-                                )
+                                ->relationship('unit', 'unit_number')
+                                ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->property->name} - Unit {$record->unit_number}")
                                 ->searchable()
                                 ->placeholder('Select a unit'),
 
@@ -137,15 +123,8 @@ class RentalRequestResource extends Resource
                         ->schema([
                             Forms\Components\Select::make('tenant_id')
                                 ->label('Tenant')
-                                ->options(fn (Forms\Get $get) => 
-                                    \App\Models\Tenant::query()
-                                        ->where('company_id', $get('company_id') ?? auth()->user()->company_id)
-                                        ->with('user')
-                                        ->get()
-                                        ->mapWithKeys(fn ($t) => [
-                                            $t->id => ($t->user->name ?? 'N/A') . ' (' . ($t->user->email ?? '') . ')'
-                                        ])
-                                )
+                                ->relationship('tenant', 'id')
+                                ->getOptionLabelFromRecordUsing(fn ($record) => ($record->user->name ?? 'N/A') . ' (' . ($record->user->email ?? '') . ')')
                                 ->required()
                                 ->searchable()
                                 ->placeholder('Select a tenant'),

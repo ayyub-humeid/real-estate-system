@@ -10,7 +10,10 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Unit extends Model
 {
+    use \App\Traits\HasCompany;
+
     protected $fillable = [
+        'company_id',
         'property_id',
         'unit_number',
         'rent_price',

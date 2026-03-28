@@ -17,13 +17,4 @@ class EditExpense extends EditRecord
             Actions\DeleteAction::make(),
         ];
     }
-
-    protected function mutateFormDataBeforeSave(array $data): array
-    {
-        if (! auth()->user()->isSuperAdmin()) {
-            $data['company_id'] = auth()->user()->company_id;
-        }
-
-        return $data;
-    }
 }

@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Property extends Model
 {
+    use \App\Traits\HasCompany;
+
     protected $fillable = [
         'company_id',
         'location_id',
@@ -18,11 +20,6 @@ class Property extends Model
     ];
 
     // --- Relationships ---
-
-    public function company(): BelongsTo
-    {
-        return $this->belongsTo(Company::class);
-    }
 
     public function location(): BelongsTo
     {
