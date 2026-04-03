@@ -22,5 +22,10 @@ class UserObserver
                 }
             }
         }
+
+        // Notify new users
+        if ($user->wasRecentlyCreated) {
+            $user->notify(new \App\Notifications\WelcomeNotification());
+        }
     }
 }

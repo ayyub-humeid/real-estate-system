@@ -29,7 +29,9 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Schema::defaultStringLength(191);
-        Payment::observe(PaymentObserver::class);
-        User::observe(UserObserver::class);
+        \App\Models\Payment::observe(\App\Observers\PaymentObserver::class);
+        \App\Models\User::observe(\App\Observers\UserObserver::class);
+        \App\Models\MaintenanceRequest::observe(\App\Observers\MaintenanceRequestObserver::class);
+        \App\Models\RentalRequest::observe(\App\Observers\RentalRequestObserver::class);
     }
 }

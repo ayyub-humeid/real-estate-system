@@ -10,6 +10,21 @@ class PaymentObserver
     public function saved(Payment $payment): void
     {
         $this->updateLeaseBalanceAndStatus($payment);
+
+        // Notify Tenant (if user exists)
+        $tenantUser = $payment->lease->tenant->user;
+        if ($tenantUser) {
+            $tenantUser->notify(new \App\Notifications\PaymentNotification($payment));
+        }
+
+        // Notify Financial Managers in same company
+        $managers = \App\Models\User::where('company_id', $payment->company_id)
+            ->role('financial_manager')
+            ->get();
+
+        foreach ($managers as $manager) {
+            $manager->notify(new \App\Notifications\PaymentNotification($payment));
+        }
     }
 
     public function deleted(Payment $payment): void
