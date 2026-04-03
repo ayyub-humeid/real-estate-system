@@ -26,16 +26,12 @@ class RolesAndPermissionsSeeder extends Seeder
         // 2. Property Manager role
         $propertyManager = Role::firstOrCreate(['name' => 'property_manager', 'guard_name' => 'web']);
         $propertyManagerPermissions = Permission::where(function ($query) {
-            $query->where('name', 'like', '%_property')
-                  ->orWhere('name', 'like', '%_unit')
-                  ->orWhere('name', 'like', '%_unit::feature')
-                  ->orWhere('name', 'like', '%_image')
-                  ->orWhere('name', 'like', '%_maintenance::request')
-                  ->orWhere('name', 'like', '%_rental::request')
-                  ->orWhere('name', 'like', '%_location')
-                  ->orWhere('name', 'like', '%_tenant')
-                  ->orWhere('name', 'like', '%_company') // Can view their own company info
-                  ->orWhere('name', 'like', '%_employee');
+            $query->where('name', 'like', '%property%')
+                  ->orWhere('name', 'like', '%unit%')
+                  ->orWhere('name', 'like', '%image%')
+                  ->orWhere('name', 'like', '%maintenance%')
+                  ->orWhere('name', 'like', '%rental%')
+                  ->orWhere('name', 'like', '%location%');
         })->get();
         $propertyManager->syncPermissions($propertyManagerPermissions);
 
