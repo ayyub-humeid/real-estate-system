@@ -77,10 +77,7 @@ class EmployeeResource extends Resource
 
                         Forms\Components\Select::make('user.role')
                             ->label('System Role')
-                            ->options([
-                                'company_admin' => 'Company Admin',
-                                'property_manager' => 'Property Manager',
-                            ])
+                            ->options(\Spatie\Permission\Models\Role::whereNotIn('name', ['super_admin', 'tenant'])->pluck('name', 'name'))
                             ->default('property_manager')
                             ->required()
                             ->native(false),

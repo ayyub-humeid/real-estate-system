@@ -61,12 +61,7 @@ class UserResource extends Resource
                         
                         Forms\Components\Select::make('role')
                             ->required()
-                            ->options([
-                                'super_admin' => 'Super Admin',
-                                'company_admin' => 'Company Admin',
-                                'property_manager' => 'Property Manager',
-                                'tenant' => 'Tenant',
-                            ])
+                            ->options(\Spatie\Permission\Models\Role::all()->pluck('name', 'name'))
                             ->default('tenant')
                             ->native(false),
                         
@@ -128,12 +123,7 @@ class UserResource extends Resource
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('role')
-                    ->options([
-                        'super_admin' => 'Super Admin',
-                        'company_admin' => 'Company Admin',
-                        'property_manager' => 'Property Manager',
-                        'tenant' => 'Tenant',
-                    ]),
+                    ->options(\Spatie\Permission\Models\Role::all()->pluck('name', 'name')),
                 Tables\Filters\Filter::make('tenants_only')
                     ->label('Tenants Only')
                     ->query(fn ($query) => $query->tenants())
