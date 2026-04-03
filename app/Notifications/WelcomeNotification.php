@@ -29,7 +29,7 @@ class WelcomeNotification extends Notification implements ShouldQueue
                     ->subject('Welcome to Real Estate SaaS')
                     ->greeting('Hello ' . $notifiable->name . '!')
                     ->line('Your account has been successfully created.')
-                    ->action('Login Now', url('/admin/login'))
+                    ->action('Login Now', \Filament\Facades\Filament::getLoginUrl())
                     ->line('Thank you for joining us!');
     }
 

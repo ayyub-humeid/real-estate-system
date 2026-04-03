@@ -29,7 +29,7 @@ class LeaseExpiringNotification extends Notification implements ShouldQueue
                     ->subject('Lease Expiring Soon: ' . $this->lease->unit->name)
                     ->greeting('Hello ' . $notifiable->name . '!')
                     ->line('The lease for Unit ' . $this->lease->unit->name . ' is expiring on ' . \Carbon\Carbon::parse($this->lease->end_date)->format('Y-m-d'))
-                    ->action('View Lease Details', url('/admin/leases/' . $this->lease->id))
+                    ->action('View Lease Details', \App\Filament\Resources\LeaseResource::getUrl('view', ['record' => $this->lease->id]))
                     ->line('Please take the necessary actions for renewal or termination.');
     }
 
@@ -43,7 +43,7 @@ class LeaseExpiringNotification extends Notification implements ShouldQueue
             ->actions([
                 \Filament\Notifications\Actions\Action::make('view')
                     ->button()
-                    ->url(fn () => url('/admin/leases/' . $this->lease->id)),
+                    ->url(fn () => \App\Filament\Resources\LeaseResource::getUrl('view', ['record' => $this->lease->id])),
             ])
             ->getDatabaseMessage();
     }

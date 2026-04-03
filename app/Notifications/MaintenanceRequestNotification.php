@@ -38,7 +38,7 @@ class MaintenanceRequestNotification extends Notification implements ShouldQueue
                     ->greeting('Hello ' . $notifiable->name . '!')
                     ->line('A new maintenance request has been submitted for Unit ' . $this->maintenanceRequest->unit->name)
                     ->line('Description: ' . $this->maintenanceRequest->description)
-                    ->action('View Request', url('/admin/maintenance-requests/' . $this->maintenanceRequest->id))
+                    ->action('View Request', \App\Filament\Resources\MaintenanceRequestResource::getUrl('view', ['record' => $this->maintenanceRequest->id]))
                     ->line('Thank you for using our system!');
     }
 
@@ -57,7 +57,7 @@ class MaintenanceRequestNotification extends Notification implements ShouldQueue
             ->actions([
                 \Filament\Notifications\Actions\Action::make('view')
                     ->button()
-                    ->url(fn () => url('/admin/maintenance-requests/' . $this->maintenanceRequest->id)),
+                    ->url(fn () => \App\Filament\Resources\MaintenanceRequestResource::getUrl('view', ['record' => $this->maintenanceRequest->id])),
             ])
             ->getDatabaseMessage();
     }

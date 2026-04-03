@@ -44,7 +44,7 @@ class PaymentNotification extends Notification implements ShouldQueue
             ->actions([
                 \Filament\Notifications\Actions\Action::make('view')
                     ->button()
-                    ->url(fn () => url('/admin/payments/' . $this->payment->id)),
+                    ->url(fn () => \App\Filament\Resources\PaymentResource::getUrl('view', ['record' => $this->payment->id])),
             ])
             ->getDatabaseMessage();
     }

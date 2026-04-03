@@ -30,7 +30,7 @@ class RentalRequestNotification extends Notification implements ShouldQueue
                     ->greeting('Hello ' . $notifiable->name . '!')
                     ->line('A new rental request has been received from ' . $this->rentalRequest->name)
                     ->line('Email: ' . $this->rentalRequest->email)
-                    ->action('View Request', url('/admin/rental-requests/' . $this->rentalRequest->id))
+                    ->action('View Request', \App\Filament\Resources\RentalRequestResource::getUrl('view', ['record' => $this->rentalRequest->id]))
                     ->line('Thank you for using our system!');
     }
 
@@ -44,7 +44,7 @@ class RentalRequestNotification extends Notification implements ShouldQueue
             ->actions([
                 \Filament\Notifications\Actions\Action::make('view')
                     ->button()
-                    ->url(fn () => url('/admin/rental-requests/' . $this->rentalRequest->id)),
+                    ->url(fn () => \App\Filament\Resources\RentalRequestResource::getUrl('view', ['record' => $this->rentalRequest->id])),
             ])
             ->getDatabaseMessage();
     }

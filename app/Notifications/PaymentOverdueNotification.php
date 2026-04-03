@@ -29,7 +29,7 @@ class PaymentOverdueNotification extends Notification implements ShouldQueue
                     ->subject('Urgent: Payment Overdue for Unit ' . $this->payment->lease->unit->name)
                     ->greeting('Hello ' . $notifiable->name . '!')
                     ->line('Our records show that your payment of ' . $this->payment->amount . ' was due on ' . \Carbon\Carbon::parse($this->payment->due_date)->format('Y-m-d') . ' and is now overdue.')
-                    ->action('Pay Now', url('/admin/payments/' . $this->payment->id))
+                    ->action('Pay Now', \App\Filament\Resources\PaymentResource::getUrl('view', ['record' => $this->payment->id]))
                     ->line('Please settle this balance immediately to avoid any late fees.');
     }
 
@@ -43,7 +43,7 @@ class PaymentOverdueNotification extends Notification implements ShouldQueue
             ->actions([
                 \Filament\Notifications\Actions\Action::make('view')
                     ->button()
-                    ->url(fn () => url('/admin/payments/' . $this->payment->id)),
+                    ->url(fn () => \App\Filament\Resources\PaymentResource::getUrl('view', ['record' => $this->payment->id])),
             ])
             ->getDatabaseMessage();
     }
