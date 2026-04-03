@@ -61,7 +61,11 @@ class UserResource extends Resource
                         
                         Forms\Components\Select::make('role')
                             ->required()
-                            ->options(\Spatie\Permission\Models\Role::all()->pluck('name', 'name'))
+                            ->options(
+                                \Spatie\Permission\Models\Role::all()
+                                    ->pluck('name', 'name')
+                                    ->map(fn ($name) => str_replace('_', ' ', ucwords($name, '_')))
+                            )
                             ->default('tenant')
                             ->native(false),
                         
@@ -123,7 +127,11 @@ class UserResource extends Resource
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('role')
-                    ->options(\Spatie\Permission\Models\Role::all()->pluck('name', 'name')),
+                    ->options(
+                        \Spatie\Permission\Models\Role::all()
+                            ->pluck('name', 'name')
+                            ->map(fn ($name) => str_replace('_', ' ', ucwords($name, '_')))
+                    ),
                 Tables\Filters\Filter::make('tenants_only')
                     ->label('Tenants Only')
                     ->query(fn ($query) => $query->tenants())

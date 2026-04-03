@@ -28,6 +28,11 @@ class RolesAndPermissionsSeeder extends Seeder
         $propertyManagerPermissions = Permission::where(function ($query) {
             $query->where('name', 'like', '%_property')
                   ->orWhere('name', 'like', '%_unit')
+                  ->orWhere('name', 'like', '%_unit::feature')
+                  ->orWhere('name', 'like', '%_image')
+                  ->orWhere('name', 'like', '%_maintenance::request')
+                  ->orWhere('name', 'like', '%_rental::request')
+                  ->orWhere('name', 'like', '%_location')
                   ->orWhere('name', 'like', '%_tenant')
                   ->orWhere('name', 'like', '%_company') // Can view their own company info
                   ->orWhere('name', 'like', '%_employee');
@@ -39,6 +44,8 @@ class RolesAndPermissionsSeeder extends Seeder
         $financialManagerPermissions = Permission::where(function ($query) {
             $query->where('name', 'like', '%_lease')
                   ->orWhere('name', 'like', '%_payment')
+                  ->orWhere('name', 'like', '%_expense')
+                  ->orWhere('name', 'like', '%_document')
                   ->orWhere('name', 'like', '%_tenant')
                   ->orWhere('name', 'like', '%_company');
         })->get();

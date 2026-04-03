@@ -77,7 +77,11 @@ class EmployeeResource extends Resource
 
                         Forms\Components\Select::make('user.role')
                             ->label('System Role')
-                            ->options(\Spatie\Permission\Models\Role::whereNotIn('name', ['super_admin', 'tenant'])->pluck('name', 'name'))
+                            ->options(
+                                \Spatie\Permission\Models\Role::whereNotIn('name', ['super_admin', 'tenant'])
+                                    ->pluck('name', 'name')
+                                    ->map(fn ($name) => str_replace('_', ' ', ucwords($name, '_')))
+                            )
                             ->default('property_manager')
                             ->required()
                             ->native(false),
