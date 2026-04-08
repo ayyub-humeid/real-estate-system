@@ -35,6 +35,12 @@ class DatabaseSeeder extends Seeder
         DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
         // ── Seed order matters ──────────────────────────────────────
+        // Generate Shield Permissions and setup UI
+        $this->command->info('🛡  Installing Shield & Generating permissions...');
+        \Illuminate\Support\Facades\Artisan::call('shield:install', ['panel' => 'admin', '--no-interaction' => true]);
+        
+        $this->call(RolesAndPermissionsSeeder::class); 
+
         $this->seedLocations();
         $this->seedCompanies();
         $this->seedUsers();
@@ -191,8 +197,10 @@ class DatabaseSeeder extends Seeder
         ];
 
         foreach ($users as $user) {
+            $password = ($user['email'] === 'super@admin.com') ? '123456' : 'password';
+            
             User::create(array_merge($user, [
-                'password'   => Hash::make('password'),
+                'password'   => $password,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]));
@@ -841,7 +849,7 @@ class DatabaseSeeder extends Seeder
         $this->command->table(
             ['Role', 'Email', 'Password', 'Company'],
             [
-                ['Super Admin',       'super@admin.com',       'password', '—'],
+                ['Super Admin',       'super@admin.com',       '123456', '—'],
                 ['Company Admin',     'admin@alnour.ps',        'password', 'Al-Nour Real Estate'],
                 ['Company Admin',     'admin@horizonprop.com',  'password', 'Horizon Properties'],
                 ['Company Admin',     'admin@gulfnest.ae',      'password', 'GulfNest Realty'],

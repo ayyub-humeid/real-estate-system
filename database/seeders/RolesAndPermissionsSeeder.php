@@ -13,7 +13,8 @@ class RolesAndPermissionsSeeder extends Seeder
         // Reset cached roles and permissions
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
-        // The super_admin role is created automatically by Filament Shield.
+        // 0. Super Admin role (Ensure it exists)
+        Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
         
         // 1. Company Admin role
         $companyAdmin = Role::firstOrCreate(['name' => 'company_admin', 'guard_name' => 'web']);
