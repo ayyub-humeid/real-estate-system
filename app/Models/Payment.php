@@ -134,7 +134,7 @@ public function getPaymentSummaryAttribute(): string
     $lease = $this->lease;
     
     if (!$lease) {
-        return 'يرجى اختيار عقد أولاً';
+        return 'select lease first!!';
     }
 
     // Use outstanding_balance from lease (total contract debt)
