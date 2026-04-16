@@ -51,7 +51,53 @@ class Company extends Model
         return $this->hasMany(Employee::class);
     }
     public function settings(): HasOne
-{
-    return $this->hasOne(CompanySetting::class);
-}
+    {
+        return $this->hasOne(CompanySetting::class);
+    }
+
+    public function subscription(): HasOne
+    {
+        return $this->hasOne(Subscription::class)->latestOfMany();
+    }
+
+    public function subscriptionPayments(): HasMany
+    {
+        return $this->hasManyThrough(SubscriptionPayment::class, Subscription::class);
+    }
+
+    public function hasActiveSubscription(): bool
+    {
+        return $this->subscription && $this->subscription->isActive();
+    }
+
+    public function getPlanFeature(string $feature, $default = null)
+    {
+        if (!$this->hasActiveSubscription()) {
+            return $default;
+        }
+
+        return $this->subscription->plan->features[$feature] ?? $default;
+    }
+
+    public function canAddProperty(): bool
+    {
+        $limit = $this->getPlanFeature('max_properties');
+
+        if ($limit === null) {
+            return true; // Unlimited
+        }
+
+        return $this->properties()->count() < $limit;
+    }
+
+    public function canAddEmployee(): bool
+    {
+        $limit = $this->getPlanFeature('max_employees');
+
+        if ($limit === null) {
+            return true; // Unlimited
+        }
+
+        return $this->employees()->count() < $limit;
+    }
 }
