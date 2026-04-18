@@ -40,6 +40,7 @@ class DatabaseSeeder extends Seeder
         \Illuminate\Support\Facades\Artisan::call('shield:install', ['panel' => 'admin', '--no-interaction' => true]);
         
         $this->call(RolesAndPermissionsSeeder::class); 
+        $this->call(PlanAndSubscriptionSeeder::class); 
 
         $this->seedLocations();
         $this->seedCompanies();
@@ -65,7 +66,7 @@ class DatabaseSeeder extends Seeder
     private function truncateAll(): void
     {
         $tables = [
-            'documents', 'rental_requests', 'expenses',
+            'subscriptions', 'plans', 'documents', 'rental_requests', 'expenses',
             'maintenance_requests', 'payments', 'leases',
             'tenants', 'unit_features', 'units', 'properties',
             'locations', 'users', 'companies',

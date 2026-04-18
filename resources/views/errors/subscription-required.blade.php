@@ -42,7 +42,7 @@
                     Refresh Status
                 </button>
                 
-                <form action="{{ route('logout') }}" method="POST">
+                <form action="{{ route('filament.admin.auth.logout') }}" method="POST">
                     @csrf
                     <button type="submit" class="w-full text-slate-500 hover:text-slate-800 font-medium py-2 transition-colors">
                         Sign Out
