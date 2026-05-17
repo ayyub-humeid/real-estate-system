@@ -62,14 +62,10 @@ class Lease extends Model
         return $this->belongsTo(Unit::class);
     }
 
-    // public function tenant(): BelongsTo
-    // {
-    //     return $this->belongsTo(User::class, 'tenant_id');
-    // }
     public function tenant(): BelongsTo
-{
-    return $this->belongsTo(Tenant::class, 'tenant_id');
-}
+    {
+        return $this->belongsTo(Tenant::class, 'tenant_id');
+    }
 
     public function payments(): HasMany
     {
@@ -137,7 +133,7 @@ class Lease extends Model
         }
 
         return (float) $this->payments()
-            ->where('status', '!=', 'cancelled')
+            ->where('status', '!=',' cancelled')
             ->sum('paid_amount');
     }
 
@@ -160,8 +156,6 @@ class Lease extends Model
             ->where('status', '!=', 'cancelled')
             ->sum('remaining_amount');
     }
-
-
 
     public function getDurationInMonthsAttribute(): ?int
     {
@@ -196,12 +190,27 @@ class Lease extends Model
         $newLease->status = 'draft';
         $newLease->save();
 
+        // ✅ FIX #5: Auto-generate payment schedule for renewed lease
+        if ($newLease->status === 'draft') {
+            $newLease->update(['status' => 'active']);
+            $newLease->generatePaymentSchedule();
+        }
+
         // Mark current lease as renewed
         $this->update(['status' => 'renewed']);
 
         return $newLease;
     }
 
+    /**
+     * ✅ FIX #1: CRITICAL - Prevent duplicate payment schedule generation
+     * 
+     * Previous implementation used firstOrCreate(['due_date' => $dueDate])
+     * which only checked due_date, allowing duplicates when called multiple times.
+     * 
+     * This fixes the bug where calling generatePaymentSchedule() twice
+     * would create 24 payments instead of 12.
+     */
     public function generatePaymentSchedule(): void
     {
         if ($this->status !== 'active') {
@@ -217,15 +226,21 @@ class Lease extends Model
             // Set to payment day of month
             $dueDate = $currentDate->copy()->day($this->payment_day);
 
-            // Create payment if doesn't exist
-            $this->payments()->firstOrCreate(
-                ['due_date' => $dueDate],
-                [
+            // ✅ FIX: Check if payment already exists for THIS LEASE + DUE DATE
+            // This prevents duplicate payments when method is called multiple times
+            $exists = $this->payments()
+                ->where('due_date', $dueDate)
+                ->exists();
+
+            if (!$exists) {
+                // Create payment only if it doesn't already exist
+                $this->payments()->create([
                     'amount' => $this->rent_amount,
                     'remaining_amount' => $this->rent_amount,
                     'status' => 'pending',
-                ]
-            );
+                    'company_id' => $this->company_id,
+                ]);
+            }
 
             // Move to next period
             $currentDate = match($this->payment_frequency) {

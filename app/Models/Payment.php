@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 
 class Payment extends Model
 {
@@ -84,17 +85,18 @@ class Payment extends Model
     {
         return $this->morphMany(Document::class, 'documentable');
     }
-     public function tenant(): HasOneThrough
-   {
-       return $this->hasOneThrough(
-           Tenant::class,
-           Lease::class,
-           'id',          // Foreign key on leases
-           'id',          // Foreign key on tenants
-           'lease_id',    // Local key on payments
-           'tenant_id'    // Local key on leases
-       );
-   }
+
+    public function tenant(): HasOneThrough
+    {
+        return $this->hasOneThrough(
+            Tenant::class,
+            Lease::class,
+            'id',          // Foreign key on leases
+            'id',          // Foreign key on tenants
+            'lease_id',    // Local key on payments
+            'tenant_id'    // Local key on leases
+        );
+    }
 
     // Scopes
     public function scopePending($query)
@@ -127,26 +129,25 @@ class Payment extends Model
     }
 
     // Accessors
-    // app/Models/Payment.php
+    public function getPaymentSummaryAttribute(): string
+    {
+        $lease = $this->lease;
+        
+        if (!$lease) {
+            return 'select lease first!!';
+        }
 
-public function getPaymentSummaryAttribute(): string
-{
-    $lease = $this->lease;
-    
-    if (!$lease) {
-        return 'select lease first!!';
+        // Use rent_amount from lease (total contract debt)
+        $totalContractDebt = (float) $lease->rent_amount; 
+        
+        $totalPaidSoFar = (float) ($lease->total_paid ?? $lease->payments()->where('status', 'paid')->sum('paid_amount'));
+        $remainingBalance = max(0, $totalContractDebt - $totalPaidSoFar);
+
+        return number_format($totalContractDebt, 2) . " [Total] - " . 
+               number_format($totalPaidSoFar, 2) . " [Paid] = " . 
+               number_format($remainingBalance, 2) . " [Balance]";
     }
 
-    // Use rent_amount from lease (total contract debt)
-    $totalContractDebt = (float) $lease->rent_amount; 
-    
-    $totalPaidSoFar = (float) ($lease->total_paid ?? $lease->payments()->where('status', 'paid')->sum('paid_amount'));
-    $remainingBalance = max(0, $totalContractDebt - $totalPaidSoFar);
-
-    return number_format($totalContractDebt, 2) . " [Total] - " . 
-           number_format($totalPaidSoFar, 2) . " [Paid] = " . 
-           number_format($remainingBalance, 2) . " [Balance]";
-}
     public function getIsPaidAttribute(): bool
     {
         return $this->status === 'paid';
@@ -166,27 +167,63 @@ public function getPaymentSummaryAttribute(): string
         return now()->diffInDays($this->due_date, false);
     }
 
-    // Business Logic
+    /**
+     * ✅ FIX #2: CRITICAL - Add transaction lock & overpayment prevention
+     * 
+     * Previous implementation had race condition:
+     * Two concurrent requests could both add $500, making total $1500 (exceeds $1000 due)
+     * 
+     * This fixes by:
+     * 1. Using DB::transaction() for ACID compliance
+     * 2. Using lockForUpdate() to prevent concurrent access
+     * 3. Validating payment amount <= remaining
+     * 4. Throwing exception if overpayment attempted
+     */
     public function recordPayment(float $amount, string $method, ?string $reference = null): bool
     {
-        $this->paid_amount = (float) ($this->paid_amount ?? 0) + $amount;
-        $this->payment_method = $method;
-        $this->reference_number = $reference;
-        $this->payment_date = now();
+        return DB::transaction(function () use ($amount, $method, $reference) {
+            // ✅ FIX: Lock row to prevent race conditions on concurrent payments
+            // This ensures only one process can record a payment at a time
+            $payment = Payment::lockForUpdate()->find($this->id);
 
-        // Check against this payment's expected amount
-        $expectedAmount = (float) ($this->amount ?? 0);
-        
-        if ($this->paid_amount >= $expectedAmount && $expectedAmount > 0) {
-            $this->status = 'paid';
-        } elseif ($this->paid_amount > 0) {
-            $this->status = 'partial';
-        }
+            if (!$payment) {
+                throw new \Exception('Payment record not found');
+            }
 
-        // Always update remaining_amount column for database-level queries
-        $this->remaining_amount = max(0, $expectedAmount - $this->paid_amount);
+            // ✅ FIX: Validate payment amount
+            if ($amount <= 0) {
+                throw new \InvalidArgumentException('Payment amount must be greater than 0');
+            }
 
-        return $this->save();
+            $expectedAmount = (float) ($payment->amount ?? 0);
+            $currentPaid = (float) ($payment->paid_amount ?? 0);
+            $totalWouldBe = $currentPaid + $amount;
+
+            // ✅ FIX: Prevent overpayment
+            if ($totalWouldBe > $expectedAmount) {
+                throw new \InvalidArgumentException(
+                    "Payment amount exceeds due amount. " .
+                    "Due: {$expectedAmount}, Already paid: {$currentPaid}, " .
+                    "Attempting to add: {$amount}, Total would be: {$totalWouldBe}"
+                );
+            }
+
+            // Record the payment
+            $payment->paid_amount = $totalWouldBe;
+            $payment->payment_method = $method;
+            $payment->reference_number = $reference;
+            $payment->payment_date = now();
+            $payment->remaining_amount = max(0, $expectedAmount - $totalWouldBe);
+
+            // Update status based on payment state
+            if ($payment->paid_amount >= $expectedAmount && $expectedAmount > 0) {
+                $payment->status = 'paid';
+            } elseif ($payment->paid_amount > 0) {
+                $payment->status = 'partial';
+            }
+
+            return $payment->save();
+        });
     }
 
     public function markAsOverdue(): bool
