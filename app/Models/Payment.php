@@ -36,6 +36,7 @@ class Payment extends Model
     protected $fillable = [
         'company_id',
         'lease_id',
+        'type',
         'amount',
         'due_date',
         'payment_date',
