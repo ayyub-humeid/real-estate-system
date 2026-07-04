@@ -18,7 +18,7 @@ class Image extends Model
 
     protected $casts = [
         'is_primary' => 'boolean',
-        'order'      => 'integer',
+        'order' => 'integer',
     ];
 
     // --- Polymorphic Relationship ---

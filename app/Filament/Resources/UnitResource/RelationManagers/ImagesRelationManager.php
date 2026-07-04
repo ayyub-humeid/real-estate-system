@@ -32,7 +32,22 @@ class ImagesRelationManager extends RelationManager
             Forms\Components\Toggle::make('is_primary')
                 ->label('Primary Image')
                 ->helperText('Set as the main display image for this unit')
-                ->default(false),
+                ->default(false)
+                ->rules([
+                    fn (Forms\Components\Toggle $component) => function (string $attribute, $value, \Closure $fail) use ($component) {
+                        if ($value) {
+                            $ownerRecord = $component->getLivewire()->getOwnerRecord();
+                            $existingPrimary = $ownerRecord->images()
+                                ->where('is_primary', true)
+                                ->when($component->getLivewire()->getRecord(), fn ($q, $record) => $q->where('id', '!=', $record->id))
+                                ->exists();
+
+                            if ($existingPrimary) {
+                                $fail('This unit already has a primary image. Please unset the current primary image first.');
+                            }
+                        }
+                    }
+                ]),
 
             Forms\Components\TextInput::make('order')
                 ->label('Display Order')

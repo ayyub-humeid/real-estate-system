@@ -131,6 +131,19 @@ class UnitResource extends Resource
                 ->schema([
                     Forms\Components\Repeater::make('images')
                         ->relationship('images')
+                        ->rules([
+                            function () {
+                                return function (string $attribute, $value, \Closure $fail) {
+                                    $primaryCount = collect($value)
+                                        ->filter(fn ($item) => !empty($item['is_primary']))
+                                        ->count();
+
+                                    if ($primaryCount > 1) {
+                                        $fail('Only one image can be set as primary.');
+                                    }
+                                };
+                            },
+                        ])
                         ->schema([
                             Forms\Components\FileUpload::make('path')
                                 ->label('Photo')

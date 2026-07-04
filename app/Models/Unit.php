@@ -15,30 +15,30 @@ class Unit extends Model
     use \App\Traits\HasCompany;
 
     protected static function boot()
-{
-    parent::boot();
+    {
+        parent::boot();
 
-    // existing - keep this
-    static::creating(function ($model) {
-        if (empty($model->company_id) && $model->property_id) {
-            $property = Property::find($model->property_id);
-            if ($property) {
-                $model->company_id = $property->company_id;
+        // existing - keep this
+        static::creating(function ($model) {
+            if (empty($model->company_id) && $model->property_id) {
+                $property = Property::find($model->property_id);
+                if ($property) {
+                    $model->company_id = $property->company_id;
+                }
             }
-        }
-    });
+        });
 
-    // ADD THIS
-    static::creating(function ($model) {
-        if (Auth::hasUser() && !Auth::user()->isSuperAdmin()) {
-            if (!Auth::user()->company->canAddUnit()) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
-                    'limit' => 'You have reached the maximum number of units allowed by your plan.',
-                ]);
+        // ADD THIS
+        static::creating(function ($model) {
+            if (Auth::hasUser() && !Auth::user()->isSuperAdmin()) {
+                if (!Auth::user()->company->canAddUnit()) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'limit' => 'You have reached the maximum number of units allowed by your plan.',
+                    ]);
+                }
             }
-        }
-    });
-}
+        });
+    }
 
     protected $fillable = [
         'company_id',
@@ -58,10 +58,10 @@ class Unit extends Model
     ];
 
     const STATUSES = [
-        'available'   => 'Available',
-        'occupied'    => 'Occupied',
+        'available' => 'Available',
+        'occupied' => 'Occupied',
         'maintenance' => 'Maintenance',
-        'reserved'    => 'Reserved',
+        'reserved' => 'Reserved',
     ];
 
     // --- Relationships ---
@@ -106,9 +106,9 @@ class Unit extends Model
      */
     public function primaryImage(): \Illuminate\Database\Eloquent\Relations\MorphOne
     {
-        $result= $this->morphOne(Image::class, 'imageable')
+        $result = $this->morphOne(Image::class, 'imageable')
             ->where('is_primary', true);
-            return $result;
+        return $result;
     }
 
     // --- Helpers ---
@@ -123,6 +123,10 @@ class Unit extends Model
     public function scopeAvailable($query)
     {
         return $query->where('status', 'available');
+    }
+    public function scopeFeatured($query)
+    {
+        return $query->where('is_featured', 1);
     }
 
     public function scopeOccupied($query)
@@ -141,13 +145,13 @@ class Unit extends Model
     }
 
 
-public function currentLease(): HasOne
-{
-    return $this->hasOne(Lease::class)->where('status', 'active')->latest();
-}
+    public function currentLease(): HasOne
+    {
+        return $this->hasOne(Lease::class)->where('status', 'active')->latest();
+    }
 
-public function documents(): MorphMany
-{
-    return $this->morphMany(Document::class, 'documentable');
-}
+    public function documents(): MorphMany
+    {
+        return $this->morphMany(Document::class, 'documentable');
+    }
 }
