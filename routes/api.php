@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\UnitController;
 use App\Http\Controllers\Api\PlanController;
+use App\Http\Controllers\ContactController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -10,13 +11,12 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 
-    Route::group([
-        'as'=>'api.',
+Route::group([
+    'as' => 'api.',
     //    'middleware'=>'auth:sanctum',
-    ], function () {
-        // Route::apiResource('posts', PostController::class);
-        // Route::apiResource('categories', CategoryController::class);
-        Route::get('featured-units', [UnitController::class,'featured'])->name('units.featured');
-        Route::get('plans', [PlanController::class,'index'])->name('plans.index');
+], function () {
+    Route::get('featured-units', [UnitController::class, 'featured'])->name('units.featured');
+    Route::get('plans', [PlanController::class, 'index'])->name('plans.index');
+    Route::post('/contacts', [ContactController::class, 'store'])->name('contacts.store');
 
-    });
+});
