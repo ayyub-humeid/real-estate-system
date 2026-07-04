@@ -1,0 +1,22 @@
+<?php
+
+use App\Http\Controllers\Api\UnitController;
+use App\Http\Controllers\Api\PlanController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
+
+Route::get('/user', function (Request $request) {
+    return $request->user();
+})->middleware('auth:sanctum');
+
+
+    Route::group([
+        'as'=>'api.',
+    //    'middleware'=>'auth:sanctum',
+    ], function () {
+        // Route::apiResource('posts', PostController::class);
+        // Route::apiResource('categories', CategoryController::class);
+        Route::get('featured-units', [UnitController::class,'featured'])->name('units.featured');
+        Route::get('plans', [PlanController::class,'index'])->name('plans.index');
+
+    });

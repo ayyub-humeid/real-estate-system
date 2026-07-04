@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class Unit extends Model
 {
@@ -46,6 +47,10 @@ class Unit extends Model
         'rent_price',
         'status',
         'type',
+        'is_featured',
+        'bedrooms',
+        'bathrooms',
+        'sqft'
     ];
 
     protected $casts = [
@@ -101,8 +106,9 @@ class Unit extends Model
      */
     public function primaryImage(): \Illuminate\Database\Eloquent\Relations\MorphOne
     {
-        return $this->morphOne(Image::class, 'imageable')
+        $result= $this->morphOne(Image::class, 'imageable')
             ->where('is_primary', true);
+            return $result;
     }
 
     // --- Helpers ---
@@ -145,4 +151,3 @@ public function documents(): MorphMany
     return $this->morphMany(Document::class, 'documentable');
 }
 }
-

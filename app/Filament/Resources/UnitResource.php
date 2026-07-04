@@ -99,7 +99,31 @@ class UnitResource extends Resource
                         ->prefix('$')
                         ->minValue(0),
 
+                    Forms\Components\TextInput::make('bedrooms')
+                        ->label('Bedrooms')
+                        ->numeric()
+                        ->minValue(0)
+                        ->prefixIcon('heroicon-m-home'),
+
+                    Forms\Components\TextInput::make('bathrooms')
+                        ->label('Bathrooms')
+                        ->numeric()
+                        ->minValue(0)
+                        ->prefixIcon('heroicon-m-home'),
+
+                    Forms\Components\TextInput::make('sqft')
+                        ->label('Square Feet')
+                        ->numeric()
+                        ->minValue(0)
+                        ->suffix('sqft'),
+                        Forms\Components\Toggle::make('is_featured')
+                        
+                            ->label('Is Featured?')
+                            ->default(false)
+                    
+
                 ])
+                
                 ->columns(2),
 
             Forms\Components\Section::make('Gallery')
@@ -156,11 +180,38 @@ class UnitResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->weight('bold'),
+                    Tables\Columns\IconColumn::make('is_featured')
+                    ->boolean()
+                    ->label('Is Featured')
+                    ->sortable()
+                    ->trueIcon('heroicon-o-check-circle')
+                    ->falseIcon('heroicon-o-x-circle')
+                    ->trueColor('success')
+                    ->falseColor('danger'),
+
 
                 Tables\Columns\TextColumn::make('type')
                     ->badge()
                     ->color('gray')
                     ->formatStateUsing(fn (?string $state) => $state ? ucfirst($state) : '—'),
+
+                Tables\Columns\TextColumn::make('bedrooms')
+                    ->label('Beds')
+                    ->numeric()
+                    ->sortable()
+                    ->icon('heroicon-m-home'),
+
+                Tables\Columns\TextColumn::make('bathrooms')
+                    ->label('Baths')
+                    ->numeric()
+                    ->sortable()
+                    ->icon('heroicon-m-home'),
+
+                Tables\Columns\TextColumn::make('sqft')
+                    ->label('Sqft')
+                    ->numeric()
+                    ->sortable()
+                    ->formatStateUsing(fn (?int $state) => $state ? number_format($state) : '—'),
 
                 Tables\Columns\TextColumn::make('rent_price')
                     ->label('Rent')

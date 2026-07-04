@@ -38,6 +38,6 @@ class Image extends Model
      */
     public function getUrlAttribute(): string
     {
-        return \Storage::disk($this->disk)->url($this->path);
+        return $this->path ? asset('storage/' . $this->path) : '';
     }
 }

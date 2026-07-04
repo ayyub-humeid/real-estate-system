@@ -184,7 +184,7 @@
             <div class="section-title">PROPERTY DETAILS</div>
             <div class="info-row">
                 <div class="info-label">Property Name:</div>
-                <div class="info-value">{{ $lease->unit->property->name }}</div>
+                <div class="info-value">{{ $lease->unit->property->name  ??null }}</div>
             </div>
             <div class="info-row">
                 <div class="info-label">Unit Number:</div>
