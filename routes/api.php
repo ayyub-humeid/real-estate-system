@@ -17,6 +17,12 @@ Route::group([
 ], function () {
     Route::get('featured-units', [UnitController::class, 'featured'])->name('units.featured');
     Route::get('plans', [PlanController::class, 'index'])->name('plans.index');
+    Route::get('units/{unit}', [UnitController::class, 'show'])->name('units.show');
+    Route::get('units', [UnitController::class, 'index'])->name('units.index');
     Route::post('/contacts', [ContactController::class, 'store'])->name('contacts.store');
+
+    // Properties endpoints
+    Route::get('properties', [\App\Http\Controllers\Api\PropertyController::class, 'index'])->name('properties.index');
+    Route::get('properties/{property}', [\App\Http\Controllers\Api\PropertyController::class, 'show'])->name('properties.show');
 
 });
