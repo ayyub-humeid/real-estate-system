@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AgencyController;
 use App\Http\Controllers\Api\UnitController;
 use App\Http\Controllers\Api\PlanController;
 use App\Http\Controllers\ContactController;
@@ -27,4 +28,7 @@ Route::group([
 
     // Unit ratings
     Route::post('units/{unit}/rate', [UnitController::class, 'rate'])->name('units.rate');
+
+    // Agencies endpoints
+    Route::apiResource('agencies', AgencyController::class)->only(['index', 'show']);
 });

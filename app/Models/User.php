@@ -21,6 +21,7 @@ class User extends Authenticatable implements FilamentUser
 
     protected $fillable = [
         'company_id',
+        'agency_id',
         'name',
         'email',
         'password',
@@ -120,6 +121,11 @@ public function tenant(): HasOne
     return $this->hasOne(Tenant::class);
 }
 
+public function agency(): BelongsTo
+{
+    return $this->belongsTo(Agency::class);
+}
+
 public function employee(): HasOne
 {
     return $this->hasOne(Employee::class);
@@ -150,5 +156,16 @@ public function employee(): HasOne
     public function scopePropertyManagers($query)
     {
         return $query->role('property_manager');
+    }
+
+    /**
+     * Get the user's avatar URL.
+     */
+    public function getAvatarUrlAttribute(): string
+    {
+        if ($this->relationLoaded('employee') && $this->employee && $this->employee->avatar) {
+            return asset('storage/' . $this->employee->avatar);
+        }
+        return "https://ui-avatars.com/api/?name=" . urlencode($this->name) . "&background=0D8ABC&color=fff";
     }
 }
