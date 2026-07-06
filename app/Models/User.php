@@ -21,7 +21,6 @@ class User extends Authenticatable implements FilamentUser
 
     protected $fillable = [
         'company_id',
-        'agency_id',
         'name',
         'email',
         'password',
@@ -119,11 +118,6 @@ public function leasesAsTenant(): HasManyThrough
 public function tenant(): HasOne
 {
     return $this->hasOne(Tenant::class);
-}
-
-public function agency(): BelongsTo
-{
-    return $this->belongsTo(Agency::class);
 }
 
 public function employee(): HasOne

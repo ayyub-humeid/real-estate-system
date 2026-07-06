@@ -4,39 +4,33 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\AgencyResource;
-use App\Models\Agency;
+use App\Models\Company;
 use Illuminate\Http\Request;
 
 class AgencyController extends Controller
 {
     /**
-     * عرض قائمة الوكالات مع دعم الفلترة والبحث.
+     * عرض قائمة الشركات (agencies) مع دعم الفلترة والبحث.
+     * نستخدم withoutGlobalScopes() لضمان عدم تطبيق أي scope يقيّد النتائج
+     * عندما لا يكون هناك مستخدم مسجّل دخول (public API).
      */
     public function index(Request $request)
     {
-        $query = Agency::query();
+        $query = Company::withoutGlobalScopes()->where('is_active', true);
 
-        // 1. فلترة البحث بالاسم أو المنطقة أو المطور الشريك
+        // فلترة بالبحث: الاسم، البريد، الهاتف، العنوان، الشركاء
         if ($request->filled('search')) {
             $search = $request->input('search');
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('hq', 'like', "%{$search}%")
-                  ->orWhere('branches', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%")
+                  ->orWhere('address', 'like', "%{$search}%")
                   ->orWhere('partner_developers', 'like', "%{$search}%");
             });
         }
 
-        // 2. فلترة المنطقة الجغرافية (Service Area)
-        if ($request->filled('serviceArea') && $request->input('serviceArea') !== 'Service Area') {
-            $area = $request->input('serviceArea');
-            $query->where(function ($q) use ($area) {
-                $q->where('hq', 'like', "%{$area}%")
-                  ->orWhere('branches', 'like', "%{$area}%");
-            });
-        }
-
-        // 3. فلترة حجم الشركة (Boutique / Enterprise) بناءً على عدد الوحدات
+        // فلترة حجم الشركة بناءً على عدد الوحدات
         if ($request->filled('size') && $request->input('size') !== 'Agency Size') {
             $size = $request->input('size');
             $query->withCount('units');
@@ -47,35 +41,25 @@ class AgencyController extends Controller
             }
         }
 
-        // 4. فلترة نوع الشراكة (Exclusive / Independent / Elite)
-        if ($request->filled('type') && $request->input('type') !== 'Agency Type') {
-            $type = $request->input('type');
-            match ($type) {
-                'Exclusive'               => $query->where('badge_type', 'exclusive'),
-                'Independent'             => $query->where('relation', 'like', '%Independent%'),
-                'Elite Developer Alliance' => $query->where('badge_type', 'elite'),
-                default                   => null,
-            };
-        }
-
-        // جلب النتائج مع حساب عدد الوحدات والوكلاء
-        $agencies = $query
-            ->withCount(['agents', 'units'])
-            ->with(['agents' => fn ($q) => $q->select('id', 'agency_id', 'name')->limit(3)])
+        $companies = $query
+            ->withCount(['employees', 'units'])
+            ->with([
+                'employees' => fn ($q) => $q->select('id', 'company_id', 'user_id', 'avatar')->limit(3),
+            ])
             ->paginate((int) $request->input('per_page', 10));
 
-        return AgencyResource::collection($agencies);
+        return AgencyResource::collection($companies);
     }
 
     /**
-     * عرض تفاصيل وكالة واحدة مع علاقاتها.
+     * عرض تفاصيل شركة واحدة مع علاقاتها.
      */
-    public function show(Agency $agency)
+    public function show(Company $agency)
     {
-        $agency->loadCount(['agents', 'units']);
+        $agency->loadCount(['employees', 'units']);
         $agency->load([
-            'agents' => fn ($q) => $q->select('id', 'agency_id', 'name', 'email', 'phone'),
-            'units'  => fn ($q) => $q->with(['property:id,name,address', 'primaryImage'])->limit(20),
+            'employees' => fn ($q) => $q->select('id', 'company_id', 'user_id', 'avatar', 'position', 'department', 'status'),
+            'units'     => fn ($q) => $q->with(['property:id,name,address', 'primaryImage'])->limit(20),
         ]);
 
         return new AgencyResource($agency);

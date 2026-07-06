@@ -20,9 +20,24 @@ class Company extends Model
         'address',
         'logo',
         'is_active',
+        'verified',
+        'relation',
+        'badge',
+        'badge_type',
+        'hq',
+        'branches',
+        'rating',
+        'years_active',
+        'partner_developers',
+        'about_title',
+        'about_description',
+        'about_sub_description',
     ];
     protected $casts = [
         'is_active' => 'boolean',
+        'verified' => 'boolean',
+        'rating' => 'float',
+        'years_active' => 'integer',
     ];
 
     public function users(): HasMany

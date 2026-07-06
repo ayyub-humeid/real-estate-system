@@ -42,7 +42,6 @@ class Unit extends Model
 
     protected $fillable = [
         'company_id',
-        'agency_id',
         'property_id',
         'unit_number',
         'rent_price',
@@ -72,9 +71,9 @@ class Unit extends Model
         return $this->belongsTo(Property::class);
     }
 
-    public function agency(): BelongsTo
+    public function company(): BelongsTo
     {
-        return $this->belongsTo(Agency::class);
+        return $this->belongsTo(Company::class);
     }
 
     public function maintenanceRequests(): HasMany
