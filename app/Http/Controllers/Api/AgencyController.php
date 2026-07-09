@@ -41,6 +41,30 @@ class AgencyController extends Controller
             }
         }
 
+        // فلترة منطقة الخدمة (serviceArea)
+        if ($request->filled('serviceArea') && $request->input('serviceArea') !== 'Service Area') {
+            $area = $request->input('serviceArea');
+            $query->where(function ($q) use ($area) {
+                $q->where('hq', 'like', "%{$area}%")
+                  ->orWhere('branches', 'like', "%{$area}%");
+            });
+        }
+
+        // فلترة نوع الشراكة (type)
+        if ($request->filled('type')) {
+            $type = $request->input('type');
+            if (strtolower($type) === 'exclusive') {
+                $query->where('badge_type', 'exclusive');
+            } elseif (strtolower($type) === 'independent') {
+                $query->where('relation', 'like', '%independent%');
+            } elseif (strtolower($type) === 'elite developer alliance') {
+                $query->where(function ($q) {
+                    $q->where('badge_type', 'elite')
+                      ->orWhere('partner_developers', 'like', '%Emaar%');
+                });
+            }
+        }
+
         $companies = $query
             ->withCount(['employees', 'units'])
             ->with([
