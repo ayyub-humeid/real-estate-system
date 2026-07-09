@@ -9,22 +9,14 @@ use App\Http\Controllers\Api\TenantDashboardController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-// ── Auth Endpoints (Public) ──────────────────────────────────
-Route::post('/auth/register', [AuthController::class, 'register']);
-Route::post('/auth/login', [AuthController::class, 'login']);
+Route::get('/user', function (Request $request) {
+    return $request->user();
+})->middleware('auth:sanctum');
 
-// ── Auth & Dashboard Endpoints (Protected) ───────────────────
-Route::group(['middleware' => 'auth:sanctum'], function () {
-    Route::post('/auth/logout', [AuthController::class, 'logout']);
-    Route::get('/auth/me', [AuthController::class, 'me']);
-    
-    // Tenant Dashboard stats
-    Route::get('/tenant/dashboard', [TenantDashboardController::class, 'index']);
-});
 
-// ── General Public Endpoints ─────────────────────────────────
 Route::group([
     'as' => 'api.',
+    //    'middleware'=>'auth:sanctum',
 ], function () {
     Route::get('featured-units', [UnitController::class, 'featured'])->name('units.featured');
     Route::get('plans', [PlanController::class, 'index'])->name('plans.index');
@@ -40,5 +32,5 @@ Route::group([
     Route::post('units/{unit}/rate', [UnitController::class, 'rate'])->name('units.rate');
 
     // Agencies endpoints
-    Route::apiResource('agencies', AgencyController::class)->only(['index', 'show']);
+    Route::apiResource('agencies', AgencyController::class)->only(['index', 'show', 'store']);
 });
