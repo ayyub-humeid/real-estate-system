@@ -4,17 +4,27 @@ use App\Http\Controllers\Api\AgencyController;
 use App\Http\Controllers\Api\UnitController;
 use App\Http\Controllers\Api\PlanController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\TenantDashboardController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
+// ── Auth Endpoints (Public) ──────────────────────────────────
+Route::post('/auth/register', [AuthController::class, 'register']);
+Route::post('/auth/login', [AuthController::class, 'login']);
 
+// ── Auth & Dashboard Endpoints (Protected) ───────────────────
+Route::group(['middleware' => 'auth:sanctum'], function () {
+    Route::post('/auth/logout', [AuthController::class, 'logout']);
+    Route::get('/auth/me', [AuthController::class, 'me']);
+    
+    // Tenant Dashboard stats
+    Route::get('/tenant/dashboard', [TenantDashboardController::class, 'index']);
+});
 
+// ── General Public Endpoints ─────────────────────────────────
 Route::group([
     'as' => 'api.',
-    //    'middleware'=>'auth:sanctum',
 ], function () {
     Route::get('featured-units', [UnitController::class, 'featured'])->name('units.featured');
     Route::get('plans', [PlanController::class, 'index'])->name('plans.index');
