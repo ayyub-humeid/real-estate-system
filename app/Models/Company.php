@@ -40,6 +40,8 @@ class Company extends Model
         'years_active' => 'integer',
     ];
 
+    // Attributes
+
     public function users(): HasMany
     {
         return $this->hasMany(User::class);
@@ -63,17 +65,17 @@ class Company extends Model
     {
         return $this->hasMany(Expense::class);
     }
-   public function units(): \Illuminate\Database\Eloquent\Relations\HasManyThrough
-{
-    return $this->hasManyThrough(
-        Unit::class,      // Final model
-        Property::class,  // Intermediate model
-        'company_id',     // Foreign key on properties table
-        'property_id',    // Foreign key on units table
-        'id',             // Local key on companies table
-        'id'              // Local key on properties table
-    );
-}
+    public function units(): \Illuminate\Database\Eloquent\Relations\HasManyThrough
+    {
+        return $this->hasManyThrough(
+            Unit::class,      // Final model
+            Property::class,  // Intermediate model
+            'company_id',     // Foreign key on properties table
+            'property_id',    // Foreign key on units table
+            'id',             // Local key on companies table
+            'id'              // Local key on properties table
+        );
+    }
 
     public function employees(): HasMany
     {
@@ -118,7 +120,7 @@ class Company extends Model
 
         return $this->properties()->count() < $limit;
     }
-    
+
 
     public function canAddEmployee(): bool
     {

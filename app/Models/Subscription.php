@@ -38,13 +38,13 @@ class Subscription extends Model
         return $this->hasMany(SubscriptionPayment::class);
     }
 
-    
-public function isActive(): bool
-{
-    // A subscription is active if status is correct AND it hasn't expired yet
-    return ($this->status === 'active' || $this->status === 'trialing') 
-           && !$this->isExpired();
-}
+
+    public function isActive(): bool
+    {
+        // A subscription is active if status is correct AND it hasn't expired yet
+        return ($this->status === 'active' || $this->status === 'trialing')
+            && !$this->isExpired();
+    }
 
     public function isExpired(): bool
     {
@@ -58,7 +58,7 @@ public function isActive(): bool
      */
     public function getRemainingDaysAttribute(): ?int
     {
-        if (! $this->ends_at) {
+        if (!$this->ends_at) {
             return null; // No expiry = unlimited
         }
 

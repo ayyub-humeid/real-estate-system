@@ -15,26 +15,26 @@ class AgencyResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id'       => $this->id,
-            'name'     => $this->name,
-            'logo'     => $this->logo ? asset('storage/' . $this->logo) : null,
+            'id' => $this->id,
+            'name' => $this->name,
+            'logo' => $this->logo ? asset('storage/' . $this->logo) : null,
             'verified' => (bool) $this->verified,
-            'phone'    => $this->phone,
-            'email'    => $this->email,
-            'address'  => $this->address,
+            'phone' => $this->phone,
+            'email' => $this->email,
+            'address' => $this->address,
 
             // حقول إضافية للواجهة من جدول companies
-            'relation'           => $this->relation,
-            'badge'              => $this->badge,
-            'badgeType'          => $this->badge_type,
-            'hq'                 => $this->hq ?? $this->address,
-            'branches'           => $this->branches,
-            'rating'             => (float) ($this->rating ?? 0.0),
-            'years_active'       => (int) ($this->years_active ?? 1),
+            'relation' => $this->relation,
+            'badge' => $this->badge,
+            'badgeType' => $this->badge_type,
+            'hq' => $this->hq ?? $this->address,
+            'branches' => $this->branches,
+            'rating' => (float) ($this->rating ?? 0.0),
+            'years_active' => (int) ($this->years_active ?? 1),
             'partner_developers' => $this->partner_developers,
-            'aboutTitle'         => $this->about_title,
-            'aboutDescription'   => $this->about_description,
-            'aboutSubDescription'=> $this->about_sub_description,
+            'aboutTitle' => $this->about_title,
+            'aboutDescription' => $this->about_description,
+            'aboutSubDescription' => $this->about_sub_description,
 
             // الموظفون (بديل عن الوكلاء)
             'agents_avatars' => $this->whenLoaded('employees', function () {
@@ -55,8 +55,8 @@ class AgencyResource extends JsonResource
                     ->toArray();
             }, []),
 
-            'agents_count'     => $this->employees_count ?? $this->whenLoaded('employees', fn () => $this->employees->count(), 0),
-            'properties_count' => $this->units_count     ?? $this->whenLoaded('units',     fn () => $this->units->count(),     0),
+            'agents_count' => $this->employees_count ?? $this->whenLoaded('employees', fn() => $this->employees->count(), 0),
+            'properties_count' => $this->units_count ?? $this->whenLoaded('units', fn() => $this->units->count(), 0),
 
             // مخزون الوحدات للـ Portfolio (مُهيأ بالشكل الذي تتوقعه واجهة Next.js)
             'inventory' => $this->whenLoaded('units', function () {
@@ -69,7 +69,7 @@ class AgencyResource extends JsonResource
                         $primary = $unit->images->where('is_primary', true)->first() ?? $unit->images->first();
                         $imagePath = $primary ? $primary->url : null;
                     }
-                    
+
                     // إذا لم توجد صورة للوحدة، نستخدم صورة من الممتلكات (Property) أو صورة افتراضية
                     if (!$imagePath && $unit->property && $unit->property->relationLoaded('images')) {
                         $propPrimary = $unit->property->images->where('is_primary', true)->first() ?? $unit->property->images->first();
@@ -86,15 +86,15 @@ class AgencyResource extends JsonResource
                     }
 
                     return [
-                        'id'      => $unit->id,
-                        'title'   => ($unit->property ? $unit->property->name : 'Unit') . ' ' . $unit->unit_number,
-                        'price'   => '$' . number_format($unit->rent_price) . '/mo',
+                        'id' => $unit->id,
+                        'title' => ($unit->property ? $unit->property->name : 'Unit') . ' ' . $unit->unit_number,
+                        'price' => '$' . number_format($unit->rent_price) . '/mo',
                         'address' => $unit->property ? $unit->property->address : ($this->address ?? 'N/A'),
-                        'beds'    => (int) ($unit->bedrooms ?? 0),
-                        'baths'   => (int) ($unit->bathrooms ?? 0),
-                        'sqft'    => $unit->sqft ?? '0',
-                        'image'   => $imagePath,
-                        'status'  => strtoupper('UNIT ' . ($unit->status ?? 'AVAILABLE')),
+                        'beds' => (int) ($unit->bedrooms ?? 0),
+                        'baths' => (int) ($unit->bathrooms ?? 0),
+                        'sqft' => $unit->sqft ?? '0',
+                        'image' => $imagePath,
+                        'status' => strtoupper('UNIT ' . ($unit->status ?? 'AVAILABLE')),
                     ];
                 });
             }),
