@@ -1,0 +1,151 @@
+diff --git a/app/Observers/UserObserver.php b/app/Observers/UserObserver.php
+index 782ac96..ceb4404 100644
+--- a/app/Observers/UserObserver.php
++++ b/app/Observers/UserObserver.php
+@@ -14,12 +14,17 @@ public function saved(User $user): void
+         // If the 'role' column was present in the save data
+         if ($user->wasChanged('role') || $user->wasRecentlyCreated) {
+             if ($user->role) {
+-                // Ensure the role exists in Spatie (safety check)
+-                $role = \Spatie\Permission\Models\Role::where('name', $user->role)->first();
+-                
+-                if ($role) {
+-                    $user->syncRoles([$role->name]);
+-                }
++                // ✅ FIX: Use firstOrCreate instead of a plain lookup.
++                // Previously, if the Spatie role row didn't exist yet (e.g. 'tenant'
++                // was never seeded), the lookup returned null and syncRoles() was
++                // silently skipped — the user kept role='tenant' on the column but
++                // had NO actual Spatie role, breaking any role-based access checks.
++                $role = \Spatie\Permission\Models\Role::firstOrCreate([
++                    'name' => $user->role,
++                    'guard_name' => 'web',
++                ]);
++
++                $user->syncRoles([$role->name]);
+             }
+         }
+ 
+diff --git a/bootstrap/app.php b/bootstrap/app.php
+index 20231cf..32e8502 100644
+--- a/bootstrap/app.php
++++ b/bootstrap/app.php
+@@ -16,7 +16,25 @@
+         $middleware->api(prepend: [
+             \Illuminate\Http\Middleware\HandleCors::class,
+         ]);
++
++        // Spatie Permission no longer auto-registers these aliases on Laravel's
++        // new bootstrap/app.php structure — they must be added explicitly.
++        $middleware->alias([
++            'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
++            'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
++            'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
++        ]);
+     })
+     ->withExceptions(function (Exceptions $exceptions): void {
+-        //
++        // Render Spatie's role/permission failures the same way the rest of the
++        // API responds ({success:false, message}), instead of Laravel's default
++        // {"message": "..."} shape.
++        $exceptions->render(function (\Spatie\Permission\Exceptions\UnauthorizedException $e, $request) {
++            if ($request->is('api/*') || $request->expectsJson()) {
++                return response()->json([
++                    'success' => false,
++                    'message' => 'You are not authorized to access this resource.',
++                ], 403);
++            }
++        });
+     })->create();
+diff --git a/database/seeders/RolesAndPermissionsSeeder.php b/database/seeders/RolesAndPermissionsSeeder.php
+index 0939ffa..a95871a 100644
+--- a/database/seeders/RolesAndPermissionsSeeder.php
++++ b/database/seeders/RolesAndPermissionsSeeder.php
+@@ -15,6 +15,11 @@ public function run(): void
+ 
+         // 0. Super Admin role (Ensure it exists)
+         Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
++
++        // 0b. Tenant role — used by the public /api/auth/register endpoint and
++        // required by the `role:tenant` middleware guarding tenant-only API routes.
++        // No Filament/Shield permissions attached: tenants never access the panel.
++        Role::firstOrCreate(['name' => 'tenant', 'guard_name' => 'web']);
+         
+         // 1. Company Admin role
+         $companyAdmin = Role::firstOrCreate(['name' => 'company_admin', 'guard_name' => 'web']);
+diff --git a/routes/api.php b/routes/api.php
+index 5161e98..af5cfab 100644
+--- a/routes/api.php
++++ b/routes/api.php
+@@ -30,8 +30,9 @@
+     // Stripe Checkout Session Creation
+     Route::post('/checkout/session', [CheckoutController::class, 'createSession']);
+ 
+-    // Tenant Dashboard stats
+-    Route::get('/tenant/dashboard', [TenantDashboardController::class, 'index']);
++    // Tenant Dashboard stats — tenants only
++    Route::get('/tenant/dashboard', [TenantDashboardController::class, 'index'])
++        ->middleware('role:tenant,sanctum');
+ });
+ 
+ // ── General Public Endpoints 
+diff --git a/app/Console/Commands/SyncUserRoles.php b/app/Console/Commands/SyncUserRoles.php
+new file mode 100644
+index 0000000..a32661b
+--- /dev/null
++++ b/app/Console/Commands/SyncUserRoles.php
+@@ -0,0 +1,54 @@
++<?php
++
++namespace App\Console\Commands;
++
++use App\Models\User;
++use Illuminate\Console\Command;
++use Spatie\Permission\Models\Role;
++
++class SyncUserRoles extends Command
++{
++    /**
++     * The name and signature of the console command.
++     *
++     * @var string
++     */
++    protected $signature = 'app:sync-user-roles';
++
++    /**
++     * The console command description.
++     *
++     * @var string
++     */
++    protected $description = 'Backfill Spatie roles for existing users whose role column was never synced (fixes the UserObserver silent-skip bug retroactively)';
++
++    /**
++     * Execute the console command.
++     */
++    public function handle(): int
++    {
++        $users = User::whereNotNull('role')->get();
++
++        $this->info("Checking {$users->count()} users...");
++
++        $fixed = 0;
++
++        foreach ($users as $user) {
++            if (! $user->hasRole($user->role)) {
++                $role = Role::firstOrCreate([
++                    'name' => $user->role,
++                    'guard_name' => 'web',
++                ]);
++
++                $user->syncRoles([$role->name]);
++
++                $this->line("  ↳ Fixed: {$user->email} → assigned role '{$role->name}'");
++                $fixed++;
++            }
++        }
++
++        $this->info("Done. {$fixed} user(s) fixed, " . ($users->count() - $fixed) . ' already correct.');
++
++        return self::SUCCESS;
++    }
++}

@@ -14,12 +14,17 @@ class UserObserver
         // If the 'role' column was present in the save data
         if ($user->wasChanged('role') || $user->wasRecentlyCreated) {
             if ($user->role) {
-                // Ensure the role exists in Spatie (safety check)
-                $role = \Spatie\Permission\Models\Role::where('name', $user->role)->first();
-                
-                if ($role) {
-                    $user->syncRoles([$role->name]);
-                }
+                // ✅ FIX: Use firstOrCreate instead of a plain lookup.
+                // Previously, if the Spatie role row didn't exist yet (e.g. 'tenant'
+                // was never seeded), the lookup returned null and syncRoles() was
+                // silently skipped — the user kept role='tenant' on the column but
+                // had NO actual Spatie role, breaking any role-based access checks.
+                $role = \Spatie\Permission\Models\Role::firstOrCreate([
+                    'name' => $user->role,
+                    'guard_name' => 'web',
+                ]);
+
+                $user->syncRoles([$role->name]);
             }
         }
 

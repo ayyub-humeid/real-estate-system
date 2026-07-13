@@ -31,8 +31,9 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::post('/checkout/session', [CheckoutController::class, 'createSession']);
     Route::post('/checkout/verify-session', [CheckoutController::class, 'verifySession']);
 
-    // Tenant Dashboard stats
-    Route::get('/tenant/dashboard', [TenantDashboardController::class, 'index']);
+    // Tenant Dashboard stats — tenants only
+    Route::get('/tenant/dashboard', [TenantDashboardController::class, 'index'])
+        ->middleware('role:tenant,sanctum');
 });
 
 // ── General Public Endpoints 

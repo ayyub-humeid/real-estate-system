@@ -15,6 +15,11 @@ class RolesAndPermissionsSeeder extends Seeder
 
         // 0. Super Admin role (Ensure it exists)
         Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
+
+        // 0b. Tenant role — used by the public /api/auth/register endpoint and
+        // required by the `role:tenant` middleware guarding tenant-only API routes.
+        // No Filament/Shield permissions attached: tenants never access the panel.
+        Role::firstOrCreate(['name' => 'tenant', 'guard_name' => 'web']);
         
         // 1. Company Admin role
         $companyAdmin = Role::firstOrCreate(['name' => 'company_admin', 'guard_name' => 'web']);
