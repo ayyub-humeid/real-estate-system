@@ -54,7 +54,7 @@ class StripePaymentService
             'mode' => $mode,
             'success_url' => rtrim(env('FRONTEND_URL', 'http://localhost:3000'), '/') . '/checkout/success?session_id={CHECKOUT_SESSION_ID}',
             'cancel_url' => rtrim(env('FRONTEND_URL', 'http://localhost:3000'), '/') . '/checkout/cancel?plan=' . $plan->slug,
-            'client_reference_id' => $companyId, // optional to get more info about user. 
+            'client_reference_id' => $companyId, // optional to get more secure.
             'metadata' => [
                 'plan_id' => $plan->id,
                 'user_id' => $userId,
@@ -66,5 +66,10 @@ class StripePaymentService
     {
         $webhookSecret = config('services.stripe.webhook_secret');
         return Webhook::constructEvent($payload, $signature, $webhookSecret);
+    }
+
+    public function retrieveSession(string $sessionId)
+    {
+        return $this->stripe->checkout->sessions->retrieve($sessionId);
     }
 }

@@ -23,11 +23,15 @@ class RegisterCompanyRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:companies,email', 'unique:users,email'],
+            'admin_name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
+            'agency_email' => ['nullable', 'string', 'email', 'max:255', 'unique:companies,email'],
             'phone' => ['required', 'string', 'max:20'],
+            'agency_phone' => ['nullable', 'string', 'max:20'],
             'address' => ['nullable', 'string', 'max:255'],
             'logo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,svg', 'max:2048'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'with_trial' => ['nullable', 'boolean'],
         ];
     }
 }

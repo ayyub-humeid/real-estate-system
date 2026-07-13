@@ -101,7 +101,7 @@ class AgencyController extends Controller
 
             $data = $request->validated();
             $data['is_active'] = true;
-            
+
             $password = $request->post('password');
             unset($data['password'], $data['password_confirmation']);
 
@@ -111,14 +111,26 @@ class AgencyController extends Controller
                 $data['logo'] = $path;
             }
 
-            $company = Company::create($data);
+            // Extract user (admin) specific data
+            $adminEmail = $data['email'];
+            $adminPhone = $data['phone'];
+
+            // Prepare company data
+            $companyData = $data;
+            // Set company email/phone to specific ones if provided, else fallback to admin's
+            $companyData['email'] = $data['agency_email'] ?? $adminEmail;
+            $companyData['phone'] = $data['agency_phone'] ?? $adminPhone;
+
+            unset($companyData['agency_email'], $companyData['agency_phone']);
+
+            $company = Company::create($companyData);
 
             // Create Company Admin User
             $user = User::create([
                 'company_id' => $company->id,
-                'name' => $company->name . ' Admin',
-                'email' => $company->email,
-                'phone' => $company->phone,
+                'name' => $data['admin_name'],
+                'email' => $adminEmail,
+                'phone' => $adminPhone,
                 'password' => Hash::make($password),
             ]);
 
@@ -126,17 +138,21 @@ class AgencyController extends Controller
             $user->assignRole('company_admin');
 
             // Find professional plan or fallback to the first active plan
-            $plan = Plan::where('slug', 'professional')->first() ?? Plan::where('is_active', true)->first();
+            $withTrial = filter_var($request->input('with_trial', true), FILTER_VALIDATE_BOOLEAN);
 
-            if ($plan) {
-                Subscription::create([
-                    'company_id' => $company->id,
-                    'plan_id' => $plan->id,
-                    'status' => 'trialing',
-                    'starts_at' => now(),
-                    'trial_ends_at' => now()->addDays(14),
-                    'ends_at' => now()->addDays(14),
-                ]);
+            if ($withTrial) {
+                $plan = Plan::where('slug', 'professional')->first() ?? Plan::where('is_active', true)->first();
+
+                if ($plan) {
+                    Subscription::create([
+                        'company_id' => $company->id,
+                        'plan_id' => $plan->id,
+                        'status' => 'trialing',
+                        'starts_at' => now(),
+                        'trial_ends_at' => now()->addDays(14),
+                        'ends_at' => now()->addDays(14),
+                    ]);
+                }
             }
 
             DB::commit();
