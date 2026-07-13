@@ -62,6 +62,40 @@ class StripePaymentService
         ]);
     }
 
+    
+    public function createLeaseCheckoutSession(\App\Models\Unit $unit, string $userId)
+    {
+        $rentPrice = (float) $unit->rent_price;
+
+        $lineItems = [
+            [
+                'price_data' => [
+                    'currency' => 'usd',
+                    'product_data' => [
+                        'name' => 'Rent Payment - Unit ' . $unit->unit_number,
+                        'description' => 'First month rent payment / lease application fee for unit ' . $unit->unit_number . ' at ' . ($unit->property->name ?? 'Property'),
+                    ],
+                    'unit_amount' => (int) ($rentPrice * 100),
+                ],
+                'quantity' => 1,
+            ]
+        ];
+
+        return $this->stripe->checkout->sessions->create([
+            'payment_method_types' => ['card'],
+            'line_items' => $lineItems,
+            'mode' => 'payment',
+            'success_url' => rtrim(env('FRONTEND_URL', 'http://localhost:3000'), '/') . '/checkout/success?session_id={CHECKOUT_SESSION_ID}&type=lease',
+            'cancel_url' => rtrim(env('FRONTEND_URL', 'http://localhost:3000'), '/') . '/units/' . $unit->id,
+            'client_reference_id' => 'lease_' . $unit->id,
+            'metadata' => [
+                'unit_id' => $unit->id,
+                'user_id' => $userId,
+                'type' => 'lease',
+            ],
+        ]);
+    }
+
     public function verifyWebhook(string $payload, string $signature)
     {
         $webhookSecret = config('services.stripe.webhook_secret');

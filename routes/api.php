@@ -30,6 +30,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     // Stripe Checkout Session Creation
     Route::post('/checkout/session', [CheckoutController::class, 'createSession']);
     Route::post('/checkout/verify-session', [CheckoutController::class, 'verifySession']);
+    Route::post('/checkout/lease-session', [CheckoutController::class, 'createLeaseSession']);
 
     // Tenant Dashboard stats — tenants only
     Route::get('/tenant/dashboard', [TenantDashboardController::class, 'index'])
