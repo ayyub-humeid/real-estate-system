@@ -37,7 +37,7 @@ class TenantPaymentController extends Controller
                 }
             ])
             ->orderBy('due_date', 'desc')
-            ->paginate($request->input('per_page', 15));
+            ->paginate($request->input('per_page', 8));
 
         return PaymentResource::collection($payments);
     }
@@ -61,7 +61,7 @@ class TenantPaymentController extends Controller
             ->with([
                 'lease' => function ($query) {
                     $query->select('id', 'unit_id', 'start_date', 'end_date', 'status')
-                        ->with('unit:id,unit_number,property_id');
+                        ->with(['unit:id,unit_number,property_id', 'unit.property:id,name']);
                 }
             ])
             ->find($id);

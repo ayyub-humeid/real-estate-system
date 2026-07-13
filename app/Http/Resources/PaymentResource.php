@@ -37,6 +37,7 @@ class PaymentResource extends JsonResource
                         'id' => $this->lease->unit->id,
                         'unit_number' => $this->lease->unit->unit_number,
                         'property_id' => $this->lease->unit->property_id,
+                        'property_name' => $this->lease->unit->property->name
                     ] : null;
                 }),
             ],
