@@ -261,29 +261,8 @@ class CheckoutController extends Controller
                     'reference_number' => $session->payment_intent ?? $session->id,
                 ]);
 
-                // Notify company users
-                if (!empty($payment->company_id)) {
-                    $companyUsers = User::query()
-                        ->whereNotNull('company_id')
-                        ->where('company_id', $payment->company_id)
-                        ->get();
-
-                    if ($companyUsers->isNotEmpty()) {
-                        Notification::send($companyUsers, new PaymentNotification($payment));
-                    }
-                }
-
-                // Notify the tenant user who made the payment (for the frontend listener)
-                $userId = $session->metadata->user_id ?? null;
-                if ($userId) {
-                    $tenantUser = User::find($userId);
-                    if ($tenantUser) {
-                        // Avoid sending duplicate notification if the tenant user is also a company user
-                        if (empty($companyUsers) || !$companyUsers->contains('id', $tenantUser->id)) {
-                            $tenantUser->notify(new PaymentNotification($payment));
-                        }
-                    }
-                }
+                // Notifications are handled automatically by the PaymentObserver
+                // when the payment status is updated to 'paid'.
 
                 return response()->json([
                     'success' => true,

@@ -8,7 +8,9 @@ use App\Models\Payment;
 use App\Models\User;
 use App\Observers\PaymentObserver;
 use App\Observers\UserObserver;
-
+use Filament\Support\Assets\Js;
+use Filament\Support\Facades\FilamentAsset;
+use Illuminate\Support\Facades\Vite;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -17,7 +19,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        
+
         // Register the PaymentObserver
         // \App\Models\Payment::observe(PaymentObserver::class);
 

@@ -15,6 +15,9 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
+use Illuminate\Support\Facades\Broadcast;
+Broadcast::routes(['middleware' => ['auth:sanctum']]);
+
 // ── Stripe Webhook (Public Callback) ─────────────────────────
 Route::post('/stripe/webhook', [StripeWebhookController::class, 'handleWebhook']);
 

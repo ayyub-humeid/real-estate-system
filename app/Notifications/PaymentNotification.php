@@ -34,34 +34,61 @@ class PaymentNotification extends Notification implements ShouldQueue
             ->line('Thank you for your business!');
     }
 
+    protected function isTenant(object $notifiable): bool
+    {
+        return $this->payment->lease &&
+            $this->payment->lease->tenant &&
+            $this->payment->lease->tenant->user_id === $notifiable->id;
+    }
+
     public function toArray(object $notifiable): array
     {
-        return \Filament\Notifications\Notification::make()
-            ->title('Payment Received')
-            ->body("A payment of {$this->payment->amount} was recorded for Unit " . ($this->payment->lease->unit->unit_number ?? ''))
+        $isTenant = $this->isTenant($notifiable);
+        $title = $isTenant ? 'Payment Successful' : 'Payment Received';
+        $body = $isTenant
+            ? "Your payment of {$this->payment->amount} has been successfully processed."
+            : "A payment of {$this->payment->amount} was recorded for Unit " . ($this->payment->lease?->unit?->unit_number ?? '') . ' in Property : ' . ($this->payment->lease?->unit?->property?->name ?? '');
+
+        $notification = \Filament\Notifications\Notification::make()
+            ->title($title)
+            ->body($body)
             ->icon('heroicon-o-currency-dollar')
-            ->iconColor('success')
-            ->actions([
+            ->iconColor('success');
+
+        if (!$isTenant) {
+            $notification->actions([
                 \Filament\Notifications\Actions\Action::make('view')
                     ->button()
                     ->url(\App\Filament\Resources\PaymentResource::getUrl('view', ['record' => $this->payment->id])),
-            ])
-            ->getDatabaseMessage();
+            ]);
+        }
+
+        return $notification->getDatabaseMessage();
     }
-    public function toBroadcast(object $notifiable): array
+
+    public function toBroadcast(object $notifiable): \Illuminate\Notifications\Messages\BroadcastMessage
     {
-        return [
-            'message' => "A payment of {$this->payment->amount} was recorded for Unit " . ($this->payment->lease->unit->unit_number ?? '') . ' in Property : ' . ($this->payment->lease->unit->property->name ?? ''),
-            'payment_id' => $this->payment->id,
-            'url' => \App\Filament\Resources\PaymentResource::getUrl('view', ['record' => $this->payment->id]),
-        ];
+        $isTenant = $this->isTenant($notifiable);
+        $title = $isTenant ? 'Payment Successful' : 'Payment Received';
+        $body = $isTenant
+            ? "Your payment of {$this->payment->amount} has been successfully processed."
+            : "A payment of {$this->payment->amount} was recorded for Unit " . ($this->payment->lease?->unit?->unit_number ?? '') . ' in Property : ' . ($this->payment->lease?->unit?->property?->name ?? '');
+
+        $notification = \Filament\Notifications\Notification::make()
+            ->title($title)
+            ->body($body)
+            ->icon('heroicon-o-currency-dollar')
+            ->iconColor('success');
+
+        if (!$isTenant) {
+            $notification->actions([
+                \Filament\Notifications\Actions\Action::make('view')
+                    ->button()
+                    ->url(\App\Filament\Resources\PaymentResource::getUrl('view', ['record' => $this->payment->id])),
+            ]);
+        }
+
+        return $notification->getBroadcastMessage();
     }
-    // public function toBroadcast(object $notifiable): array
-    // {
-    //     return new BroadcastMessage([
-    //         'message' => "A payment of {$this->payment->amount} was recorded for Unit " . ($this->payment->lease->unit->unit_number ?? '') . ' in Property : ' . ($this->payment->lease->unit->property->name ?? ''),
-    //         'payment_id' => $this->payment->id,
-    //         'url' => \App\Filament\Resources\PaymentResource::getUrl('view', ['record' => $this->payment->id]),
-    //     ])->onQueue('notifications');
-    // }
+
 }

@@ -7,26 +7,44 @@ use App\Models\Payment;
 
 class PaymentObserver
 {
-    public function saved(Payment $payment): void
+    public function created(Payment $payment): void
     {
         $this->updateLeaseBalanceAndStatus($payment);
 
-        // Only send payment notifications if the payment status is paid or partial and relations exist
-        if (in_array($payment->status, ['paid', 'partial']) && $payment->lease && $payment->lease->tenant) {
-            // Notify Tenant (if user exists)
-            $tenantUser = $payment->lease->tenant->user;
-            if ($tenantUser) {
-                $tenantUser->notify(new \App\Notifications\PaymentNotification($payment));
-            }
+        if (in_array($payment->status, ['paid', 'partial'])) {
+            $this->sendNotifications($payment);
+        }
+    }
 
-            // Notify Financial Managers in same company
-            $managers = \App\Models\User::where('company_id', $payment->company_id)
-                ->role('financial_manager')
-                ->get();
+    public function updated(Payment $payment): void
+    {
+        $this->updateLeaseBalanceAndStatus($payment);
 
-            foreach ($managers as $manager) {
-                $manager->notify(new \App\Notifications\PaymentNotification($payment));
-            }
+        // Only send if the status JUST changed to paid or partial
+        if ($payment->wasChanged('status') && in_array($payment->status, ['paid', 'partial'])) {
+            $this->sendNotifications($payment);
+        }
+    }
+
+    protected function sendNotifications(Payment $payment): void
+    {
+        if (!$payment->lease || !$payment->lease->tenant) {
+            return;
+        }
+
+        // Notify Tenant (if user exists)
+        $tenantUser = $payment->lease->tenant->user;
+        if ($tenantUser) {
+            $tenantUser->notify(new \App\Notifications\PaymentNotification($payment));
+        }
+
+        // Notify Financial Managers in same company
+        $managers = \App\Models\User::where('company_id', $payment->company_id)
+            // ->role('financial_manager')
+            ->get();
+
+        foreach ($managers as $manager) {
+            $manager->notify(new \App\Notifications\PaymentNotification($payment));
         }
     }
 
@@ -39,7 +57,8 @@ class PaymentObserver
     {
         $lease = $payment->lease;
 
-        if (!$lease) return;
+        if (!$lease)
+            return;
 
         // Outstanding balance based on explicit payment amounts
         $totalExpected = (float) $lease->payments()
