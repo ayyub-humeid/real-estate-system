@@ -43,7 +43,7 @@ class PaymentResource extends Resource
                 // 'lease.tenant:id,name,email'
                 'lease.tenant:id,user_id',
                 'lease.tenant.user:id,name,email',
-                'tenant',
+                // 'tenant',
 
                 // 🎯 Load who recorded the payment (for audit trail)
                 'recordedBy:id,name',

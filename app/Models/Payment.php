@@ -96,7 +96,7 @@ class Payment extends Model
             'id',          // Foreign key on tenants
             'lease_id',    // Local key on payments
             'tenant_id'    // Local key on leases
-        )->first();
+        );
     }
 
     // Scopes

@@ -25,10 +25,11 @@ class TenantLeaseController extends Controller
             ], 403);
         }
 
-        $tenant = $user->tenant;
+        $tenants = \App\Models\Tenant::withoutGlobalScopes()->where('user_id', $user->id)->pluck('id');
 
-        // Retrieve leases for the tenant
-        $leases = $tenant->leases()
+        // Retrieve leases for the tenant across all profiles
+        $leases = \App\Models\Lease::withoutGlobalScopes()
+            ->whereIn('tenant_id', $tenants)
             ->with([
                 'unit:id,unit_number,property_id',
                 'unit.property:id,name',
@@ -53,9 +54,10 @@ class TenantLeaseController extends Controller
             ], 403);
         }
 
-        $tenant = $user->tenant;
+        $tenants = \App\Models\Tenant::withoutGlobalScopes()->where('user_id', $user->id)->pluck('id');
 
-        $lease = $tenant->leases()
+        $lease = \App\Models\Lease::withoutGlobalScopes()
+            ->whereIn('tenant_id', $tenants)
             ->with([
                 'unit:id,unit_number,property_id',
                 'unit.property:id,name',

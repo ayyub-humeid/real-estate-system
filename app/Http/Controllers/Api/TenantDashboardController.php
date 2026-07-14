@@ -19,27 +19,29 @@ class TenantDashboardController extends Controller
     {
         $user = $request->user();
 
-        // العثور على بروفايل المستأجر
-        $tenant = Tenant::withoutGlobalScopes()
+        // العثور على جميع بروفايلات المستأجر (لكل الشركات)
+        $tenants = Tenant::withoutGlobalScopes()
             ->where('user_id', $user->id)
-            ->first();
+            ->get();
 
-        if (!$tenant) {
+        if ($tenants->isEmpty()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Tenant profile not found for this user.'
             ], 404);
         }
 
+        $tenantIds = $tenants->pluck('id');
+
         // 1. العقود والوحدات المستأجرة
         $leases = Lease::withoutGlobalScopes()
-            ->where('tenant_id', $tenant->id)
+            ->whereIn('tenant_id', $tenantIds)
             ->with(['unit.property.company', 'property'])
             ->get();
 
         // 2. طلبات الإيجار المقدمة
         $rentalRequests = RentalRequest::withoutGlobalScopes()
-            ->where('tenant_id', $tenant->id)
+            ->whereIn('tenant_id', $tenantIds)
             ->with(['unit.property'])
             ->latest()
             ->get();
@@ -128,8 +130,8 @@ class TenantDashboardController extends Controller
             'success' => true,
             'data'    => [
                 'tenant'           => [
-                    'id'   => $tenant->id,
-                    'status' => $tenant->status,
+                    'id'   => $tenants->first()->id,
+                    'status' => $tenants->first()->status,
                 ],
                 'managing_company' => $managingCompany,
                 'next_payment_due' => $nextPaymentDue,

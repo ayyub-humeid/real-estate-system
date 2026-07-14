@@ -22,10 +22,15 @@ class UserResource extends Resource
 
 
    
+    public static function canAccess(): bool
+    {
+        return auth()->user()->isSuperAdmin();
+    }
+
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
-{
-    return parent::getEloquentQuery()->with(['company']);
-}
+    {
+        return parent::getEloquentQuery()->with(['company']);
+    }
 
     /**
      * Reusable company field logic

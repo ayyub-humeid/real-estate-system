@@ -116,9 +116,9 @@ class User extends Authenticatable implements FilamentUser
 // {
 //     return $this->hasManyThrough(Payment::class, Lease::class, 'tenant_id', 'lease_id');
 // }
-    public function tenant(): HasOne
+    public function tenants(): HasMany
     {
-        return $this->hasOne(Tenant::class);
+        return $this->hasMany(Tenant::class);
     }
 
     public function employee(): HasOne

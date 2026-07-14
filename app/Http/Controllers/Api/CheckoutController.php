@@ -148,20 +148,19 @@ class CheckoutController extends Controller
                     if ($unitId && $userId) {
                         $user = \App\Models\User::find($userId);
                         if ($user) {
-                            // Find or create Tenant record for this user
-                            $tenant = \App\Models\Tenant::firstOrCreate(
-                                ['user_id' => $user->id],
+                            $unit = \App\Models\Unit::with('property')->find($unitId);
+                            $companyId = $unit && $unit->property ? $unit->property->company_id : null;
+
+                            // Find or create Tenant record for this user and company
+                            $tenant = \App\Models\Tenant::withoutGlobalScopes()->firstOrCreate(
+                                [
+                                    'user_id' => $user->id,
+                                    'company_id' => $companyId
+                                ],
                                 [
                                     'status' => 'active',
                                 ]
                             );
-
-                            $unit = \App\Models\Unit::with('property')->find($unitId);
-                            if ($unit && $unit->property) {
-                                if (empty($tenant->company_id)) {
-                                    $tenant->update(['company_id' => $unit->property->company_id]);
-                                }
-                            }
 
                             // Create the RentalRequest (طلب إيجار)
                             $rentalRequest = \App\Models\RentalRequest::create([

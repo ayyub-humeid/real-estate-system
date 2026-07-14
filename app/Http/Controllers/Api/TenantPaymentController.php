@@ -26,13 +26,16 @@ class TenantPaymentController extends Controller
             ], 403);
         }
 
-        $tenant = $user->tenant;
+        $tenants = \App\Models\Tenant::withoutGlobalScopes()->where('user_id', $user->id)->pluck('id');
 
         // Retrieve payments through the tenant's leases
-        $payments = $tenant->payments()
+        $payments = Payment::withoutGlobalScopes()
+            ->whereHas('lease', function ($query) use ($tenants) {
+                $query->withoutGlobalScopes()->whereIn('tenant_id', $tenants);
+            })
             ->with([
                 'lease' => function ($query) {
-                    $query->select('id', 'unit_id', 'start_date', 'end_date', 'status')
+                    $query->withoutGlobalScopes()->select('id', 'unit_id', 'start_date', 'end_date', 'status')
                         ->with(['unit:id,unit_number,property_id', 'unit.property:id,name']);
                 }
             ])
@@ -55,12 +58,15 @@ class TenantPaymentController extends Controller
             ], 403);
         }
 
-        $tenant = $user->tenant;
+        $tenants = \App\Models\Tenant::withoutGlobalScopes()->where('user_id', $user->id)->pluck('id');
 
-        $payment = $tenant->payments()
+        $payment = Payment::withoutGlobalScopes()
+            ->whereHas('lease', function ($query) use ($tenants) {
+                $query->withoutGlobalScopes()->whereIn('tenant_id', $tenants);
+            })
             ->with([
                 'lease' => function ($query) {
-                    $query->select('id', 'unit_id', 'start_date', 'end_date', 'status')
+                    $query->withoutGlobalScopes()->select('id', 'unit_id', 'start_date', 'end_date', 'status')
                         ->with(['unit:id,unit_number,property_id', 'unit.property:id,name']);
                 }
             ])
@@ -68,8 +74,17 @@ class TenantPaymentController extends Controller
 
         if (!$payment) {
             return response()->json([
-                'message' => 'Payment not found or does not belong to the tenant.'
+                'message' => 'Payment not found.'
             ], 404);
+        }
+
+        $tenants = \App\Models\Tenant::withoutGlobalScopes()->where('user_id', $user->id)->pluck('id');
+
+        $lease = \App\Models\Lease::withoutGlobalScopes()->find($payment->lease_id);
+        if (!$lease || !$tenants->contains($lease->tenant_id)) {
+            return response()->json([
+                'message' => 'Payment does not belong to the tenant.'
+            ], 403);
         }
 
         return new PaymentResource($payment);

@@ -64,7 +64,7 @@ class Tenant extends Model
     // 🔥 Relationships
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class)->withoutGlobalScopes();
     }
 
     public function leases(): HasMany
