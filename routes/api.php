@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\TenantDashboardController;
 use App\Http\Controllers\Api\CheckoutController;
 use App\Http\Controllers\Api\StripeWebhookController;
+use App\Http\Controllers\Api\TenantRentalRequestController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -53,6 +54,14 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('/tenant/leases', [\App\Http\Controllers\Api\TenantLeaseController::class, 'index'])
         ->middleware('role:tenant,sanctum');
     Route::get('/tenant/leases/{lease}', [\App\Http\Controllers\Api\TenantLeaseController::class, 'show'])
+        ->middleware('role:tenant,sanctum');
+
+    // Tenant Rental Requests Resource
+    Route::get('/tenant/rental-requests', [TenantRentalRequestController::class, 'index'])
+        ->middleware('role:tenant,sanctum');
+    Route::get('/tenant/rental-requests/{id}', [TenantRentalRequestController::class, 'show'])
+        ->middleware('role:tenant,sanctum');
+    Route::delete('/tenant/rental-requests/{id}', [TenantRentalRequestController::class, 'destroy'])
         ->middleware('role:tenant,sanctum');
 });
 

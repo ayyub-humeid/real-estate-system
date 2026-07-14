@@ -4,15 +4,16 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class RentalRequest extends Model
 {
-    use \App\Traits\HasCompany;
-    
+    use \App\Traits\HasCompany,SoftDeletes;
+
     protected static function boot()
     {
         parent::boot();
-        
+
         static::creating(function ($model) {
             if (empty($model->company_id) && $model->unit_id) {
                 $unit = Unit::with('property')->find($model->unit_id);
