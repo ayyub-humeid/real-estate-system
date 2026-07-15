@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AgencyController;
+use App\Http\Controllers\Api\TenantMaintenanceController;
 use App\Http\Controllers\Api\UnitController;
 use App\Http\Controllers\Api\PlanController;
 use App\Http\Controllers\ContactController;
@@ -36,6 +37,12 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('/tenant/dashboard', [TenantDashboardController::class, 'index'])
         ->middleware('role:tenant,sanctum');
 
+    // Tenant maintenance-requests
+    Route::get('/tenant/maintenance-requests', [TenantMaintenanceController::class, 'index'])
+        ->middleware('role:tenant,sanctum');
+    Route::post('/tenant/maintenance-requests', [TenantMaintenanceController::class, 'store'])
+        ->middleware('role:tenant,sanctum');
+
     // Tenant Payments Resource
     Route::get('/tenant/payments', [\App\Http\Controllers\Api\TenantPaymentController::class, 'index'])
         ->middleware('role:tenant,sanctum');
@@ -43,7 +50,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
         ->middleware('role:tenant,sanctum');
 });
 
-// ── General Public Endpoints 
+// ── General Public Endpoints
 Route::group([
     'as' => 'api.',
     //    'middleware'=>'auth:sanctum',

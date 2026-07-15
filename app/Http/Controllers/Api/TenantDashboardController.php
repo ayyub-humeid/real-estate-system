@@ -70,8 +70,8 @@ class TenantDashboardController extends Controller
             $nextPaymentDue = [
                 'amount'     => (float) $nextPayment->amount,
                 'due_date'   => $nextPayment->due_date->format('Y-m-d'),
-                'unit_name'  => ($nextPayment->lease && $nextPayment->lease->unit) 
-                    ? ($nextPayment->lease->unit->property->name . ' - Unit ' . $nextPayment->lease->unit->unit_number) 
+                'unit_name'  => ($nextPayment->lease && $nextPayment->lease->unit)
+                    ? ($nextPayment->lease->unit->property->name . ' - Unit ' . $nextPayment->lease->unit->unit_number)
                     : 'Leased Unit',
                 'id'         => $nextPayment->id
             ];
@@ -81,6 +81,7 @@ class TenantDashboardController extends Controller
         $formattedLeases = $leases->map(function ($l) {
             return [
                 'id'                => $l->id,
+                'unit_id'           => $l->unit_id,
                 'start_date'        => $l->start_date ? $l->start_date->format('Y-m-d') : null,
                 'end_date'          => $l->end_date ? $l->end_date->format('Y-m-d') : null,
                 'rent_amount'       => (float) $l->rent_amount,
@@ -101,8 +102,8 @@ class TenantDashboardController extends Controller
                 'priority'        => $r->priority,
                 'max_budget'      => (float) $r->max_budget,
                 'desired_move_in' => $r->desired_move_in ? $r->desired_move_in->format('Y-m-d') : null,
-                'unit_name'       => $r->unit 
-                    ? ($r->unit->property->name . ' - Unit ' . $r->unit->unit_number) 
+                'unit_name'       => $r->unit
+                    ? ($r->unit->property->name . ' - Unit ' . $r->unit->unit_number)
                     : 'N/A',
             ];
         });
@@ -118,8 +119,8 @@ class TenantDashboardController extends Controller
                 'payment_date'     => $p->payment_date ? $p->payment_date->format('Y-m-d') : null,
                 'status'           => $p->status,
                 'type'             => $p->type,
-                'unit_name'        => ($p->lease && $p->lease->unit) 
-                    ? ($p->lease->unit->property->name . ' - Unit ' . $p->lease->unit->unit_number) 
+                'unit_name'        => ($p->lease && $p->lease->unit)
+                    ? ($p->lease->unit->property->name . ' - Unit ' . $p->lease->unit->unit_number)
                     : 'N/A',
             ];
         });
