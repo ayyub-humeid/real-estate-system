@@ -26,7 +26,11 @@ class MaintenanceRequestObserver
      */
     public function updated(MaintenanceRequest $maintenanceRequest): void
     {
-        //
+        if ($maintenanceRequest->isDirty('status') && $maintenanceRequest->reporter) {
+            $maintenanceRequest->reporter->notify(
+                new \App\Notifications\MaintenanceStatusUpdatedNotification($maintenanceRequest)
+            );
+        }
     }
 
     /**

@@ -21,6 +21,17 @@ class TenantMaintenanceController extends Controller
         }
 
         $tenant = $user->tenant;
+        if (!$tenant || !$tenant->company) {
+            return response()->json(['message' => 'Tenant company not found.'], 403);
+        }
+
+        if (!$tenant->company->hasFeature('maintenance_tracking')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This feature is not available on your plan.'
+            ], 403);
+        }
+
         $unitIds = $tenant->leases()->pluck('unit_id');
 
         $requests = MaintenanceRequest::withoutGlobalScopes()
@@ -39,6 +50,17 @@ class TenantMaintenanceController extends Controller
     {
         $user = $request->user();
         $tenant = $user->tenant;
+
+        if (!$tenant || !$tenant->company) {
+            return response()->json(['message' => 'Tenant company not found.'], 403);
+        }
+
+        if (!$tenant->company->hasFeature('maintenance_tracking')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This feature is not available on your plan.'
+            ], 403);
+        }
 
         // ✅ نقطة أمان حرجة: تأكيد إن unit_id فعلاً ضمن عقود المستأجر
         // (وليس أي unit_id عشوائي يرسله من الفرونت)
