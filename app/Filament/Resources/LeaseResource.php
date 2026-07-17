@@ -203,7 +203,7 @@ class LeaseResource extends Resource
                     ->label('ID')
                     ->sortable()
                     ->searchable()
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('lease_target')
                     ->label('Property / Unit')
@@ -233,13 +233,15 @@ class LeaseResource extends Resource
 
                 Tables\Columns\TextColumn::make('start_date')
                     ->date()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('end_date')
                     ->date()
                     ->sortable()
                     ->placeholder('Open-ended')
-                    ->color(fn($record) => $record->is_expired ? 'danger' : 'success'),
+                    ->color(fn($record) => $record->is_expired ? 'danger' : 'success')
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
@@ -258,7 +260,8 @@ class LeaseResource extends Resource
                     ->label('Payments')
                     ->badge()
                     ->color('info')
-                    ->icon('heroicon-m-banknotes'),
+                    ->icon('heroicon-m-banknotes')
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 // 🔥 WHY: total_paid comes from withSum() - computed in DB, not PHP
                 // Much faster than loading all payments and summing in PHP

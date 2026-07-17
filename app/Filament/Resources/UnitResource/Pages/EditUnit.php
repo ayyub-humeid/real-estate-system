@@ -22,6 +22,7 @@ class EditUnit extends EditRecord
                 ->label('✨ AI Description')
                 ->icon('heroicon-o-sparkles')
                 ->color('warning')
+                ->hidden(fn () => ! empty($this->getRecord()->description))
                 ->requiresConfirmation(false)
                 ->modalHeading('AI-Generated Description')
                 ->modalDescription('Review the description below. Click "Approve & Save" to use it, or "Cancel" to keep the existing description.')

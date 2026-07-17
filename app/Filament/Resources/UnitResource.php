@@ -219,25 +219,29 @@ class UnitResource extends Resource
                 Tables\Columns\TextColumn::make('type')
                     ->badge()
                     ->color('gray')
-                    ->formatStateUsing(fn (?string $state) => $state ? ucfirst($state) : '—'),
+                    ->formatStateUsing(fn (?string $state) => $state ? ucfirst($state) : '—')
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('bedrooms')
                     ->label('Beds')
                     ->numeric()
                     ->sortable()
-                    ->icon('heroicon-m-home'),
+                    ->icon('heroicon-m-home')
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('bathrooms')
                     ->label('Baths')
                     ->numeric()
                     ->sortable()
-                    ->icon('heroicon-m-home'),
+                    ->icon('heroicon-m-home')
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('sqft')
                     ->label('Sqft')
                     ->numeric()
                     ->sortable()
-                    ->formatStateUsing(fn (?int $state) => $state ? number_format($state) : '—'),
+                    ->formatStateUsing(fn (?int $state) => $state ? number_format($state) : '—')
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('rent_price')
                     ->label('Rent')
@@ -302,6 +306,7 @@ class UnitResource extends Resource
                     ->label('✨ Generate Description')
                     ->icon('heroicon-o-sparkles')
                     ->color('warning')
+                    ->hidden(fn (Unit $record) => ! empty($record->description))
                     ->requiresConfirmation(false)
                     ->modalHeading('AI-Generated Description')
                     ->modalDescription('Review the description below. Click "Approve & Save" to use it, or "Cancel" to keep the existing description.')
