@@ -54,7 +54,7 @@ class LeaseResource extends Resource
             ->searchable()
             ->preload()
             ->required()
-            ->visible(fn () => auth()->user()->isSuperAdmin());
+            ->visible(fn() => auth()->user()->isSuperAdmin());
     }
 
     public static function form(Form $form): Form
@@ -91,11 +91,12 @@ class LeaseResource extends Resource
                                         ->with('property:id,name');
                                 }
                             )
-                            ->getOptionLabelFromRecordUsing(fn($record) =>
-                                $record->property->name . ' - Unit ' . $record->unit_number
+                            ->getOptionLabelFromRecordUsing(
+                                fn($record) =>
+                                $record->property?->name . ' - Unit ' . $record->unit_number
                             )
                             ->helperText('If renting a single unit, select it here.')
-                            ->afterStateUpdated(fn (Forms\Get $get, Forms\Set $set) => self::recalculateRentAmount($get, $set)),
+                            ->afterStateUpdated(fn(Forms\Get $get, Forms\Set $set) => self::recalculateRentAmount($get, $set)),
                         Forms\Components\Select::make('tenant_id')
                             ->label('Tenant')
                             ->required()
@@ -115,7 +116,7 @@ class LeaseResource extends Resource
                             ->default(now())
                             ->native(false)
                             ->live()
-                            ->afterStateUpdated(fn (Forms\Get $get, Forms\Set $set) => self::recalculateRentAmount($get, $set)),
+                            ->afterStateUpdated(fn(Forms\Get $get, Forms\Set $set) => self::recalculateRentAmount($get, $set)),
 
                         Forms\Components\DatePicker::make('end_date')
                             ->label('End Date (Optional)')
@@ -123,7 +124,7 @@ class LeaseResource extends Resource
                             ->native(false)
                             ->afterOrEqual('start_date')
                             ->live()
-                            ->afterStateUpdated(fn (Forms\Get $get, Forms\Set $set) => self::recalculateRentAmount($get, $set)),
+                            ->afterStateUpdated(fn(Forms\Get $get, Forms\Set $set) => self::recalculateRentAmount($get, $set)),
 
                         Forms\Components\TextInput::make('rent_amount')
                             ->required()
@@ -270,19 +271,19 @@ class LeaseResource extends Resource
                     ->money('USD')
                     ->color('success')
                     ->sortable(),
-                    // In LeaseResource::table() columns array, after 'total_paid':
-Tables\Columns\IconColumn::make('is_fully_paid')
-    ->label('Settled')
-    ->boolean()
-    ->trueIcon('heroicon-o-check-badge')
-    ->falseIcon('heroicon-o-clock')
-    ->trueColor('success')
-    ->falseColor('gray')
-    ->state(fn ($record) => $record->is_fully_paid),
+                // In LeaseResource::table() columns array, after 'total_paid':
+                Tables\Columns\IconColumn::make('is_fully_paid')
+                    ->label('Settled')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-check-badge')
+                    ->falseIcon('heroicon-o-clock')
+                    ->trueColor('success')
+                    ->falseColor('gray')
+                    ->state(fn($record) => $record->is_fully_paid),
 
                 Tables\Columns\TextColumn::make('outstanding_balance')
                     ->label('Outstanding')
-                    ->state(fn ($record) => $record->outstanding_balance)
+                    ->state(fn($record) => $record->outstanding_balance)
                     ->money('USD')
                     ->color('danger'),
 
@@ -292,7 +293,7 @@ Tables\Columns\IconColumn::make('is_fully_paid')
                     ->sortable()
                     ->badge()
                     ->color('info')
-                    ->visible(fn () => auth()->user()->isSuperAdmin()),
+                    ->visible(fn() => auth()->user()->isSuperAdmin()),
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
@@ -305,7 +306,7 @@ Tables\Columns\IconColumn::make('is_fully_paid')
                     ->relationship('company', 'name')
                     ->searchable()
                     ->preload()
-                    ->visible(fn () => auth()->user()->isSuperAdmin()),
+                    ->visible(fn() => auth()->user()->isSuperAdmin()),
 
                 Tables\Filters\SelectFilter::make('status')
                     ->options([
@@ -338,31 +339,35 @@ Tables\Columns\IconColumn::make('is_fully_paid')
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
                 // ✅ Export PDF Action
-                 Tables\Actions\Action::make('export_pdf')
-                 ->label('Export PDF')
-                 ->icon('heroicon-o-document-arrow-down')
-                 ->color('success')
-                 ->action(function ($record) {
-                     return response()->streamDownload(function () use ($record) {
-                         // Load lease with relationships
+                Tables\Actions\Action::make('export_pdf')
+                    ->label('Export PDF')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->color('success')
+                    ->action(function ($record) {
+                        return response()->streamDownload(function () use ($record) {
+                            // Load lease with all required relationships
                             $lease = \App\Models\Lease::with([
-                              'company',
-                              'unit.property',
-                              'tenant.user'
-                ])->find($record->id);
+                                'company',
+                                'unit.property',
+                                'property',
+                                'tenant.user',
+                                'tenant',
+                            ])->find($record->id);
 
-            // Load company settings
-            $settings = \App\Models\CompanySetting::where('company_id', $lease->company_id)->first();
+                            // Load company settings
+                            $settings = \App\Models\CompanySetting::where('company_id', $lease->company_id)->first();
 
-            // Generate PDF
-            $pdf = \PDF::loadView('pdf.lease-contract', [
-                'lease' => $lease,
-                'settings' => $settings,
-            ]);
+                            // Generate PDF – A4 portrait, single page optimised
+                            $pdf = \PDF::loadView('pdf.lease-contract', [
+                                'lease'    => $lease,
+                                'settings' => $settings,
+                            ])
+                            ->setPaper('A4', 'portrait')
+                            ->setWarnings(false);
 
-            echo $pdf->output();
-        }, 'lease-' . str_pad($record->id, 6, '0', STR_PAD_LEFT) . '.pdf');
-    }),
+                            echo $pdf->output();
+                        }, 'lease-' . str_pad($record->id, 6, '0', STR_PAD_LEFT) . '.pdf');
+                    }),
 
                 // 🔥 Custom action - Generate payments
                 Tables\Actions\Action::make('generate_payments')
@@ -371,7 +376,7 @@ Tables\Columns\IconColumn::make('is_fully_paid')
                     ->color('success')
                     ->visible(fn($record) => $record->status === 'active')
                     ->requiresConfirmation()
-                    ->action(function($record) {
+                    ->action(function ($record) {
                         $result = $record->generatePaymentSchedule();
 
                         match ($result) {
@@ -379,8 +384,8 @@ Tables\Columns\IconColumn::make('is_fully_paid')
                                 ->title('Payment schedule generated successfully')
                                 ->body('Installments have been created.' . (
                                     (float) $record->deposit_amount > 0
-                                        ? ' A deposit payment of $' . number_format($record->deposit_amount, 2) . ' was also recorded.'
-                                        : ''
+                                    ? ' A deposit payment of $' . number_format($record->deposit_amount, 2) . ' was also recorded.'
+                                    : ''
                                 ))
                                 ->success()
                                 ->send(),
@@ -430,51 +435,51 @@ Tables\Columns\IconColumn::make('is_fully_paid')
     }
 
     public static function recalculateRentAmount(Forms\Get $get, Forms\Set $set): void
-{
-    $unitId = $get('unit_id');
-    $propertyId = $get('property_id');
-    $startDate = $get('start_date');
-    $endDate = $get('end_date');
+    {
+        $unitId = $get('unit_id');
+        $propertyId = $get('property_id');
+        $startDate = $get('start_date');
+        $endDate = $get('end_date');
 
-    if (! $startDate || ! $endDate || (!$unitId && !$propertyId)) {
-        return;
-    }
-
-    $rentPrice = 0;
-    if ($unitId) {
-        $unit = \App\Models\Unit::find($unitId);
-        if ($unit && $unit->rent_price) {
-            $rentPrice = (float) $unit->rent_price;
-        }
-    } elseif ($propertyId) {
-        $property = \App\Models\Property::find($propertyId);
-        if ($property && $property->rent_price) {
-            $rentPrice = (float) $property->rent_price;
-        }
-    }
-
-    if ($rentPrice <= 0) {
-        return;
-    }
-
-    try {
-        $start = \Carbon\Carbon::parse($startDate);
-        $end   = \Carbon\Carbon::parse($endDate);
-
-        // full months between dates (integer)
-        $monthsCount = (int) $start->diffInMonths($end);
-
-        // if there is an extra partial month, count it as a whole month
-        if ($start->copy()->addMonths($monthsCount)->startOfDay()->lt($end->copy()->startOfDay())) {
-            $monthsCount++;
+        if (!$startDate || !$endDate || (!$unitId && !$propertyId)) {
+            return;
         }
 
-        $monthsCount = max(1, $monthsCount);
+        $rentPrice = 0;
+        if ($unitId) {
+            $unit = \App\Models\Unit::find($unitId);
+            if ($unit && $unit->rent_price) {
+                $rentPrice = (float) $unit->rent_price;
+            }
+        } elseif ($propertyId) {
+            $property = \App\Models\Property::find($propertyId);
+            if ($property && $property->rent_price) {
+                $rentPrice = (float) $property->rent_price;
+            }
+        }
 
-        $rentAmount = round($monthsCount * $rentPrice, 2);
-        $set('rent_amount', $rentAmount);
-    } catch (\Exception $e) {
-        // fail silently (or log for debugging)
+        if ($rentPrice <= 0) {
+            return;
+        }
+
+        try {
+            $start = \Carbon\Carbon::parse($startDate);
+            $end = \Carbon\Carbon::parse($endDate);
+
+            // full months between dates (integer)
+            $monthsCount = (int) $start->diffInMonths($end);
+
+            // if there is an extra partial month, count it as a whole month
+            if ($start->copy()->addMonths($monthsCount)->startOfDay()->lt($end->copy()->startOfDay())) {
+                $monthsCount++;
+            }
+
+            $monthsCount = max(1, $monthsCount);
+
+            $rentAmount = round($monthsCount * $rentPrice, 2);
+            $set('rent_amount', $rentAmount);
+        } catch (\Exception $e) {
+            // fail silently (or log for debugging)
+        }
     }
-}
 }

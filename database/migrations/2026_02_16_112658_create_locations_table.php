@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      */
@@ -18,6 +17,9 @@ return new class extends Migration
             $table->enum('type', ['country', 'city', 'district', 'neighborhood']);
             $table->decimal('latitude', 10, 8)->nullable();
             $table->decimal('longitude', 11, 8)->nullable();
+            if (!Schema::hasColumn('locations', 'company_id')) {
+                $table->foreignId('company_id')->constrained()->cascadeOnDelete();
+            }
             $table->timestamps();
             $table->index(['parent_id', 'type']);
         });

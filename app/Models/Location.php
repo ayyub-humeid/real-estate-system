@@ -2,34 +2,37 @@
 
 namespace App\Models;
 
+use App\Traits\HasCompany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Location extends Model
 {
-     protected $fillable = [
+    use HasCompany;
+    protected $fillable = [
+        'company_id',
         'parent_id',
         'name',
         'type',
         'latitude',
         'longitude',
     ];
-       protected $casts = [
+    protected $casts = [
         'latitude' => 'decimal:8',
         'longitude' => 'decimal:8',
     ];
-     // Parent location (e.g., city belongs to country)
+    // Parent location (e.g., city belongs to country)
     public function parent(): BelongsTo
     {
         return $this->belongsTo(Location::class, 'parent_id');
     }
-     // Child locations (e.g., country has many cities)
+    // Child locations (e.g., country has many cities)
     public function children(): HasMany
     {
         return $this->hasMany(Location::class, 'parent_id');
     }
-      public function properties(): HasMany
+    public function properties(): HasMany
     {
         return $this->hasMany(Property::class);
     }
