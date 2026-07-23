@@ -124,6 +124,11 @@ class Unit extends Model
 
     // --- Helpers ---
 
+    public function getLocationAttribute()
+    {
+        return $this->property ? $this->property->location : null;
+    }
+
     public function isAvailable(): bool
     {
         return $this->status === 'available';
@@ -163,7 +168,19 @@ class Unit extends Model
                   ->orWhereHas('property', function ($q) use ($search) {
                       $q->where('name', 'like', "%{$search}%")
                         ->orWhere('address', 'like', "%{$search}%")
-                        ->orWhere('description', 'like', "%{$search}%");
+                        ->orWhere('description', 'like', "%{$search}%")
+                        ->orWhereHas('location', function ($q) use ($search) {
+                            $q->where('name', 'like', "%{$search}%")
+                              ->orWhereHas('parent', function ($q) use ($search) {
+                                  $q->where('name', 'like', "%{$search}%")
+                                    ->orWhereHas('parent', function ($q) use ($search) {
+                                        $q->where('name', 'like', "%{$search}%")
+                                          ->orWhereHas('parent', function ($q) use ($search) {
+                                              $q->where('name', 'like', "%{$search}%");
+                                          });
+                                    });
+                              });
+                        });
                   });
             });
         });

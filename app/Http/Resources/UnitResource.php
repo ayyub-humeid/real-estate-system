@@ -24,6 +24,7 @@ class UnitResource extends JsonResource
                     return $primaryImage ? $primaryImage->url : null;
                 }),
             'rent_price' => $this->rent_price,
+            'description' => $this->description ?? "",
             'status' => $this->status,
             'type' => $this->type,
             'bedrooms' => $this->bedrooms,

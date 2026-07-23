@@ -20,6 +20,7 @@ class LocationResource extends JsonResource
             'type' => $this->whenHas('type', $this->type),
             'latitude' => $this->latitude,
             'longitude' => $this->longitude,
+            // 'parent' => $this->whenLoaded('parent') ? new self($this->parent) : null,
             'full_path' => $this->full_path, // From getFullPathAttribute()
         ];
     }
