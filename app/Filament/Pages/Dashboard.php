@@ -25,16 +25,10 @@ class Dashboard extends BaseDashboard
         // Always show AccountWidget for all users
         $widgets = [AccountWidget::class];
 
-        // Only add financial/occupancy widgets if the user has permission
-        if ($user?->can('widget_FinancialOverviewStats')) {
+        // Only add financial/occupancy widgets if the user is an admin or manager
+        if ($user && $user->hasAnyRole(['super_admin', 'company_admin', 'property_manager'])) {
             $widgets[] = FinancialOverviewStats::class;
-        }
-
-        if ($user?->can('widget_OccupancyStats')) {
             $widgets[] = OccupancyStats::class;
-        }
-
-        if ($user?->can('widget_FinancialTrendChart')) {
             $widgets[] = FinancialTrendChart::class;
         }
 

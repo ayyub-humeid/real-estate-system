@@ -27,7 +27,7 @@ class FinancialTrendChart extends ChartWidget
 
     public static function canView(): bool
     {
-        return auth()->user()->can('widget_FinancialTrendChart');
+        return auth()->user()->hasAnyRole(['super_admin', 'company_admin', 'property_manager']);
     }
 
     protected int | string | array $columnSpan = 'full';

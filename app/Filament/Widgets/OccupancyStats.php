@@ -22,7 +22,7 @@ class OccupancyStats extends BaseWidget
 
     public static function canView(): bool
     {
-        return auth()->user()->can('widget_OccupancyStats');
+        return auth()->user()->hasAnyRole(['super_admin', 'company_admin', 'property_manager']);
     }
 
     protected function getStats(): array

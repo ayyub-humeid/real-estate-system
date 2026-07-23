@@ -10,6 +10,10 @@ use App\Services\StripePaymentService;
 Route::get('/', function () {
     return view('welcome');
 });
+Route::get('/install-storage', function () {
+    Illuminate\Support\Facades\Artisan::call('storage:link');
+    return 'Storage linked successfully!';
+});
 
 Route::get('/test-checkout-view', function () {
     return view('test-checkout');
