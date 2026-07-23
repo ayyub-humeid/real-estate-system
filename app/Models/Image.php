@@ -38,6 +38,9 @@ class Image extends Model
      */
     public function getUrlAttribute(): string
     {
+        if (str_starts_with($this->path, 'http')) {
+            return $this->path;
+        }
         return $this->path ? asset('storage/' . $this->path) : '';
     }
 }

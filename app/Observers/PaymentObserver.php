@@ -28,6 +28,9 @@ class PaymentObserver
 
     protected function sendNotifications(Payment $payment): void
     {
+        // Increase timeout for synchronous notifications on hosting
+        set_time_limit(120);
+
         if (!$payment->lease || !$payment->lease->tenant) {
             return;
         }

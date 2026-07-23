@@ -24,7 +24,7 @@ class FinancialOverviewStats extends BaseWidget
 
     public static function canView(): bool
     {
-        return auth()->user()->can('widget_FinancialOverviewStats');
+        return auth()->user()->hasAnyRole(['super_admin', 'company_admin', 'property_manager']);
     }
 
     protected function getStats(): array
