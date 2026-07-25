@@ -28,29 +28,59 @@ class PaymentObserver
 
     protected function sendNotifications(Payment $payment): void
     {
-        // Increase timeout for synchronous notifications on hosting
-        set_time_limit(120);
+        \Illuminate\Support\Facades\DB::afterCommit(function () use ($payment) {
+            // Increase timeout for synchronous notifications on hosting
+            set_time_limit(120);
 
-        if (!$payment->lease || !$payment->lease->tenant) {
-            return;
-        }
+            if (!$payment->lease || !$payment->lease->tenant) {
+                return;
+            }
 
-        // Notify Tenant (if user exists)
-        $tenantUser = $payment->lease->tenant->user;
-        if ($tenantUser) {
-            $tenantUser->notifyNow(new \App\Notifications\PaymentNotification($payment));
-        }
+            // Notify Tenant (if user exists)
+            $tenantUser = $payment->lease->tenant->user;
+            if ($tenantUser) {
+                $tenantUser->notifyNow(new \App\Notifications\PaymentNotification($payment));
+            }
 
-        // Notify Financial Managers in same company
-        $managers = \App\Models\User::where('company_id', $payment->company_id)
-            // ->role('financial_manager')
-            ->whereHas('roles', function ($q) {
-                $q->whereIn('name', ['company_admin']);
-            })
-            ->get();
+            // Notify Financial Managers in same company
+            $managers = \App\Models\User::where('company_id', $payment->company_id)
+                ->whereHas('roles', function ($q) {
+                    $q->whereIn('name', ['company_admin']);
+                })
+                ->get();
 
-        foreach ($managers as $manager) {
-            $manager->notifyNow(new \App\Notifications\PaymentNotification($payment));
+            foreach ($managers as $manager) {
+                // 1. Save database notification record (no broadcast since we updated via())
+                $manager->notifyNow(new \App\Notifications\PaymentNotification($payment));
+
+                // 2. Broadcast the custom payment received event for real-time toast
+                \App\Events\PaymentReceivedEvent::dispatch($payment, $manager->id);
+
+                // 3. Trigger Filament's notification bell refresh synchronously
+                $this->broadcastDatabaseNotificationsSent($manager);
+            }
+        });
+    }
+
+    /**
+     * Broadcast the 'database-notifications.sent' event synchronously
+     * to trigger Filament's notification bell refresh without needing queue:work.
+     */
+    protected function broadcastDatabaseNotificationsSent(\App\Models\User $user): void
+    {
+        $userClass = str_replace('\\', '.', get_class($user));
+        $channelName = "private-{$userClass}.{$user->getKey()}";
+
+        try {
+            app(\Illuminate\Broadcasting\BroadcastManager::class)
+                ->connection()
+                ->broadcast(
+                    [$channelName],
+                    'database-notifications.sent',
+                    []
+                );
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Failed to broadcast database-notifications.sent: ' . $e->getMessage());
         }
     }
 

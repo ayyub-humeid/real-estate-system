@@ -59,6 +59,10 @@ class AdminPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
                 \App\Http\Middleware\CheckSubscription::class,
-            ]);
+            ])
+            ->renderHook(
+                'panels::body.end',
+                fn () => view('filament.payment-notification-listener'),
+            );
     }
 }
