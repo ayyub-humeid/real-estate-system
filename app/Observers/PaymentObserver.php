@@ -38,16 +38,19 @@ class PaymentObserver
         // Notify Tenant (if user exists)
         $tenantUser = $payment->lease->tenant->user;
         if ($tenantUser) {
-            $tenantUser->notify(new \App\Notifications\PaymentNotification($payment));
+            $tenantUser->notifyNow(new \App\Notifications\PaymentNotification($payment));
         }
 
         // Notify Financial Managers in same company
         $managers = \App\Models\User::where('company_id', $payment->company_id)
             // ->role('financial_manager')
+            ->whereHas('roles', function ($q) {
+                $q->whereIn('name', ['company_admin']);
+            })
             ->get();
 
         foreach ($managers as $manager) {
-            $manager->notify(new \App\Notifications\PaymentNotification($payment));
+            $manager->notifyNow(new \App\Notifications\PaymentNotification($payment));
         }
     }
 

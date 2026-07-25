@@ -2,13 +2,11 @@
 
 namespace App\Notifications;
 
-use Illuminate\Bus\Queueable;
-// use Illuminate\Contracts\Queue\ShouldQueue;
+
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 class PaymentNotification extends Notification
-    // implements ShouldQueue
 {
 
     /**
@@ -88,7 +86,8 @@ class PaymentNotification extends Notification
             ]);
         }
 
-        return $notification->getBroadcastMessage();
+        return $notification->getBroadcastMessage()->onConnection('sync');
     }
+
 
 }
