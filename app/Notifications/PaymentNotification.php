@@ -18,7 +18,7 @@ class PaymentNotification extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['database', 'broadcast'];
+        return $this->isTenant($notifiable) ? ['database', 'broadcast'] : ['database'];
     }
 
     public function toMail(object $notifiable): MailMessage
