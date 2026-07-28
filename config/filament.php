@@ -13,18 +13,26 @@ return [
     | This will allow your users to receive real-time notifications.
     |
     */
+    // 'broadcaster' => 'reverb',
+//             'key' => env('VITE_REVERB_APP_KEY'),
+//             'wsHost' => env('VITE_REVERB_HOST'),
+//             'wsPort' => env('VITE_REVERB_PORT', 8080),
+//             'wssPort' => env('VITE_REVERB_PORT', 8080),
+//  'encrypted' => env('VITE_REVERB_SCHEME') === 'https',
+    // 'forceTLS' => env('VITE_REVERB_SCHEME') === 'https',
 
     'broadcasting' => [
         'echo' => [
-            'broadcaster' => 'reverb',
-            'key' => env('VITE_REVERB_APP_KEY'),
-            'wsHost' => env('VITE_REVERB_HOST'),
-            'wsPort' => env('VITE_REVERB_PORT', 8080),
-            'wssPort' => env('VITE_REVERB_PORT', 8080),
+            'broadcaster' => 'pusher',
+            'key' => env('VITE_PUSHER_APP_KEY'),
+            'cluster' => env('VITE_PUSHER_APP_CLUSTER', 'ap2'),
+            'wsHost' => env('VITE_PUSHER_HOST', 'ws-' . env('VITE_PUSHER_APP_CLUSTER', 'ap2') . '.pusher.com'),
+            'wsPort' => env('VITE_PUSHER_PORT', 443),
+            'wssPort' => env('VITE_PUSHER_PORT', 443),
             'authEndpoint' => '/broadcasting/auth',
             'disableStats' => true,
-            'encrypted' => env('VITE_REVERB_SCHEME') === 'https',
-            'forceTLS' => env('VITE_REVERB_SCHEME') === 'https',
+            'encrypted' => true,
+            'forceTLS' => env('VITE_PUSHER_SCHEME', 'https') === 'https',
         ],
     ],
 
