@@ -23,10 +23,18 @@ return new class extends Migration
         });
 
         // 3. Populate company_id for units from their properties
-        DB::statement("UPDATE units JOIN properties ON units.property_id = properties.id SET units.company_id = properties.company_id");
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement('UPDATE units SET company_id = properties.company_id FROM properties WHERE units.property_id = properties.id');
+        } else {
+            DB::statement("UPDATE units JOIN properties ON units.property_id = properties.id SET units.company_id = properties.company_id");
+        }
 
         // 4. Populate company_id for payments from their leases
-        DB::statement("UPDATE payments JOIN leases ON payments.lease_id = leases.id SET payments.company_id = leases.company_id");
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement('UPDATE payments SET company_id = leases.company_id FROM leases WHERE payments.lease_id = leases.id');
+        } else {
+            DB::statement("UPDATE payments JOIN leases ON payments.lease_id = leases.id SET payments.company_id = leases.company_id");
+        }
 
         // 5. Make company_id NOT NULL after population (optional, but safer)
         Schema::table('units', function (Blueprint $table) {

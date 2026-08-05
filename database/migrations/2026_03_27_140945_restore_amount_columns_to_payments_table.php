@@ -18,12 +18,16 @@ return new class extends Migration
         });
 
         // Try to populate initial 'amount' from lease rent_amount for existing records
-        DB::table('payments')
-            ->join('leases', 'payments.lease_id', '=', 'leases.id')
-            ->update([
-                'payments.amount' => DB::raw('leases.rent_amount'),
-                'payments.remaining_amount' => DB::raw('GREATEST(0, leases.rent_amount - payments.paid_amount)')
-            ]);
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement('UPDATE payments SET amount = leases.rent_amount, remaining_amount = GREATEST(0, leases.rent_amount - payments.paid_amount) FROM leases WHERE payments.lease_id = leases.id');
+        } else {
+            DB::table('payments')
+                ->join('leases', 'payments.lease_id', '=', 'leases.id')
+                ->update([
+                    'payments.amount' => DB::raw('leases.rent_amount'),
+                    'payments.remaining_amount' => DB::raw('GREATEST(0, leases.rent_amount - payments.paid_amount)')
+                ]);
+        }
     }
 
     /**
