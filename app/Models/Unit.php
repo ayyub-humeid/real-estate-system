@@ -142,7 +142,7 @@ class Unit extends Model
     }
     public function scopeFeatured($query)
     {
-        return $query->where('is_featured', 1);
+        return $query->where('is_featured', true);
     }
 
     public function scopeOccupied($query)

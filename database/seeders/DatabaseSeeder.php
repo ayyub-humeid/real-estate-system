@@ -25,11 +25,8 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->command->info('🌱 Starting comprehensive seed for presentation...');
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
 
         $this->truncateAll();
-
-        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
         $this->command->info('🛡 Installing Shield & Generating permissions...');
         \Illuminate\Support\Facades\Artisan::call('shield:install', ['panel' => 'admin', '--no-interaction' => true]);
@@ -59,9 +56,37 @@ class DatabaseSeeder extends Seeder
             'locations', 'users', 'companies', 'images'
         ];
 
+        $existingTables = [];
         foreach ($tables as $table) {
             if (DB::getSchemaBuilder()->hasTable($table)) {
+                $existingTables[] = $table;
+            }
+        }
+
+        if (empty($existingTables)) {
+            return;
+        }
+
+        if (DB::getDriverName() === 'pgsql') {
+            // PostgreSQL specific cascade truncate
+            $tableList = implode(', ', array_map(fn($t) => '"' . $t . '"', $existingTables));
+            DB::statement("TRUNCATE TABLE {$tableList} CASCADE");
+        } else {
+            // For MySQL/SQLite, use the standard truncate with foreign key checks disabled
+            if (DB::getDriverName() === 'mysql') {
+                DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+            } elseif (DB::getDriverName() === 'sqlite') {
+                DB::statement('PRAGMA foreign_keys = OFF;');
+            }
+
+            foreach ($existingTables as $table) {
                 DB::table($table)->truncate();
+            }
+
+            if (DB::getDriverName() === 'mysql') {
+                DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+            } elseif (DB::getDriverName() === 'sqlite') {
+                DB::statement('PRAGMA foreign_keys = ON;');
             }
         }
         $this->command->info('🗑 Tables truncated.');

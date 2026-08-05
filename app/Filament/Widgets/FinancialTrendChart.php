@@ -43,9 +43,18 @@ class FinancialTrendChart extends ChartWidget
             return now()->subMonths($i)->format('Y-m');
         })->reverse()->values();
 
+        $driver = DB::getDriverName();
+        $paymentDateExpr = $driver === 'pgsql' 
+            ? "TO_CHAR(payment_date, 'YYYY-MM')" 
+            : ($driver === 'sqlite' ? "strftime('%Y-%m', payment_date)" : "DATE_FORMAT(payment_date, '%Y-%m')");
+
+        $expenseDateExpr = $driver === 'pgsql' 
+            ? "TO_CHAR(expense_date, 'YYYY-MM')" 
+            : ($driver === 'sqlite' ? "strftime('%Y-%m', expense_date)" : "DATE_FORMAT(expense_date, '%Y-%m')");
+
         // Optimized: Get all monthly revenue in one query
         $revenueQuery = Payment::select(
-                DB::raw("DATE_FORMAT(payment_date, '%Y-%m') as month"),
+                DB::raw("{$paymentDateExpr} as month"),
                 DB::raw("SUM(paid_amount) as total")
             )
             ->where('payment_date', '>=', now()->subMonths(11)->startOfMonth());
@@ -58,7 +67,7 @@ class FinancialTrendChart extends ChartWidget
 
         // Optimized: Get all monthly expenses in one query
         $expensesQuery = Expense::select(
-                DB::raw("DATE_FORMAT(expense_date, '%Y-%m') as month"),
+                DB::raw("{$expenseDateExpr} as month"),
                 DB::raw("SUM(amount) as total")
             )
             ->where('status', 'paid')
