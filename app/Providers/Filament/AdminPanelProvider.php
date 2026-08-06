@@ -35,7 +35,7 @@ class AdminPanelProvider extends PanelProvider
             ->font('Inter')
             ->brandName('EstateHub B2B')
             ->brandLogo(fn () => view('filament.admin-brand'))
-            ->favicon(asset('favicon.png') . '?v=2')
+            ->favicon('/favicon.png?v=3')
             ->databaseNotifications()
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
