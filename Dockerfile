@@ -58,6 +58,9 @@ RUN npm install
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
+# Create storage link during build
+RUN php artisan storage:link
+
 # Define the default port (Render will override this)
 ENV PORT=80
 EXPOSE ${PORT}
