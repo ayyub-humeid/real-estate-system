@@ -17,6 +17,8 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Http\Middleware\HandleCors::class,
         ]);
 
+        $middleware->trustProxies(at: '*');
+
         // Spatie Permission no longer auto-registers these aliases on Laravel's
         // new bootstrap/app.php structure — they must be added explicitly.
         $middleware->alias([
