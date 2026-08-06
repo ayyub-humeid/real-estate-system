@@ -34,7 +34,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->font('Inter')
             ->brandName('EstateHub B2B')
-            ->brandLogo(new \Illuminate\Support\HtmlString('<div class="flex items-center gap-x-3"><img src="' . asset('favicon.png') . '" class="h-9 w-auto" /><span class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">EstateHub B2B</span></div>'))
+            ->brandLogo(fn () => view('filament.admin-brand'))
             ->favicon(asset('favicon.png') . '?v=2')
             ->databaseNotifications()
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
