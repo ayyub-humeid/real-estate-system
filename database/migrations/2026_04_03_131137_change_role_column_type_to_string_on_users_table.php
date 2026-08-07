@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (\Illuminate\Support\Facades\DB::getDriverName() === 'pgsql') {
+            \Illuminate\Support\Facades\DB::statement("ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;");
+        }
+
         Schema::table('users', function (Blueprint $blueprint) {
             $blueprint->string('role')->nullable()->change();
         });
