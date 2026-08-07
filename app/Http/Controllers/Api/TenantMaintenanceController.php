@@ -89,10 +89,10 @@ class TenantMaintenanceController extends Controller
         // رفع الصور (اختياري) — نفس نمط Image::morphMany الموجود
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $index => $file) {
-                $path = $file->store('maintenance', 'public');
+                $path = $file->store('maintenance');
                 $maintenanceRequest->images()->create([
                     'path'       => $path,
-                    'disk'       => 'public',
+                    'disk'       => config('filesystems.default'),
                     'is_primary' => $index === 0,
                     'order'      => $index,
                 ]);

@@ -163,7 +163,6 @@ class UnitResource extends Resource
                                 ->image()
                                 ->imageEditor()
                                 ->directory('images/units')
-                                ->disk('public')
                                 ->maxSize(5120)
                                 ->required(),
                             Forms\Components\Toggle::make('is_primary')

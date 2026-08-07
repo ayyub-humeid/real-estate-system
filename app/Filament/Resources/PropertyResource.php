@@ -110,7 +110,6 @@ class PropertyResource extends Resource
                                 ->image()
                                 ->imageEditor()
                                 ->directory('images/properties')
-                                ->disk('public')
                                 ->maxSize(5120)
                                 ->required(),
                             Forms\Components\Toggle::make('is_primary')

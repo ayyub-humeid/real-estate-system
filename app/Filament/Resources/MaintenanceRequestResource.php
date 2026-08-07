@@ -111,7 +111,6 @@ public static function canViewAny(): bool
                                                 ->label('Photo')
                                                 ->image()
                                                 ->directory('maintenance/images')
-                                                ->disk('public')
                                                 ->required(),
                                             Forms\Components\TextInput::make('order')
                                                 ->numeric()

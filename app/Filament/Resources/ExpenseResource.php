@@ -160,8 +160,7 @@ public static function canViewAny(): bool
                             Forms\Components\FileUpload::make('receipt_path')
                                 ->label('Receipt')
                                 ->image()
-                                ->directory('expenses/receipts')
-                                ->disk('public'),
+                                ->directory('expenses/receipts'),
 
                             // ── Company field ──
                             self::companyField(),

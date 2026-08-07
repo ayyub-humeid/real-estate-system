@@ -23,7 +23,6 @@ class ImagesRelationManager extends RelationManager
                 ->label('Image')
                 ->image()
                 ->directory('images/units')
-                ->disk('public')
                 ->imageEditor()
                 ->maxSize(5120)
                 ->required()
@@ -66,7 +65,6 @@ class ImagesRelationManager extends RelationManager
             ->columns([
                 Tables\Columns\ImageColumn::make('path')
                     ->label('Preview')
-                    ->disk('public')
                     ->height(60)
                     ->width(80),
 

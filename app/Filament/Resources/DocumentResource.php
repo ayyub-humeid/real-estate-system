@@ -204,8 +204,6 @@ public static function canViewAny(): bool
                 // 🔥 File preview column
                 Tables\Columns\ImageColumn::make('file_path')
                     ->label('Preview')
-                    ->disk('public')
-                    ->visibility('public')
                     ->size(50)
                     ->defaultImageUrl(
                         fn($record) =>

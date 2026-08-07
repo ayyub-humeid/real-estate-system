@@ -129,7 +129,6 @@ class CompanyResource extends Resource
             ->columns([
                Tables\Columns\ImageColumn::make('logo')
     ->circular()
-    ->disk('public') 
     ->defaultImageUrl(
         fn($record) =>
         'https://ui-avatars.com/api/?name=' . urlencode($record->name) . '&color=7F9CF5&background=EBF4FF'

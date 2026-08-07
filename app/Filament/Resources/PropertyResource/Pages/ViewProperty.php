@@ -27,7 +27,6 @@ class ViewProperty extends ViewRecord
                     ->schema([
                         Infolists\Components\ImageEntry::make('primaryImage.path')
                             ->label('')
-                            ->disk('public')
                             ->height(400)
                             ->extraImgAttributes([
                                 'class' => 'w-full object-cover rounded-xl shadow-2xl border-4 border-white dark:border-gray-800',

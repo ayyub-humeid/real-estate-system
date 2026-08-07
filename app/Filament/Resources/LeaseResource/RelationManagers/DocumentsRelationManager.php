@@ -28,7 +28,6 @@ class DocumentsRelationManager extends RelationManager
             ->columns([
                 Tables\Columns\ImageColumn::make('file_path')
                     ->label('Preview')
-                    ->disk('public')
                     ->size(50)
                     ->visible(fn($record) => $record->is_image ?? false),
 
@@ -84,7 +83,7 @@ class DocumentsRelationManager extends RelationManager
                     ->color('success')
                     ->url(fn($record) => asset('storage/' . $record->file_path))
 ->openUrlInNewTab()
-                    ->visible(fn($record) => Storage::disk('public')->exists($record->file_path)),
+                    ->visible(fn($record) => Storage::exists($record->file_path)),
                 
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),

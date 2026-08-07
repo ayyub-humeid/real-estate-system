@@ -107,7 +107,7 @@ class AgencyController extends Controller
 
             // Handle logo upload
             if ($request->hasFile('logo')) {
-                $path = $request->file('logo')->store('companies-logos', 'public');
+                $path = $request->file('logo')->store('companies-logos');
                 $data['logo'] = $path;
             }
 
