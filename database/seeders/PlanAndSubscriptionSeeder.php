@@ -87,32 +87,23 @@ class PlanAndSubscriptionSeeder extends Seeder
         $companies = Company::all();
 
         foreach ($companies as $company) {
-            if ($company->name === 'Al-Nour Real Estate') {
-                // Active Premium Subscription
+            if ($company->name === 'Emaar Properties') {
+                // Active Professional Subscription
                 Subscription::create([
                     'company_id' => $company->id,
-                    'plan_id' => $profPlan->id,
-                    'status' => 'active',
-                    'starts_at' => now()->subMonths(1),
-                    'ends_at' => now()->addMonths(11),
+                    'plan_id'    => $profPlan->id,
+                    'status'     => 'active',
+                    'starts_at'  => now()->subMonths(1),
+                    'ends_at'    => now()->addMonths(11),
                 ]);
-            } elseif ($company->name === 'Horizon Properties') {
-                // Expired Subscription (to test blocking)
+            } elseif ($company->name === 'Damac Properties') {
+                // Active Basic Subscription
                 Subscription::create([
                     'company_id' => $company->id,
-                    'plan_id' => $basicPlan->id,
-                    'status' => 'active',
-                    'starts_at' => now()->subMonths(2),
-                    'ends_at' => now()->subDays(1), // Already expired
-                ]);
-            } elseif ($company->name === 'GulfNest Realty') {
-                // Active Basic
-                Subscription::create([
-                    'company_id' => $company->id,
-                    'plan_id' => $basicPlan->id,
-                    'status' => 'active',
-                    'starts_at' => now()->subDays(5),
-                    'ends_at' => now()->addDays(25),
+                    'plan_id'    => $basicPlan->id,
+                    'status'     => 'active',
+                    'starts_at'  => now()->subDays(5),
+                    'ends_at'    => now()->addDays(25),
                 ]);
             }
         }
