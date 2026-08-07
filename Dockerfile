@@ -66,4 +66,4 @@ ENV PORT=80
 EXPOSE ${PORT}
 
 # Run a script on startup that sets up caching and starts Apache
-CMD npm run build && php artisan package:discover && php artisan storage:link && php artisan optimize:clear && php artisan optimize && php artisan migrate --force && apache2-foreground
+CMD npm run build && php artisan package:discover && php artisan storage:link && php artisan config:clear && php artisan migrate --force && php artisan optimize && apache2-foreground

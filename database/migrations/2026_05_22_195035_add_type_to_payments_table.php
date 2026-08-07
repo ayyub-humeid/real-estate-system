@@ -11,7 +11,7 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::table('payments', function (Blueprint $table) {
-            $table->string('type')->default('rent')->after('lease_id');
+            $table->enum('type', ['rent', 'deposit', 'fee', 'other'])->default('rent')->after('lease_id');
         });
     }
 
