@@ -151,17 +151,36 @@ class DatabaseSeeder extends Seeder
         $companies = Company::all();
 
         $propertyImages = [
-            'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=1000&q=80',
-            'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1000&q=80',
             'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1000&q=80',
+            'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1000&q=80',
+            'https://images.unsplash.com/photo-1580587771525-78b9dba3b46f?auto=format&fit=crop&w=1000&q=80',
         ];
 
         $unitImages = [
-            'https://images.unsplash.com/photo-1502672260266-1c1de2d93688?auto=format&fit=crop&w=800&q=80',
+            'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=800&q=80',
             'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80',
             'https://images.unsplash.com/photo-1502005097973-f542523f05fb?auto=format&fit=crop&w=800&q=80',
             'https://images.unsplash.com/photo-1493809842364-78817add7ffb?auto=format&fit=crop&w=800&q=80',
-            'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=800&q=80',
+            'https://images.unsplash.com/photo-1502672260266-1c1de2d93688?auto=format&fit=crop&w=800&q=80',
+        ];
+
+        $featuredUnitImages = [
+            'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=800&q=80',
+            'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=800&q=80',
+            'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=800&q=80',
+            'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80',
+            'https://images.unsplash.com/photo-1600573472591-ee6b68d14c68?auto=format&fit=crop&w=800&q=80',
+            'https://images.unsplash.com/photo-1600566752355-35792bedcfea?auto=format&fit=crop&w=800&q=80',
+            'https://images.unsplash.com/photo-1600121848594-d8644e57abab?auto=format&fit=crop&w=800&q=80',
+            'https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?auto=format&fit=crop&w=800&q=80',
+        ];
+
+        $unitDescriptions = [
+            'A beautifully designed apartment with expansive living areas and floor-to-ceiling windows offering panoramic city views.',
+            'An exquisite luxury unit featuring premium imported marble, smart-home integration, and a designer kitchen.',
+            'A tranquil urban retreat boasting spacious open-plan layouts, a private balcony, and high-end modern finishes.',
+            'A sophisticated living space featuring bespoke architectural details, ambient lighting, and an ultra-modern aesthetic.',
+            'A spectacular premium suite with unparalleled amenities, custom woodwork, and elite interior design elements.'
         ];
 
         foreach ($companies as $company) {
@@ -180,13 +199,14 @@ class DatabaseSeeder extends Seeder
                     'imageable_type' => Property::class,
                     'imageable_id'   => $prop->id,
                     'path'           => $propertyImages[array_rand($propertyImages)],
-                    'disk'           => 'public',
+                    'disk'           => config('filesystems.default', 'public'),
                     'is_primary'     => true,
                     'order'          => 1,
                 ]);
 
                 // Units for this property
                 for ($u = 1; $u <= 4; $u++) {
+                    $isFeatured = ($u == 1);
                     $unit = Unit::create([
                         'company_id'  => $company->id,
                         'property_id' => $prop->id,
@@ -194,22 +214,38 @@ class DatabaseSeeder extends Seeder
                         'rent_price'  => rand(1500, 3500),
                         'status'      => ($u % 2 == 0) ? 'occupied' : 'available',
                         'type'        => 'Apartment',
-                        'description' => 'Beautifully designed apartment with spacious living areas and premium finishing.',
+                        'description' => $unitDescriptions[array_rand($unitDescriptions)],
                         'bedrooms'    => rand(1, 3),
                         'bathrooms'   => rand(1, 2),
                         'sqft'        => rand(800, 2000),
-                        'is_featured' => ($u == 1),
+                        'is_featured' => $isFeatured,
                     ]);
 
-                    // Unit Image
-                    Image::create([
-                        'imageable_type' => Unit::class,
-                        'imageable_id'   => $unit->id,
-                        'path'           => $unitImages[array_rand($unitImages)],
-                        'disk'           => 'public',
-                        'is_primary'     => true,
-                        'order'          => 1,
-                    ]);
+                    if ($isFeatured) {
+                        // Create 7 images for the featured unit
+                        shuffle($featuredUnitImages);
+                        $imagesToAttach = array_slice($featuredUnitImages, 0, 7);
+                        foreach ($imagesToAttach as $index => $imgUrl) {
+                            Image::create([
+                                'imageable_type' => Unit::class,
+                                'imageable_id'   => $unit->id,
+                                'path'           => $imgUrl,
+                                'disk'           => config('filesystems.default', 'public'),
+                                'is_primary'     => ($index === 0),
+                                'order'          => $index + 1,
+                            ]);
+                        }
+                    } else {
+                        // Create 1 image for regular units
+                        Image::create([
+                            'imageable_type' => Unit::class,
+                            'imageable_id'   => $unit->id,
+                            'path'           => $unitImages[array_rand($unitImages)],
+                            'disk'           => config('filesystems.default', 'public'),
+                            'is_primary'     => true,
+                            'order'          => 1,
+                        ]);
+                    }
 
                     UnitFeature::create(['unit_id' => $unit->id, 'name' => 'Balcony', 'value' => 'Yes']);
                     UnitFeature::create(['unit_id' => $unit->id, 'name' => 'Parking', 'value' => '1 Spot']);
