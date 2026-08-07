@@ -4,16 +4,17 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      */
     public function up(): void
     {
-        Schema::table('locations', function (Blueprint $table) {
-            $table->unsignedBigInteger('company_id')->nullable()->change();
-        });
+        if (Schema::hasColumn('locations', 'company_id')) {
+            Schema::table('locations', function (Blueprint $table) {
+                $table->unsignedBigInteger('company_id')->nullable()->change();
+            });
+        }
     }
 
     /**
