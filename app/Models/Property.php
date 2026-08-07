@@ -70,7 +70,7 @@ class Property extends Model
     public function primaryImage(): \Illuminate\Database\Eloquent\Relations\MorphOne
     {
         return $this->morphOne(Image::class, 'imageable')
-            ->where('is_primary', true);
+            ->whereRaw('is_primary = true');
     }
 
     // --- Scopes ---

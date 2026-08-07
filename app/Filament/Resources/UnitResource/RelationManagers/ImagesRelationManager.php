@@ -37,7 +37,7 @@ class ImagesRelationManager extends RelationManager
                         if ($value) {
                             $ownerRecord = $component->getLivewire()->getOwnerRecord();
                             $existingPrimary = $ownerRecord->images()
-                                ->where('is_primary', true)
+                                ->whereRaw('is_primary = true')
                                 ->when($component->getLivewire()->getRecord(), fn ($q, $record) => $q->where('id', '!=', $record->id))
                                 ->exists();
 

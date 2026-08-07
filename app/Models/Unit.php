@@ -117,9 +117,8 @@ class Unit extends Model
      */
     public function primaryImage(): \Illuminate\Database\Eloquent\Relations\MorphOne
     {
-        $result = $this->morphOne(Image::class, 'imageable')
-            ->where('is_primary', true);
-        return $result;
+        return $this->morphOne(Image::class, 'imageable')
+            ->whereRaw('is_primary = true');
     }
 
     // --- Helpers ---
@@ -142,7 +141,7 @@ class Unit extends Model
     }
     public function scopeFeatured($query)
     {
-        return $query->where('is_featured', true);
+        return $query->whereRaw('is_featured = true');
     }
 
     public function scopeOccupied($query)

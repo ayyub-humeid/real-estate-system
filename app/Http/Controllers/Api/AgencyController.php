@@ -22,7 +22,7 @@ class AgencyController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Company::withoutGlobalScopes()->where('is_active', true);
+        $query = Company::withoutGlobalScopes()->whereRaw('is_active = true');
 
         // فلترة بالبحث: الاسم، البريد، الهاتف، العنوان، الشركاء
         if ($request->filled('search')) {
@@ -141,7 +141,7 @@ class AgencyController extends Controller
             $withTrial = filter_var($request->input('with_trial', true), FILTER_VALIDATE_BOOLEAN);
 
             if ($withTrial) {
-                $plan = Plan::where('slug', 'professional')->first() ?? Plan::where('is_active', true)->first();
+                $plan = Plan::where('slug', 'professional')->first() ?? Plan::whereRaw('is_active = true')->first();
 
                 if ($plan) {
                     Subscription::create([
