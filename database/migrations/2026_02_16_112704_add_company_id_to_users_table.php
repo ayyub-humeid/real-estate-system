@@ -11,11 +11,23 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->foreignId('company_id')->nullable()->after('id')->constrained()->onDelete('cascade');
-            $table->enum('role', ['super_admin', 'company_admin', 'property_manager', 'tenant'])->default('tenant');
-            $table->string('phone')->nullable();
-        });
+        if (!Schema::hasColumn('users', 'company_id')) {
+            Schema::table('users', function (Blueprint $table) {
+                $table->foreignId('company_id')->nullable()->after('id')->constrained()->onDelete('cascade');
+            });
+        }
+        
+        if (!Schema::hasColumn('users', 'role')) {
+            Schema::table('users', function (Blueprint $table) {
+                $table->enum('role', ['super_admin', 'company_admin', 'property_manager', 'tenant'])->default('tenant');
+            });
+        }
+
+        if (!Schema::hasColumn('users', 'phone')) {
+            Schema::table('users', function (Blueprint $table) {
+                $table->string('phone')->nullable();
+            });
+        }
     }
 
     /**
