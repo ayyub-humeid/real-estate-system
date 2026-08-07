@@ -213,7 +213,7 @@ class Unit extends Model
             if (is_array($amenities) && count($amenities) > 0) {
                 foreach ($amenities as $amenity) {
                     $query->whereHas('features', function ($q) use ($amenity) {
-                        $q->where('name', $amenity)->where('value', 'true');
+                        $q->where('name', $amenity);
                     });
                 }
             }
