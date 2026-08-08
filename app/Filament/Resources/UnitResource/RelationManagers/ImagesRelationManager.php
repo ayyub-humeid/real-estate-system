@@ -19,26 +19,13 @@ class ImagesRelationManager extends RelationManager
     public function form(Form $form): Form
     {
         return $form->schema([
-            Forms\Components\Placeholder::make('seeded_image')
-                ->label('External Photo Preview')
-                ->content(function ($record) {
-                    $path = $record?->path;
-                    if ($path && str_starts_with($path, 'http')) {
-                        return new \Illuminate\Support\HtmlString('<img src="' . $path . '" style="height: 10rem; border-radius: 0.5rem; object-fit: cover;">');
-                    }
-                    return 'No image';
-                })
-                ->hidden(fn ($record) => !str_starts_with($record?->path ?? '', 'http'))
-                ->columnSpanFull(),
-
             Forms\Components\FileUpload::make('path')
                 ->label('Image')
                 ->image()
                 ->directory('images/units')
                 ->imageEditor()
                 ->maxSize(5120)
-                ->required(fn ($record) => !str_starts_with($record?->path ?? '', 'http'))
-                ->hidden(fn ($record) => str_starts_with($record?->path ?? '', 'http'))
+                ->required()
                 ->columnSpanFull(),
 
             Forms\Components\Toggle::make('is_primary')
