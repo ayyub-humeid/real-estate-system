@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Support\Facades\Storage;
 
 class Image extends Model
 {
@@ -18,22 +19,8 @@ class Image extends Model
 
     protected $casts = [
         'is_primary' => 'boolean',
-        'order' => 'integer',
+        'order'      => 'integer',
     ];
-
-    /**
-     * Auto-assign the disk from config when not explicitly set.
-     */
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(function (self $image) {
-            if (empty($image->disk)) {
-                $image->disk = config('filesystems.default', 'public');
-            }
-        });
-    }
 
     // --- Polymorphic Relationship ---
 
@@ -48,9 +35,7 @@ class Image extends Model
     // --- Helper ---
 
     /**
-     * Get the full URL to the image.
-     * Uses the stored disk column so R2-uploaded images get the R2 URL,
-     * and locally-stored images still resolve via the public disk.
+     * Get the full URL to the image using default storage.
      */
     public function getUrlAttribute(): string
     {
@@ -58,12 +43,7 @@ class Image extends Model
             return $this->path;
         }
 
-        if (!$this->path) {
-            return '';
-        }
-
-        // $disk = $this->disk ?: config('filesystems.default');
-
-        return \Illuminate\Support\Facades\Storage::url($this->path);
+        return $this->path ? Storage::url($this->path) : '';
     }
 }
+
