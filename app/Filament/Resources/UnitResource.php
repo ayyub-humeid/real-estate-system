@@ -43,7 +43,7 @@ class UnitResource extends Resource
             ->searchable()
             ->preload()
             ->required()
-            ->visible(fn () => auth()->user()->isSuperAdmin());
+            ->visible(fn() => auth()->user()->isSuperAdmin());
     }
 
     public static function form(Form $form): Form
@@ -85,10 +85,10 @@ class UnitResource extends Resource
                     Forms\Components\Select::make('status')
                         ->label('Status')
                         ->options([
-                            'available'   => 'Available',
-                            'occupied'    => 'Occupied',
+                            'available' => 'Available',
+                            'occupied' => 'Occupied',
                             'maintenance' => 'Maintenance',
-                            'reserved'    => 'Reserved',
+                            'reserved' => 'Reserved',
                         ])
                         ->required()
                         ->default('available')
@@ -118,14 +118,14 @@ class UnitResource extends Resource
                         ->numeric()
                         ->minValue(0)
                         ->suffix('sqft'),
-                        Forms\Components\Toggle::make('is_featured')
-                        
-                            ->label('Is Featured?')
-                            ->default(false)
-                    
+                    Forms\Components\Toggle::make('is_featured')
+
+                        ->label('Is Featured?')
+                        ->default(false)
+
 
                 ])
-                
+
                 ->columns(2),
 
             Forms\Components\Section::make('Description')
@@ -148,7 +148,7 @@ class UnitResource extends Resource
                             function () {
                                 return function (string $attribute, $value, \Closure $fail) {
                                     $primaryCount = collect($value)
-                                        ->filter(fn ($item) => !empty($item['is_primary']))
+                                        ->filter(fn($item) => !empty($item['is_primary']))
                                         ->count();
 
                                     if ($primaryCount > 1) {
@@ -175,7 +175,7 @@ class UnitResource extends Resource
                         ->grid(2)
                         ->defaultItems(0)
                         ->collapsible()
-                        ->itemLabel(fn (array $state): ?string => is_string($state['path'] ?? null) ? $state['path'] : null)
+                        ->itemLabel(fn(array $state): ?string => is_string($state['path'] ?? null) ? $state['path'] : null)
                         ->columnSpanFull(),
                 ])
                 ->collapsible(),
@@ -198,14 +198,14 @@ class UnitResource extends Resource
                     ->sortable()
                     ->badge()
                     ->color('info')
-                    ->visible(fn () => auth()->user()->isSuperAdmin()),
+                    ->visible(fn() => auth()->user()->isSuperAdmin()),
 
                 Tables\Columns\TextColumn::make('unit_number')
                     ->label('Unit #')
                     ->searchable()
                     ->sortable()
                     ->weight('bold'),
-                    Tables\Columns\IconColumn::make('is_featured')
+                Tables\Columns\IconColumn::make('is_featured')
                     ->boolean()
                     ->label('Is Featured')
                     ->sortable()
@@ -218,7 +218,7 @@ class UnitResource extends Resource
                 Tables\Columns\TextColumn::make('type')
                     ->badge()
                     ->color('gray')
-                    ->formatStateUsing(fn (?string $state) => $state ? ucfirst($state) : '—')
+                    ->formatStateUsing(fn(?string $state) => $state ? ucfirst($state) : '—')
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('bedrooms')
@@ -239,7 +239,7 @@ class UnitResource extends Resource
                     ->label('Sqft')
                     ->numeric()
                     ->sortable()
-                    ->formatStateUsing(fn (?int $state) => $state ? number_format($state) : '—')
+                    ->formatStateUsing(fn(?int $state) => $state ? number_format($state) : '—')
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('rent_price')
@@ -251,11 +251,11 @@ class UnitResource extends Resource
                     ->badge()
                     ->colors([
                         'success' => 'available',
-                        'danger'  => 'occupied',
+                        'danger' => 'occupied',
                         'warning' => 'maintenance',
-                        'info'    => 'reserved',
+                        'info' => 'reserved',
                     ])
-                    ->formatStateUsing(fn (string $state): string => ucfirst($state)),
+                    ->formatStateUsing(fn(string $state): string => ucfirst($state)),
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
@@ -268,7 +268,7 @@ class UnitResource extends Resource
                     ->relationship('company', 'name')
                     ->searchable()
                     ->preload()
-                    ->visible(fn () => auth()->user()->isSuperAdmin()),
+                    ->visible(fn() => auth()->user()->isSuperAdmin()),
 
                 Tables\Filters\SelectFilter::make('property')
                     ->relationship('property', 'name')
@@ -278,20 +278,20 @@ class UnitResource extends Resource
 
                 Tables\Filters\SelectFilter::make('status')
                     ->options([
-                        'available'   => 'Available',
-                        'occupied'    => 'Occupied',
+                        'available' => 'Available',
+                        'occupied' => 'Occupied',
                         'maintenance' => 'Maintenance',
-                        'reserved'    => 'Reserved',
+                        'reserved' => 'Reserved',
                     ])
                     ->native(false),
 
                 Tables\Filters\SelectFilter::make('type')
                     ->options([
                         'apartment' => 'Apartment',
-                        'studio'    => 'Studio',
-                        'villa'     => 'Villa',
-                        'office'    => 'Office',
-                        'shop'      => 'Shop',
+                        'studio' => 'Studio',
+                        'villa' => 'Villa',
+                        'office' => 'Office',
+                        'shop' => 'Shop',
                         'warehouse' => 'Warehouse',
                     ])
                     ->native(false),
@@ -305,7 +305,7 @@ class UnitResource extends Resource
                     ->label('✨ Generate Description')
                     ->icon('heroicon-o-sparkles')
                     ->color('warning')
-                    ->hidden(fn (Unit $record) => ! empty($record->description))
+                    ->hidden(fn(Unit $record) => !empty($record->description))
                     ->requiresConfirmation(false)
                     ->modalHeading('AI-Generated Description')
                     ->modalDescription('Review the description below. Click "Approve & Save" to use it, or "Cancel" to keep the existing description.')
@@ -383,10 +383,10 @@ class UnitResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => Pages\ListUnits::route('/'),
+            'index' => Pages\ListUnits::route('/'),
             'create' => Pages\CreateUnit::route('/create'),
-            'view'   => Pages\ViewUnit::route('/{record}'),
-            'edit'   => Pages\EditUnit::route('/{record}/edit'),
+            'view' => Pages\ViewUnit::route('/{record}'),
+            'edit' => Pages\EditUnit::route('/{record}/edit'),
         ];
     }
 }

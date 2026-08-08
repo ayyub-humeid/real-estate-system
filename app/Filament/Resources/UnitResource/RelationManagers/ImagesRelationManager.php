@@ -33,12 +33,12 @@ class ImagesRelationManager extends RelationManager
                 ->helperText('Set as the main display image for this unit')
                 ->default(false)
                 ->rules([
-                    fn (Forms\Components\Toggle $component) => function (string $attribute, $value, \Closure $fail) use ($component) {
+                    fn(Forms\Components\Toggle $component) => function (string $attribute, $value, \Closure $fail) use ($component) {
                         if ($value) {
                             $ownerRecord = $component->getLivewire()->getOwnerRecord();
                             $existingPrimary = $ownerRecord->images()
                                 ->whereRaw('is_primary = true')
-                                ->when($component->getLivewire()->getRecord(), fn ($q, $record) => $q->where('id', '!=', $record->id))
+                                ->when($component->getLivewire()->getRecord(), fn($q, $record) => $q->where('id', '!=', $record->id))
                                 ->exists();
 
                             if ($existingPrimary) {
