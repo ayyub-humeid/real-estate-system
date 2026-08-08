@@ -69,17 +69,17 @@ class UnitResource extends Resource
                         ->maxLength(50)
                         ->prefixIcon('heroicon-m-hashtag'),
 
-                    Forms\Components\TextInput::make('type')
+                    Forms\Components\Select::make('type')
                         ->label('Type')
-                        ->datalist([
-                            'Apartment',
-                            'Studio',
-                            'Villa',
-                            'Office',
-                            'Shop',
-                            'Warehouse',
+                        ->options([
+                            'apartment' => 'Apartment',
+                            'studio'    => 'Studio',
+                            'villa'     => 'Villa',
+                            'office'    => 'Office',
+                            'shop'      => 'Shop',
+                            'warehouse' => 'Warehouse',
                         ])
-                        ->autocomplete(false)
+                        ->native(false)
                         ->prefixIcon('heroicon-m-tag'),
 
                     Forms\Components\Select::make('status')
@@ -158,13 +158,26 @@ class UnitResource extends Resource
                             },
                         ])
                         ->schema([
+                            Forms\Components\Placeholder::make('seeded_image')
+                                ->label('External Photo Preview')
+                                ->content(function ($get) {
+                                    $path = $get('path');
+                                    if ($path && str_starts_with($path, 'http')) {
+                                        return new \Illuminate\Support\HtmlString('<img src="' . $path . '" style="height: 10rem; border-radius: 0.5rem; object-fit: cover;">');
+                                    }
+                                    return 'No image';
+                                })
+                                ->hidden(fn ($get) => !str_starts_with($get('path') ?? '', 'http'))
+                                ->columnSpanFull(),
+
                             Forms\Components\FileUpload::make('path')
                                 ->label('Photo')
                                 ->image()
                                 ->imageEditor()
                                 ->directory('images/units')
                                 ->maxSize(5120)
-                                ->required(),
+                                ->required(fn ($get) => !str_starts_with($get('path') ?? '', 'http'))
+                                ->hidden(fn ($get) => str_starts_with($get('path') ?? '', 'http')),
                             Forms\Components\Toggle::make('is_primary')
                                 ->label('Primary')
                                 ->default(false),
