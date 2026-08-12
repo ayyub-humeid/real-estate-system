@@ -102,18 +102,31 @@ class AgencyController extends Controller
             $data = $request->validated();
             $data['is_active'] = true;
 
-            $password = $request->post('password');
-            unset($data['password'], $data['password_confirmation']);
+            $authUser = auth('sanctum')->user();
+
+            if ($authUser) {
+                if ($authUser->company_id) {
+                    return response()->json([
+                        'message' => 'You already have an active company associated with your account.',
+                    ], 403);
+                }
+                
+                $adminEmail = $authUser->email;
+                $adminPhone = $authUser->phone;
+                unset($data['password'], $data['password_confirmation']);
+            } else {
+                $password = $request->post('password');
+                unset($data['password'], $data['password_confirmation']);
+                
+                $adminEmail = $data['email'];
+                $adminPhone = $data['phone'];
+            }
 
             // Handle logo upload
             if ($request->hasFile('logo')) {
-                $path = $request->file('logo')->store('companies-logos');
+                $path = $request->file('logo')->store('companies-logos', env('FILESYSTEM_DISK', 's3'));
                 $data['logo'] = $path;
             }
-
-            // Extract user (admin) specific data
-            $adminEmail = $data['email'];
-            $adminPhone = $data['phone'];
 
             // Prepare company data
             $companyData = $data;
@@ -125,17 +138,25 @@ class AgencyController extends Controller
 
             $company = Company::create($companyData);
 
-            // Create Company Admin User
-            $user = User::create([
-                'company_id' => $company->id,
-                'name' => $data['admin_name'],
-                'email' => $adminEmail,
-                'phone' => $adminPhone,
-                'password' => Hash::make($password),
-            ]);
+            if ($authUser) {
+                // Link existing user to the new company
+                $authUser->update([
+                    'company_id' => $company->id,
+                ]);
+                $authUser->syncRoles(['company_admin']); // Update role
+            } else {
+                // Create Company Admin User
+                $user = User::create([
+                    'company_id' => $company->id,
+                    'name' => $data['admin_name'],
+                    'email' => $adminEmail,
+                    'phone' => $adminPhone,
+                    'password' => Hash::make($password),
+                ]);
 
-            // Assign company admin role
-            $user->assignRole('company_admin');
+                // Assign company admin role
+                $user->assignRole('company_admin');
+            }
 
             // Find professional plan or fallback to the first active plan
             $withTrial = filter_var($request->input('with_trial', true), FILTER_VALIDATE_BOOLEAN);

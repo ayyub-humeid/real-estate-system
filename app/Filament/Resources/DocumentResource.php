@@ -345,7 +345,7 @@ public static function canViewAny(): bool
         ->label('Download')
         ->icon('heroicon-o-arrow-down-tray')
         ->color('success')
-        ->url(fn($record) => asset('storage/' . $record->file_path))
+        ->url(fn($record) => storage_url($record->file_path))
         ->openUrlInNewTab(),
 
                 Tables\Actions\DeleteAction::make()

@@ -21,17 +21,30 @@ class RegisterCompanyRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        $user = auth('sanctum')->user();
+        $isAuth = $user !== null;
+
+        $rules = [
             'name' => ['required', 'string', 'max:255'],
-            'admin_name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'agency_email' => ['nullable', 'string', 'email', 'max:255', 'unique:companies,email'],
-            'phone' => ['required', 'string', 'max:20'],
             'agency_phone' => ['nullable', 'string', 'max:20'],
             'address' => ['nullable', 'string', 'max:255'],
             'logo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,svg', 'max:2048'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
             'with_trial' => ['nullable', 'boolean'],
         ];
+
+        if (!$isAuth) {
+            $rules['admin_name'] = ['required', 'string', 'max:255'];
+            $rules['email'] = ['required', 'string', 'email', 'max:255', 'unique:users,email'];
+            $rules['phone'] = ['required', 'string', 'max:20'];
+            $rules['password'] = ['required', 'string', 'min:8', 'confirmed'];
+        } else {
+            $rules['admin_name'] = ['nullable', 'string', 'max:255'];
+            $rules['email'] = ['nullable', 'string', 'email', 'max:255'];
+            $rules['phone'] = ['nullable', 'string', 'max:20'];
+            $rules['password'] = ['nullable', 'string', 'min:8', 'confirmed'];
+        }
+
+        return $rules;
     }
 }

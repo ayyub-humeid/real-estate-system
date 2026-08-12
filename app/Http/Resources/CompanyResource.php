@@ -20,7 +20,7 @@ class CompanyResource extends JsonResource
             'email' => $this->whenHas('email'),
             'phone' => $this->whenHas('phone'),
             'address' => $this->whenHas('address'),
-            'logo_url' => $this->whenHas('logo', fn() => $this->logo ? asset('storage/' . $this->logo) : null),
+            'logo_url' => $this->whenHas('logo', fn() => storage_url($this->logo)),
             'is_active' => $this->whenHas('is_active'),
         ];
     }

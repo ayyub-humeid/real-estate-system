@@ -40,18 +40,18 @@ class CompanySetting extends Model
     // ✅ Helper: Get logo URL
     public function getLogoUrlAttribute(): ?string
     {
-        return $this->logo ? asset('storage/' . $this->logo) : null;
+        return storage_url($this->logo);
     }
     
     // ✅ Helper: Get lease background URL
     public function getLeaseBackgroundUrlAttribute(): ?string
     {
-        return $this->lease_background ? asset('storage/' . $this->lease_background) : null;
+        return storage_url($this->lease_background);
     }
     
     // ✅ Helper: Get signature URL
     public function getSignatureUrlAttribute(): ?string
     {
-        return $this->signature ? asset('storage/' . $this->signature) : null;
+        return storage_url($this->signature);
     }
 }

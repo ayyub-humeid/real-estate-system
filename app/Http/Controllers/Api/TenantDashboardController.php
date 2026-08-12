@@ -61,7 +61,7 @@ class TenantDashboardController extends Controller
             $managingCompany = [
                 'id'   => $company->id,
                 'name' => $company->name,
-                'logo' => $company->logo ? asset('storage/' . $company->logo) : null,
+                'logo' => storage_url($company->logo),
             ];
         }
 

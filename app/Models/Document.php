@@ -51,7 +51,7 @@ public function getFileUrlAttribute(): string
 {
     // Cache the result for this model instance
     return $this->attributes['file_url'] ??= 
-        asset('storage/' . $this->file_path);
+        storage_url($this->file_path) ?? '';
 }
     // public function getFileUrlAttribute(): string
     // {

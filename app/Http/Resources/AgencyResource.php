@@ -17,7 +17,7 @@ class AgencyResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
-            'logo' => $this->logo ? asset('storage/' . $this->logo) : null,
+            'logo' => storage_url($this->logo),
             'verified' => (bool) $this->verified,
             'phone' => $this->phone,
             'email' => $this->email,
@@ -48,7 +48,7 @@ class AgencyResource extends JsonResource
                     ->values()
                     ->map(function ($emp, $idx) use ($placeholders) {
                         if ($emp->avatar) {
-                            return filter_var($emp->avatar, FILTER_VALIDATE_URL) ? $emp->avatar : asset('storage/' . $emp->avatar);
+                            return storage_url($emp->avatar);
                         }
                         return $placeholders[$idx % count($placeholders)];
                     })
@@ -77,7 +77,7 @@ class AgencyResource extends JsonResource
                     }
 
                     if ($imagePath && !filter_var($imagePath, FILTER_VALIDATE_URL)) {
-                        $imagePath = asset('storage/' . $imagePath);
+                        $imagePath = storage_url($imagePath);
                     }
 
                     // صورة افتراضية رائعة في حال عدم توفر أي صورة

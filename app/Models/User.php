@@ -165,7 +165,7 @@ class User extends Authenticatable implements FilamentUser
     public function getAvatarUrlAttribute(): string
     {
         if ($this->relationLoaded('employee') && $this->employee && $this->employee->avatar) {
-            return asset('storage/' . $this->employee->avatar);
+            return storage_url($this->employee->avatar);
         }
         return "https://ui-avatars.com/api/?name=" . urlencode($this->name) . "&background=0D8ABC&color=fff";
     }

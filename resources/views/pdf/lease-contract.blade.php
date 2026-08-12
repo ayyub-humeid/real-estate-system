@@ -18,14 +18,14 @@
 
         body {
             font-family: 'DejaVu Sans', Arial, sans-serif;
-            font-size: 9.5pt;
-            line-height: 1.55;
+            font-size: 9pt;
+            line-height: 1.5;
             color: #1a1a2e;
             background: #fff;
             position: relative;
         }
 
-        /* ── BACKGROUND IMAGE ── */
+        /* ── BACKGROUND IMAGE (faint watermark from company settings) ── */
         .bg-image {
             position: fixed;
             top: 0;
@@ -38,7 +38,28 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            opacity: 0.07;
+            opacity: 0.05;
+        }
+
+        /* ── DECORATIVE BORDER ── */
+        .outer-border {
+            position: fixed;
+            top: 8px;
+            left: 8px;
+            right: 8px;
+            bottom: 8px;
+            border: 2px solid {{ $settings->lease_header_color ?? '#1e3a5f' }};
+            z-index: 0;
+        }
+        .inner-border {
+            position: fixed;
+            top: 12px;
+            left: 12px;
+            right: 12px;
+            bottom: 12px;
+            border: 0.5px solid {{ $settings->lease_header_color ?? '#1e3a5f' }};
+            opacity: 0.4;
+            z-index: 0;
         }
 
         /* ── MAIN WRAPPER ── */
@@ -52,9 +73,11 @@
         /* ── HEADER BAND ── */
         .header-band {
             background: {{ $settings->lease_header_color ?? '#1e3a5f' }};
-            padding: 18px 36px 14px 36px;
+            padding: 14px 30px 10px 30px;
             display: block;
             width: 100%;
+            margin: 14px 14px 0 14px;
+            width: calc(100% - 28px);
         }
 
         .header-inner {
@@ -64,77 +87,88 @@
 
         .header-logo-cell {
             display: table-cell;
-            width: 90px;
+            width: 80px;
             vertical-align: middle;
         }
 
         .header-logo-cell img {
-            max-width: 80px;
-            max-height: 65px;
+            max-width: 70px;
+            max-height: 55px;
+            border-radius: 4px;
         }
 
         .header-text-cell {
             display: table-cell;
             vertical-align: middle;
             text-align: center;
-            padding: 0 10px;
+            padding: 0 8px;
         }
 
         .header-title {
-            font-size: 20pt;
+            font-size: 18pt;
             font-weight: bold;
             color: #ffffff;
-            letter-spacing: 3px;
+            letter-spacing: 4px;
             text-transform: uppercase;
         }
 
         .header-subtitle {
-            font-size: 9pt;
-            color: rgba(255,255,255,0.80);
-            margin-top: 3px;
-            letter-spacing: 1px;
+            font-size: 8.5pt;
+            color: rgba(255,255,255,0.75);
+            margin-top: 2px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
         }
 
         .header-meta-cell {
             display: table-cell;
-            width: 130px;
+            width: 120px;
             vertical-align: middle;
             text-align: right;
         }
 
         .contract-badge {
-            background: rgba(255,255,255,0.15);
-            border: 1px solid rgba(255,255,255,0.30);
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.25);
             border-radius: 4px;
-            padding: 6px 10px;
+            padding: 5px 8px;
             color: #fff;
-            font-size: 8pt;
+            font-size: 7.5pt;
         }
 
         .contract-badge .badge-no {
-            font-size: 13pt;
+            font-size: 12pt;
             font-weight: bold;
             display: block;
             letter-spacing: 1px;
         }
 
+        /* ── GOLD ACCENT LINE ── */
+        .gold-accent {
+            height: 3px;
+            background: linear-gradient(90deg, #c9a84c, #e8d48b, #c9a84c);
+            margin: 0 14px;
+        }
+
         /* ── COMPANY INFO STRIP ── */
         .company-strip {
-            background: #f0f4fa;
-            border-bottom: 2px solid {{ $settings->lease_header_color ?? '#1e3a5f' }};
-            padding: 7px 36px;
-            font-size: 8pt;
-            color: #445;
+            background: #f5f7fb;
+            border-bottom: 1.5px solid {{ $settings->lease_header_color ?? '#1e3a5f' }};
+            padding: 5px 30px;
+            font-size: 7.5pt;
+            color: #556;
             text-align: center;
+            margin: 0 14px;
         }
 
         .company-strip span {
-            margin: 0 10px;
+            margin: 0 6px;
         }
 
         /* ── CONTENT AREA ── */
         .content {
-            padding: 16px 36px 0 36px;
+            padding: 12px 30px 0 30px;
+            margin: 0 14px;
         }
 
         /* ── TWO-COLUMN GRID ── */
@@ -151,28 +185,33 @@
         }
 
         .col-left {
-            padding-right: 14px;
+            padding-right: 12px;
         }
 
         .col-right {
-            padding-left: 14px;
+            padding-left: 12px;
             border-left: 1px solid #dce3ef;
         }
 
         /* ── SECTION ── */
         .section {
-            margin-bottom: 12px;
+            margin-bottom: 10px;
         }
 
         .section-title {
-            font-size: 8pt;
+            font-size: 7.5pt;
             font-weight: bold;
             color: {{ $settings->lease_header_color ?? '#1e3a5f' }};
             text-transform: uppercase;
             letter-spacing: 1.5px;
             border-bottom: 1.5px solid {{ $settings->lease_header_color ?? '#1e3a5f' }};
-            padding-bottom: 3px;
-            margin-bottom: 8px;
+            padding-bottom: 2px;
+            margin-bottom: 6px;
+        }
+
+        .section-title .section-icon {
+            font-size: 8pt;
+            margin-right: 4px;
         }
 
         /* ── INFO ROWS ── */
@@ -182,7 +221,7 @@
         }
 
         .info-table td {
-            padding: 3px 0;
+            padding: 2.5px 0;
             vertical-align: top;
             border: none;
         }
@@ -190,14 +229,14 @@
         .info-label {
             font-weight: bold;
             color: #556;
-            width: 110px;
-            font-size: 8.5pt;
+            width: 100px;
+            font-size: 8pt;
             white-space: nowrap;
         }
 
         .info-value {
             color: #111;
-            font-size: 8.5pt;
+            font-size: 8pt;
         }
 
         /* ── FINANCIAL TABLE ── */
@@ -205,16 +244,18 @@
             width: 100%;
             border-collapse: collapse;
             margin-top: 4px;
-            font-size: 8.5pt;
+            font-size: 8pt;
         }
 
         .fin-table th {
             background: {{ $settings->lease_header_color ?? '#1e3a5f' }};
             color: #fff;
-            padding: 5px 8px;
+            padding: 4px 8px;
             text-align: left;
-            font-size: 8pt;
+            font-size: 7.5pt;
             font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .fin-table th.right,
@@ -223,7 +264,7 @@
         }
 
         .fin-table td {
-            padding: 4px 8px;
+            padding: 3.5px 8px;
             border-bottom: 1px solid #e8ecf4;
         }
 
@@ -242,7 +283,7 @@
             display: inline-block;
             padding: 2px 8px;
             border-radius: 3px;
-            font-size: 8pt;
+            font-size: 7.5pt;
             font-weight: bold;
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -258,18 +299,18 @@
         .divider {
             border: none;
             border-top: 1px solid #dce3ef;
-            margin: 10px 0;
+            margin: 8px 0;
         }
 
         /* ── TERMS BOX ── */
         .terms-box {
             border: 1px solid #dce3ef;
-            border-left: 3.5px solid {{ $settings->lease_header_color ?? '#1e3a5f' }};
+            border-left: 3px solid {{ $settings->lease_header_color ?? '#1e3a5f' }};
             background: #f9fafd;
-            padding: 8px 12px;
-            font-size: 8pt;
+            padding: 6px 10px;
+            font-size: 7.5pt;
             color: #334;
-            line-height: 1.5;
+            line-height: 1.45;
             margin-top: 4px;
         }
 
@@ -277,24 +318,24 @@
         .notes-box {
             border: 1px dashed #c4cfe0;
             background: #fefefe;
-            padding: 7px 12px;
-            font-size: 8pt;
+            padding: 6px 10px;
+            font-size: 7.5pt;
             color: #445;
-            line-height: 1.5;
+            line-height: 1.45;
             margin-top: 4px;
         }
 
         /* ── FULL-WIDTH SECTION ── */
         .full-width {
-            padding: 0 36px;
-            margin-bottom: 10px;
+            padding: 0 30px;
+            margin: 0 14px 8px 14px;
         }
 
         /* ── SIGNATURE SECTION ── */
         .sig-section {
             display: table;
             width: 100%;
-            margin-top: 10px;
+            margin-top: 6px;
             border-collapse: collapse;
         }
 
@@ -303,7 +344,7 @@
             width: 50%;
             text-align: center;
             vertical-align: bottom;
-            padding: 0 20px;
+            padding: 0 16px;
         }
 
         .sig-cell-left {
@@ -311,47 +352,70 @@
         }
 
         .sig-image {
-            max-width: 140px;
-            max-height: 70px;
+            max-width: 120px;
+            max-height: 60px;
             margin-bottom: 4px;
         }
 
         .sig-line {
             border-top: 1.5px solid #334;
-            margin-top: 50px;
-            padding-top: 6px;
+            margin-top: 40px;
+            padding-top: 5px;
         }
 
         .sig-name {
             font-weight: bold;
-            font-size: 9pt;
+            font-size: 8.5pt;
             color: #1a1a2e;
         }
 
         .sig-role {
-            font-size: 7.5pt;
+            font-size: 7pt;
             color: #667;
-            margin-top: 2px;
+            margin-top: 1px;
         }
 
         .sig-date-line {
-            margin-top: 6px;
-            font-size: 8pt;
+            margin-top: 5px;
+            font-size: 7.5pt;
             color: #556;
             border-top: 1px solid #ccc;
-            padding-top: 4px;
+            padding-top: 3px;
+        }
+
+        /* ── STAMP / SEAL ── */
+        .stamp-area {
+            display: inline-block;
+            width: 65px;
+            height: 65px;
+            border: 2px dashed {{ $settings->lease_header_color ?? '#1e3a5f' }};
+            border-radius: 50%;
+            opacity: 0.3;
+            vertical-align: middle;
+            margin-top: 4px;
+            position: relative;
+        }
+
+        .stamp-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 5pt;
+            font-weight: bold;
+            color: {{ $settings->lease_header_color ?? '#1e3a5f' }};
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         /* ── FOOTER BAND ── */
         .footer-band {
             background: {{ $settings->lease_header_color ?? '#1e3a5f' }};
-            margin-top: 12px;
-            padding: 8px 36px;
+            padding: 6px 30px;
             text-align: center;
-            font-size: 7.5pt;
-            color: rgba(255,255,255,0.80);
-            width: 100%;
-            display: block;
+            font-size: 7pt;
+            color: rgba(255,255,255,0.75);
+            margin: 0 14px 14px 14px;
         }
 
         .footer-band .footer-highlight {
@@ -359,39 +423,44 @@
             font-weight: bold;
         }
 
-        /* ── STAMP PLACEHOLDER ── */
-        .stamp-area {
-            display: inline-block;
-            width: 80px;
-            height: 80px;
-            border: 2px dashed {{ $settings->lease_header_color ?? '#1e3a5f' }};
-            border-radius: 50%;
-            opacity: 0.35;
-            vertical-align: middle;
-            margin-top: 5px;
-        }
-
         /* ── WATERMARK TEXT ── */
         .watermark-text {
             position: fixed;
             top: 38%;
             left: 18%;
-            font-size: 68pt;
+            font-size: 65pt;
             font-weight: bold;
             color: {{ $settings->lease_header_color ?? '#1e3a5f' }};
-            opacity: 0.035;
+            opacity: 0.03;
             transform: rotate(-30deg);
             z-index: 0;
-            letter-spacing: 6px;
+            letter-spacing: 8px;
+            text-transform: uppercase;
+        }
+
+        /* ── LEGAL DECLARATION ── */
+        .legal-declaration {
+            background: #f8f9fc;
+            border: 1px solid #dce3ef;
+            padding: 6px 10px;
+            margin-top: 6px;
+            font-size: 7pt;
+            color: #556;
+            line-height: 1.4;
+            text-align: justify;
         }
     </style>
 </head>
 <body>
 
+    {{-- ── DECORATIVE BORDERS ── --}}
+    <div class="outer-border"></div>
+    <div class="inner-border"></div>
+
     {{-- ── BACKGROUND IMAGE (dynamic from company settings) ── --}}
-    @if($settings && $settings->lease_background)
+    @if(!empty($imageData['lease_background']))
         <div class="bg-image">
-            <img src="{{ public_path('storage/' . $settings->lease_background) }}" alt="">
+            <img src="{{ $imageData['lease_background'] }}" alt="">
         </div>
     @endif
 
@@ -405,14 +474,14 @@
             <div class="header-inner">
                 {{-- Logo --}}
                 <div class="header-logo-cell">
-                    @if($settings && $settings->logo)
-                        <img src="{{ public_path('storage/' . $settings->logo) }}" alt="Logo">
+                    @if(!empty($imageData['logo']))
+                        <img src="{{ $imageData['logo'] }}" alt="Logo">
                     @endif
                 </div>
 
                 {{-- Title --}}
                 <div class="header-text-cell">
-                    <div class="header-title">LEASE AGREEMENT</div>
+                    <div class="header-title">Lease Agreement</div>
                     <div class="header-subtitle">
                         {{ $settings->company_legal_name ?? ($lease->company->name ?? 'Real Estate Management') }}
                     </div>
@@ -421,9 +490,9 @@
                 {{-- Contract Number --}}
                 <div class="header-meta-cell">
                     <div class="contract-badge">
-                        <span style="font-size:7pt; opacity:0.8; letter-spacing:0.5px;">CONTRACT NO.</span>
+                        <span style="font-size:6.5pt; opacity:0.8; letter-spacing:0.5px;">CONTRACT NO.</span>
                         <span class="badge-no">#{{ str_pad($lease->id, 6, '0', STR_PAD_LEFT) }}</span>
-                        <span style="font-size:7pt; opacity:0.8; display:block; margin-top:2px;">
+                        <span style="font-size:6.5pt; opacity:0.8; display:block; margin-top:2px;">
                             {{ now()->format('d M Y') }}
                         </span>
                     </div>
@@ -431,16 +500,19 @@
             </div>
         </div>
 
+        {{-- ── Gold accent line ── --}}
+        <div class="gold-accent"></div>
+
         {{-- ══ COMPANY INFO STRIP ══ --}}
         <div class="company-strip">
             @if($settings && $settings->company_address)
-                <span>{{ $settings->company_address }}</span>
+                <span>📍 {{ $settings->company_address }}</span>
             @endif
             @if($settings && $settings->company_phone)
-                <span> | Tel: {{ $settings->company_phone }}</span>
+                <span> | ☎ {{ $settings->company_phone }}</span>
             @endif
             @if($settings && $settings->company_email)
-                <span> | {{ $settings->company_email }}</span>
+                <span> | ✉ {{ $settings->company_email }}</span>
             @endif
             @if($settings && $settings->tax_id)
                 <span> | Tax ID: {{ $settings->tax_id }}</span>
@@ -461,7 +533,7 @@
 
                     {{-- LEASE INFORMATION --}}
                     <div class="section">
-                        <div class="section-title">Lease Information</div>
+                        <div class="section-title"><span class="section-icon">📋</span> Lease Information</div>
                         <table class="info-table">
                             <tr>
                                 <td class="info-label">Contract No.:</td>
@@ -481,14 +553,14 @@
                                     {{ $lease->end_date ? $lease->end_date->format('d F Y') : 'Open-ended' }}
                                     @if($lease->end_date)
                                         @php $months = $lease->start_date->diffInMonths($lease->end_date); @endphp
-                                        ({{ $months }} month{{ $months != 1 ? 's' : '' }})
+                                        <span style="color:#888; font-size:7pt;">({{ $months }} month{{ $months != 1 ? 's' : '' }})</span>
                                     @endif
                                 </td>
                             </tr>
                             <tr>
                                 <td class="info-label">Status:</td>
                                 <td class="info-value">
-                                    <span class="status-badge status-{{ $lease->status }}">{{ $lease->status }}</span>
+                                    <span class="status-badge status-{{ $lease->status }}">{{ strtoupper($lease->status) }}</span>
                                 </td>
                             </tr>
                             <tr>
@@ -504,7 +576,7 @@
 
                     {{-- PROPERTY DETAILS --}}
                     <div class="section">
-                        <div class="section-title">Property Details</div>
+                        <div class="section-title"><span class="section-icon">🏠</span> Property Details</div>
                         <table class="info-table">
                             @if($lease->unit)
                                 <tr>
@@ -530,7 +602,7 @@
                             @elseif($lease->property)
                                 <tr>
                                     <td class="info-label">Property:</td>
-                                    <td class="info-value"><strong>{{ $lease->property->name }}</strong> (Whole)</td>
+                                    <td class="info-value"><strong>{{ $lease->property->name }}</strong> (Whole Property)</td>
                                 </tr>
                                 @if($lease->property->address)
                                 <tr>
@@ -549,7 +621,7 @@
 
                     {{-- TENANT INFORMATION --}}
                     <div class="section">
-                        <div class="section-title">Tenant Information</div>
+                        <div class="section-title"><span class="section-icon">👤</span> Tenant Information</div>
                         <table class="info-table">
                             <tr>
                                 <td class="info-label">Full Name:</td>
@@ -586,7 +658,7 @@
 
                     {{-- FINANCIAL TERMS --}}
                     <div class="section">
-                        <div class="section-title">Financial Terms</div>
+                        <div class="section-title"><span class="section-icon">💰</span> Financial Terms</div>
                         <table class="fin-table">
                             <thead>
                                 <tr>
@@ -638,7 +710,7 @@
 
             @if($settings && $settings->lease_terms)
             <div class="section">
-                <div class="section-title" style="margin-left:0">Terms and Conditions</div>
+                <div class="section-title" style="margin-left:0"><span class="section-icon">📜</span> Terms and Conditions</div>
                 <div class="terms-box">
                     {!! nl2br(e($settings->lease_terms)) !!}
                 </div>
@@ -646,8 +718,8 @@
             @endif
 
             @if($lease->special_terms)
-            <div class="section" style="margin-top:6px">
-                <div class="section-title" style="margin-left:0">Special Terms</div>
+            <div class="section" style="margin-top:4px">
+                <div class="section-title" style="margin-left:0"><span class="section-icon">⚡</span> Special Terms</div>
                 <div class="terms-box">
                     {!! nl2br(e($lease->special_terms)) !!}
                 </div>
@@ -655,8 +727,8 @@
             @endif
 
             @if($lease->notes)
-            <div class="section" style="margin-top:6px">
-                <div class="section-title" style="margin-left:0">Notes</div>
+            <div class="section" style="margin-top:4px">
+                <div class="section-title" style="margin-left:0"><span class="section-icon">📝</span> Notes</div>
                 <div class="notes-box">
                     {!! nl2br(e($lease->notes)) !!}
                 </div>
@@ -665,24 +737,35 @@
         </div>
         @endif
 
+        {{-- ══ LEGAL DECLARATION ══ --}}
+        <div class="full-width">
+            <div class="legal-declaration">
+                <strong>LEGAL DECLARATION:</strong> Both parties acknowledge that they have read, understood, and agree to all terms and conditions set forth in this lease agreement. This contract is legally binding upon execution by both parties and shall be governed by the applicable laws and regulations. Any disputes arising from this agreement shall be resolved through proper legal channels.
+            </div>
+        </div>
+
         {{-- ══ SIGNATURE SECTION ══ --}}
         <div class="full-width">
             <hr class="divider">
-            <div class="section-title" style="text-align:center; border:none; margin-bottom:4px;">Signatures and Authorization</div>
+            <div class="section-title" style="text-align:center; border:none; margin-bottom:4px;">
+                <span class="section-icon">✍</span> Signatures and Authorization
+            </div>
 
             <div class="sig-section">
                 {{-- Landlord / Company --}}
                 <div class="sig-cell sig-cell-left">
-                    @if($settings && $settings->signature)
+                    @if(!empty($imageData['signature']))
                         <div>
-                            <img src="{{ public_path('storage/' . $settings->signature) }}" class="sig-image" alt="Company Signature">
+                            <img src="{{ $imageData['signature'] }}" class="sig-image" alt="Company Signature">
                         </div>
                     @else
-                        <div style="height:70px;"></div>
+                        <div style="height:60px;"></div>
                     @endif
 
                     @if($settings && $settings->show_company_stamp)
-                        <div class="stamp-area"></div>
+                        <div class="stamp-area">
+                            <span class="stamp-text">SEAL</span>
+                        </div>
                     @endif
 
                     <div class="sig-line">
@@ -694,7 +777,7 @@
 
                 {{-- Tenant --}}
                 <div class="sig-cell">
-                    <div style="height:70px;"></div>
+                    <div style="height:60px;"></div>
 
                     <div class="sig-line">
                         <div class="sig-name">{{ optional($lease->tenant->user)->name ?? 'Tenant' }}</div>
@@ -704,6 +787,9 @@
                 </div>
             </div>
         </div>
+
+        {{-- ── Gold accent line before footer ── --}}
+        <div class="gold-accent"></div>
 
         {{-- ══ FOOTER BAND ══ --}}
         <div class="footer-band">
