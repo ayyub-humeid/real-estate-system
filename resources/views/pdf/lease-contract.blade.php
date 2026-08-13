@@ -1,876 +1,941 @@
+{{--
+resources/views/pdf/lease-contract.blade.php
+─────────────────────────────────────────────
+Official Lease Agreement PDF — A4 single-page optimised.
+Uses DomPDF-compatible CSS (no flexbox — tables for layout).
+All images are passed as base64 data URIs via $imageData[].
+--}}
+@php
+    // ── Resolve dynamic values ──
+    $headerColor = $settings->lease_header_color ?? '#1a237e';
+    $headerColorRgb = $headerColor; // direct hex for DomPDF
+    $companyName = $settings->company_legal_name ?? $lease->company->name ?? 'Property Management Company';
+    $companyAddr = $settings->company_address ?? $lease->company->address ?? '';
+    $companyPhone = $settings->company_phone ?? $lease->company->phone ?? '';
+    $companyEmail = $settings->company_email ?? $lease->company->email ?? '';
+    $companyWeb = $settings->website ?? '';
+    $taxId = $settings->tax_id ?? '';
+    $regNo = $settings->registration_number ?? '';
+
+    // Lease target
+    $propertyName = '';
+    $unitNumber = '';
+    $unitType = '';
+    $address = '';
+    if ($lease->unit) {
+        $propertyName = $lease->unit->property->name ?? 'N/A';
+        $unitNumber = $lease->unit->unit_number ?? 'N/A';
+        $unitType = ucfirst($lease->unit->type ?? 'Unit');
+        $address = $lease->unit->property->location->full_path ?? $lease->unit->property->address ?? '';
+    } elseif ($lease->property) {
+        $propertyName = $lease->property->name ?? 'N/A';
+        $unitNumber = 'Whole Property';
+        $unitType = 'Full Property';
+        $address = $lease->property->location->full_path ?? $lease->unit->property->address ?? '';
+
+    }
+
+    // Tenant info
+    $tenantName = $lease->tenant->user->name ?? 'N/A';
+    $tenantEmail = $lease->tenant->user->email ?? 'N/A';
+    $tenantPhone = $lease->tenant->user->phone ?? 'N/A';
+    $tenantIdType = ucfirst($lease->tenant->id_type ?? 'ID');
+    $tenantIdNum = $lease->tenant->id_number ?? 'N/A';
+    $employer = $lease->tenant->employer_name ?? 'N/A';
+    $occupants = $lease->tenant->number_of_occupants ?? 1;
+
+    // Dates & duration
+    $issueDate = $lease->created_at ? $lease->created_at->format('d F Y') : now()->format('d F Y');
+    $startDate = $lease->start_date ? $lease->start_date->format('d F Y') : 'N/A';
+    $endDate = $lease->end_date ? $lease->end_date->format('d F Y') : 'Open-ended';
+    $duration = $lease->end_date
+        ? $lease->start_date->diffInMonths($lease->end_date) . ' months'
+        : 'Open-ended';
+
+    // Financial
+    $rentAmount = number_format((float) $lease->rent_amount, 2);
+    $depositAmount = number_format((float) $lease->deposit_amount, 2);
+    $frequency = ucfirst(str_replace('_', '-', $lease->payment_frequency ?? 'monthly'));
+    $paymentDay = $lease->payment_day ?? 1;
+
+    // Installments
+    $freqMap = ['monthly' => 1, 'quarterly' => 3, 'semi_annually' => 6, 'yearly' => 12];
+    $freqMonths = $freqMap[$lease->payment_frequency] ?? 1;
+    $totalMonths = $lease->end_date
+        ? max(1, (int) $lease->start_date->diffInMonths($lease->end_date))
+        : 12;
+    $numInstallments = max(1, (int) ceil($totalMonths / $freqMonths));
+    $installmentAmt = $numInstallments > 0
+        ? number_format((float) $lease->rent_amount / $numInstallments, 2)
+        : $rentAmount;
+
+    // Status
+    $statusLabel = ucfirst($lease->status ?? 'draft');
+    $statusColors = [
+        'active' => '#2e7d32',
+        'draft' => '#757575',
+        'expired' => '#c62828',
+        'terminated' => '#e65100',
+        'renewed' => '#1565c0',
+    ];
+    $statusColor = $statusColors[$lease->status] ?? '#757575';
+
+    // Contract number
+    $contractNo = '#' . str_pad($lease->id, 6, '0', STR_PAD_LEFT);
+
+    // Terms
+    $leaseTerms = $settings->lease_terms ?? null;
+    $footerText = $settings->lease_footer_text ?? null;
+    $specialTerms = $lease->special_terms ?? null;
+    $notes = $lease->notes ?? null;
+
+    // Ordinal suffix for payment day
+    $ordSuffix = match (true) {
+        in_array($paymentDay % 100, [11, 12, 13]) => 'th',
+        $paymentDay % 10 === 1 => 'st',
+        $paymentDay % 10 === 2 => 'nd',
+        $paymentDay % 10 === 3 => 'rd',
+        default => 'th',
+    };
+    $payDayLabel = $paymentDay . $ordSuffix . ' of each month';
+@endphp
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Lease Contract - {{ str_pad($lease->id, 6, '0', STR_PAD_LEFT) }}</title>
+    <title>Lease Agreement {{ $contractNo }}</title>
     <style>
-        @page {
-            margin: 0;
-            size: A4 portrait;
-        }
-
+        /* ── Reset & Base ── */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
-        body {
-            font-family: 'DejaVu Sans', Arial, sans-serif;
-            font-size: 9pt;
-            line-height: 1.5;
-            color: #1a1a2e;
-            background: #fff;
-            position: relative;
+        @page {
+            size: A4 portrait;
+            margin: 0;
         }
 
-        /* ── BACKGROUND IMAGE (faint watermark from company settings) ── */
-        .bg-image {
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            font-size: 10px;
+            color: #1a1a2e;
+            line-height: 1.45;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* ── Page Container ── */
+        .page {
+            position: relative;
+            width: 100%;
+            min-height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+
+        /* ── Background Image (watermark behind content) ── */
+        .bg-watermark {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
+            opacity: 0.2;
             z-index: 0;
-            opacity: 0.05;
         }
 
-        .bg-image img {
+        .bg-watermark img {
             width: 100%;
             height: 100%;
         }
 
-        /* ── DECORATIVE BORDER ── */
-        .outer-border {
-            position: fixed;
-            top: 8px;
-            left: 8px;
-            right: 8px;
-            bottom: 8px;
-            border: 2px solid
-                {{ $settings->lease_header_color ?? '#1e3a5f' }}
+        /* ── Header Band ── */
+        .header-band {
+            background-color:
+                {{ $headerColor }}
             ;
-            z-index: 0;
-        }
-
-        .inner-border {
-            position: fixed;
-            top: 12px;
-            left: 12px;
-            right: 12px;
-            bottom: 12px;
-            border: 0.5px solid
-                {{ $settings->lease_header_color ?? '#1e3a5f' }}
-            ;
-            opacity: 0.4;
-            z-index: 0;
-        }
-
-        /* ── MAIN WRAPPER ── */
-        .page-wrapper {
+            color: #ffffff;
+            padding: 18px 35px 14px 35px;
             position: relative;
-            z-index: 1;
+        }
+
+        .header-table {
             width: 100%;
+            border-collapse: collapse;
+        }
+
+        .header-table td {
+            vertical-align: middle;
+            border: none;
             padding: 0;
         }
 
-        /* ── HEADER BAND ── */
-        .header-band {
-            background:
-                {{ $settings->lease_header_color ?? '#1e3a5f' }}
-            ;
-            padding: 14px 30px 10px 30px;
-            display: block;
-            width: 100%;
-            margin: 14px 14px 0 14px;
-            width: calc(100% - 28px);
+        .header-logo {
+            width: 70px;
         }
 
-        .header-inner {
-            display: table;
-            width: 100%;
-        }
-
-        .header-logo-cell {
-            display: table-cell;
-            width: 80px;
-            vertical-align: middle;
-        }
-
-        .header-logo-cell img {
-            max-width: 70px;
-            max-height: 55px;
-            border-radius: 4px;
-        }
-
-        .header-text-cell {
-            display: table-cell;
-            vertical-align: middle;
-            text-align: center;
-            padding: 0 8px;
+        .header-logo img {
+            width: 60px;
+            height: 60px;
+            border-radius: 6px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
         }
 
         .header-title {
-            font-size: 18pt;
-            font-weight: bold;
+            text-align: center;
+        }
+
+        .header-title h1 {
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: 5px;
+            text-transform: uppercase;
             color: #ffffff;
-            letter-spacing: 4px;
-            text-transform: uppercase;
+            margin: 0 0 2px 0;
         }
 
-        .header-subtitle {
-            font-size: 8.5pt;
-            color: rgba(255, 255, 255, 0.75);
-            margin-top: 2px;
-            letter-spacing: 1.5px;
+        .header-title .company-name {
+            font-size: 12px;
+            font-weight: 400;
+            letter-spacing: 2px;
             text-transform: uppercase;
+            opacity: 0.85;
         }
 
-        .header-meta-cell {
-            display: table-cell;
-            width: 140px;
-            vertical-align: middle;
+        .header-meta {
+            width: 120px;
             text-align: right;
         }
 
         .contract-badge {
-            background: rgba(255, 255, 255, 0.12);
-            border: 1px solid rgba(255, 255, 255, 0.25);
+            background-color: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            padding: 6px 10px;
             border-radius: 4px;
-            padding: 5px 8px;
-            color: #fff;
-            font-size: 7pt;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            display: inline-block;
         }
 
-        .contract-badge .badge-no {
-            font-size: 10pt;
-            font-weight: bold;
-            display: block;
-            letter-spacing: 0.5px;
+        .header-date {
+            font-size: 8px;
+            opacity: 0.7;
+            margin-top: 4px;
         }
 
-        /* ── GOLD ACCENT LINE ── */
-        .gold-accent {
+        /* ── Accent stripe under header ── */
+        .accent-stripe {
             height: 3px;
-            background: linear-gradient(90deg, #c9a84c, #e8d48b, #c9a84c);
-            margin: 0 14px;
+            background: linear-gradient(90deg,
+                    {{ $headerColor }}
+                    ,
+                    {{ $headerColor }}
+                    88,
+                    {{ $headerColor }}
+                    33, transparent);
         }
 
-        /* ── COMPANY INFO STRIP ── */
-        .company-strip {
-            background: #f5f7fb;
-            border-bottom: 1.5px solid
-                {{ $settings->lease_header_color ?? '#1e3a5f' }}
-            ;
-            padding: 5px 30px;
-            font-size: 7.5pt;
-            color: #556;
-            text-align: center;
-            margin: 0 14px;
-        }
-
-        .company-strip span {
-            margin: 0 6px;
-        }
-
-        /* ── CONTENT AREA ── */
+        /* ── Content Area ── */
         .content {
-            padding: 12px 30px 0 30px;
-            margin: 0 14px;
+            padding: 18px 35px 12px 35px;
+            position: relative;
+            z-index: 1;
         }
 
-        /* ── TWO-COLUMN GRID ── */
-        .two-col {
-            display: table;
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .col-left,
-        .col-right {
-            display: table-cell;
-            vertical-align: top;
-            width: 50%;
-        }
-
-        .col-left {
-            padding-right: 12px;
-        }
-
-        .col-right {
-            padding-left: 12px;
-            border-left: 1px solid #dce3ef;
-        }
-
-        /* ── SECTION ── */
-        .section {
-            margin-bottom: 10px;
-        }
-
-        .section-title {
-            font-size: 7.5pt;
-            font-weight: bold;
-            color:
-                {{ $settings->lease_header_color ?? '#1e3a5f' }}
-            ;
+        /* ── Section Headers ── */
+        .section-header {
+            font-size: 9px;
+            font-weight: 800;
+            letter-spacing: 2.5px;
             text-transform: uppercase;
-            letter-spacing: 1.5px;
-            border-bottom: 1.5px solid
-                {{ $settings->lease_header_color ?? '#1e3a5f' }}
+            color:
+                {{ $headerColor }}
             ;
-            padding-bottom: 2px;
-            margin-bottom: 6px;
+            border-bottom: 2px solid
+                {{ $headerColor }}
+            ;
+            padding-bottom: 3px;
+            margin-bottom: 8px;
+            margin-top: 12px;
         }
 
-        .section-title .section-icon {
-            font-size: 8pt;
-            margin-right: 4px;
+        .section-header .icon {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background-color:
+                {{ $headerColor }}
+            ;
+            border-radius: 2px;
+            margin-right: 5px;
+            vertical-align: middle;
+            position: relative;
+            top: -1px;
         }
 
-        /* ── INFO ROWS ── */
+        /* ── Info Tables (key-value) ── */
         .info-table {
             width: 100%;
             border-collapse: collapse;
+            margin-bottom: 6px;
         }
 
         .info-table td {
-            padding: 2.5px 0;
+            padding: 3px 0;
             vertical-align: top;
             border: none;
         }
 
         .info-label {
-            font-weight: bold;
-            color: #556;
-            width: 100px;
-            font-size: 8pt;
-            white-space: nowrap;
+            font-size: 8.5px;
+            font-weight: 700;
+            color: #555;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            width: 90px;
         }
 
         .info-value {
-            color: #111;
-            font-size: 8pt;
-        }
-
-        /* ── FINANCIAL TABLE ── */
-        .fin-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 4px;
-            font-size: 8pt;
-        }
-
-        .fin-table th {
-            background:
-                {{ $settings->lease_header_color ?? '#1e3a5f' }}
-            ;
-            color: #fff;
-            padding: 4px 8px;
-            text-align: left;
-            font-size: 7.5pt;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .fin-table th.right,
-        .fin-table td.right {
-            text-align: right;
-        }
-
-        .fin-table td {
-            padding: 3.5px 8px;
-            border-bottom: 1px solid #e8ecf4;
-        }
-
-        .fin-table tr:nth-child(even) td {
-            background: #f7f9fd;
-        }
-
-        .fin-total td {
-            font-weight: bold;
-            border-top: 2px solid
-                {{ $settings->lease_header_color ?? '#1e3a5f' }}
-            ;
-            background: #eef2fa !important;
-        }
-
-        /* ── STATUS BADGE ── */
-        .status-badge {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 3px;
-            font-size: 7.5pt;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .status-active {
-            background: #d1fae5;
-            color: #065f46;
-        }
-
-        .status-draft {
-            background: #f3f4f6;
-            color: #374151;
-        }
-
-        .status-expired {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-
-        .status-terminated {
-            background: #fef3c7;
-            color: #92400e;
-        }
-
-        .status-renewed {
-            background: #dbeafe;
-            color: #1e40af;
-        }
-
-        /* ── DIVIDER ── */
-        .divider {
-            border: none;
-            border-top: 1px solid #dce3ef;
-            margin: 8px 0;
-        }
-
-        /* ── TERMS BOX ── */
-        .terms-box {
-            border: 1px solid #dce3ef;
-            border-left: 3px solid
-                {{ $settings->lease_header_color ?? '#1e3a5f' }}
-            ;
-            background: #f9fafd;
-            padding: 6px 10px;
-            font-size: 7.5pt;
-            color: #334;
-            line-height: 1.45;
-            margin-top: 4px;
-        }
-
-        /* ── NOTES BOX ── */
-        .notes-box {
-            border: 1px dashed #c4cfe0;
-            background: #fefefe;
-            padding: 6px 10px;
-            font-size: 7.5pt;
-            color: #445;
-            line-height: 1.45;
-            margin-top: 4px;
-        }
-
-        /* ── FULL-WIDTH SECTION ── */
-        .full-width {
-            padding: 0 30px;
-            margin: 0 14px 8px 14px;
-        }
-
-        /* ── SIGNATURE SECTION ── */
-        .sig-section {
-            display: table;
-            width: 100%;
-            margin-top: 6px;
-            border-collapse: collapse;
-        }
-
-        .sig-cell {
-            display: table-cell;
-            width: 50%;
-            text-align: center;
-            vertical-align: bottom;
-            padding: 0 16px;
-        }
-
-        .sig-cell-left {
-            border-right: 1px solid #dce3ef;
-        }
-
-        .sig-image {
-            max-width: 120px;
-            max-height: 60px;
-            margin-bottom: 4px;
-        }
-
-        .sig-line {
-            border-top: 1.5px solid #334;
-            margin-top: 40px;
-            padding-top: 5px;
-        }
-
-        .sig-name {
-            font-weight: bold;
-            font-size: 8.5pt;
+            font-size: 10px;
+            font-weight: 600;
             color: #1a1a2e;
         }
 
-        .sig-role {
-            font-size: 7pt;
-            color: #667;
-            margin-top: 1px;
-        }
-
-        .sig-date-line {
-            margin-top: 5px;
-            font-size: 7.5pt;
-            color: #556;
-            border-top: 1px solid #ccc;
-            padding-top: 3px;
-        }
-
-        /* ── STAMP / SEAL ── */
-        .stamp-area {
+        /* ── Status Badge ── */
+        .status-badge {
             display: inline-block;
-            width: 65px;
-            height: 65px;
-            border: 2px dashed
-                {{ $settings->lease_header_color ?? '#1e3a5f' }}
+            background-color:
+                {{ $statusColor }}
             ;
-            border-radius: 50%;
-            opacity: 0.3;
-            vertical-align: middle;
-            margin-top: 4px;
-            position: relative;
+            color: #fff;
+            font-size: 7.5px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            padding: 2px 8px;
+            border-radius: 3px;
         }
 
-        .stamp-text {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 5pt;
-            font-weight: bold;
-            color:
-                {{ $settings->lease_header_color ?? '#1e3a5f' }}
+        /* ── Two-column Layout ── */
+        .two-col-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .two-col-table>tbody>tr>td {
+            width: 50%;
+            vertical-align: top;
+            padding: 0;
+            border: none;
+        }
+
+        .two-col-table>tbody>tr>td:first-child {
+            padding-right: 14px;
+        }
+
+        .two-col-table>tbody>tr>td:last-child {
+            padding-left: 14px;
+        }
+
+        /* ── Financial Table ── */
+        .financial-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 4px;
+        }
+
+        .financial-table thead th {
+            background-color:
+                {{ $headerColor }}
             ;
+            color: #ffffff;
+            font-size: 8px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            padding: 6px 10px;
+            text-align: left;
+        }
+
+        .financial-table thead th:last-child {
+            text-align: right;
+        }
+
+        .financial-table tbody td {
+            padding: 5px 10px;
+            font-size: 9.5px;
+            border-bottom: 1px solid #e8e8f0;
+        }
+
+        .financial-table tbody td:last-child {
+            text-align: right;
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+        }
+
+        .financial-table tbody tr:nth-child(even) {
+            background-color: #f8f9ff;
+        }
+
+        .financial-total {
+            background-color:
+                {{ $headerColor }}
+                12 !important;
+            border-top: 2px solid
+                {{ $headerColor }}
+            ;
+        }
+
+        .financial-total td {
+            font-weight: 800 !important;
+            font-size: 10px !important;
+            color:
+                {{ $headerColor }}
+            ;
+        }
+
+        /* ── Terms & Conditions ── */
+        .terms-box {
+            background-color: #f5f6fa;
+            border: 1px solid #e0e2ef;
+            border-radius: 4px;
+            padding: 8px 10px;
+            margin-top: 4px;
+            font-size: 8px;
+            line-height: 1.5;
+            color: #444;
+        }
+
+        .terms-box ol {
+            padding-left: 14px;
+            margin: 0;
+        }
+
+        .terms-box ol li {
+            margin-bottom: 2px;
+        }
+
+        /* ── Notes box ── */
+        .notes-box {
+            background-color: #fffde7;
+            border: 1px solid #f0e68c;
+            border-left: 3px solid #fbc02d;
+            border-radius: 3px;
+            padding: 6px 10px;
+            margin-top: 4px;
+            font-size: 8.5px;
+            color: #5d4037;
+            font-style: italic;
+        }
+
+        /* ── Legal Declaration ── */
+        .legal-box {
+            background-color: #fff3e0;
+            border: 1px solid #ffe0b2;
+            border-radius: 4px;
+            padding: 8px 10px;
+            margin-top: 10px;
+            font-size: 7.5px;
+            line-height: 1.55;
+            color: #4e342e;
+        }
+
+        .legal-box strong {
+            color: #bf360c;
+            font-size: 8px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
 
-        /* ── FOOTER BAND ── */
-        .footer-band {
-            background:
-                {{ $settings->lease_header_color ?? '#1e3a5f' }}
-            ;
-            padding: 6px 30px;
+        /* ── Signature Section ── */
+        .signature-header {
             text-align: center;
-            font-size: 7pt;
-            color: rgba(255, 255, 255, 0.75);
-            margin: 0 14px 14px 14px;
-        }
-
-        .footer-band .footer-highlight {
-            color: #fff;
-            font-weight: bold;
-        }
-
-        /* ── WATERMARK TEXT ── */
-        .watermark-text {
-            position: fixed;
-            top: 38%;
-            left: 18%;
-            font-size: 65pt;
-            font-weight: bold;
+            font-size: 9px;
+            font-weight: 800;
+            letter-spacing: 3px;
+            text-transform: uppercase;
             color:
-                {{ $settings->lease_header_color ?? '#1e3a5f' }}
+                {{ $headerColor }}
+            ;
+            margin-top: 12px;
+            margin-bottom: 8px;
+        }
+
+        .signature-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .signature-table td {
+            width: 50%;
+            vertical-align: top;
+            padding: 0;
+            border: none;
+        }
+
+        .sig-block {
+            border: 1px solid #d0d4e8;
+            border-radius: 4px;
+            padding: 10px 12px;
+            background-color: #fcfcff;
+            margin: 0 4px;
+        }
+
+        .sig-role {
+            font-size: 8px;
+            font-weight: 700;
+            color:
+                {{ $headerColor }}
+            ;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 3px;
+        }
+
+        .sig-name {
+            font-size: 10px;
+            font-weight: 700;
+            color: #1a1a2e;
+            margin-bottom: 8px;
+        }
+
+        .sig-line {
+            border-bottom: 1px solid #999;
+            height: 28px;
+            margin-bottom: 3px;
+            position: relative;
+        }
+
+        .sig-line img {
+            position: absolute;
+            bottom: 2px;
+            left: 0;
+            max-height: 30px;
+            max-width: 100px;
+        }
+
+        .sig-date {
+            font-size: 7px;
+            color: #888;
+        }
+
+        /* ── Company Stamp ── */
+        .stamp-area {
+            text-align: center;
+            margin-top: 6px;
+            padding: 4px;
+        }
+
+        .stamp-area img {
+            max-height: 55px;
+            opacity: 0.8;
+        }
+
+        /* ── Footer ── */
+        .footer-band {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color:
+                {{ $headerColor }}
+            ;
+            color: rgba(255, 255, 255, 0.75);
+            padding: 6px 35px;
+            font-size: 7px;
+        }
+
+        .footer-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .footer-table td {
+            border: none;
+            padding: 0;
+            vertical-align: middle;
+        }
+
+        .footer-left {
+            text-align: left;
+        }
+
+        .footer-center {
+            text-align: center;
+        }
+
+        .footer-right {
+            text-align: right;
+        }
+
+        /* ── Divider ── */
+        .divider {
+            border: none;
+            border-top: 1px solid #e0e2ef;
+            margin: 8px 0;
+        }
+
+        /* ── Confidential watermark ── */
+        .confidential-mark {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-35deg);
+            font-size: 80px;
+            font-weight: 900;
+            color:
+                {{ $headerColor }}
             ;
             opacity: 0.03;
-            transform: rotate(-30deg);
-            z-index: 0;
-            letter-spacing: 8px;
+            letter-spacing: 20px;
             text-transform: uppercase;
-        }
-
-        /* ── LEGAL DECLARATION ── */
-        .legal-declaration {
-            background: #f8f9fc;
-            border: 1px solid #dce3ef;
-            padding: 6px 10px;
-            margin-top: 6px;
-            font-size: 7pt;
-            color: #556;
-            line-height: 1.4;
-            text-align: justify;
+            z-index: 0;
+            white-space: nowrap;
         }
     </style>
 </head>
 
 <body>
 
-    {{-- ── DECORATIVE BORDERS ── --}}
-    <div class="outer-border"></div>
-    <div class="inner-border"></div>
+    <div class="page">
 
-    {{-- ── BACKGROUND IMAGE (dynamic from company settings) ── --}}
-    @if(!empty($imageData['lease_background']))
-        <div class="bg-image">
-            <img src="{{ $imageData['lease_background'] }}" alt="">
-        </div>
-    @endif
-
-    {{-- ── WATERMARK ── --}}
-    <div class="watermark-text">LEASE</div>
-
-    <div class="page-wrapper">
-
-        {{-- ══ HEADER BAND ══ --}}
-        <div class="header-band">
-            <div class="header-inner">
-                {{-- Logo --}}
-                <div class="header-logo-cell">
-                    @if(!empty($imageData['logo']))
-                        <img src="{{ $imageData['logo'] }}" alt="Logo">
-                    @endif
-                </div>
-
-                {{-- Title --}}
-                <div class="header-text-cell">
-                    <div class="header-title">Lease Agreement</div>
-                    <div class="header-subtitle">
-                        {{ $settings->company_legal_name ?? ($lease->company->name ?? 'Real Estate Management') }}
-                    </div>
-                </div>
-
-                {{-- Contract Number --}}
-                <div class="header-meta-cell">
-                    <div class="contract-badge">
-                        <span style="font-size:6.5pt; opacity:0.8; letter-spacing:0.5px;">CONTRACT NO.</span>
-                        <span class="badge-no">#{{ str_pad($lease->id, 6, '0', STR_PAD_LEFT) }}</span>
-                        <span style="font-size:6.5pt; opacity:0.8; display:block; margin-top:2px;">
-                            {{ now()->format('d M Y') }}
-                        </span>
-                    </div>
-                </div>
+        {{-- ── Background watermark ── --}}
+        @if($imageData['lease_background'] ?? null)
+            <div class="bg-watermark">
+                <img src="{{ $imageData['lease_background'] }}" alt="">
             </div>
+        @endif
+
+        {{-- ── Confidential watermark text ── --}}
+        @if($lease->status === 'draft')
+            <div class="confidential-mark">DRAFT</div>
+        @endif
+
+        {{-- ══════════════════════════════════════════════
+        HEADER BAND
+        ══════════════════════════════════════════════ --}}
+        <div class="header-band">
+            <table class="header-table">
+                <tr>
+                    <td class="header-logo">
+                        @if($imageData['logo'] ?? null)
+                            <img src="{{ $imageData['logo'] }}" alt="Logo">
+                        @endif
+                    </td>
+                    <td class="header-title">
+                        <h1>Lease Agreement</h1>
+                        <div class="company-name">{{ $companyName }}</div>
+                    </td>
+                    <td class="header-meta">
+                        <div class="contract-badge">{{ $contractNo }}</div>
+                        <div class="header-date">{{ $issueDate }}</div>
+                    </td>
+                </tr>
+            </table>
         </div>
+        <div class="accent-stripe"></div>
 
-        {{-- ── Gold accent line ── --}}
-        <div class="gold-accent"></div>
-
-        {{-- ══ COMPANY INFO STRIP ══ --}}
-        <div class="company-strip">
-            @if($settings && $settings->company_address)
-                <span>📍 {{ $settings->company_address }}</span>
-            @endif
-            @if($settings && $settings->company_phone)
-                <span> | ☎ {{ $settings->company_phone }}</span>
-            @endif
-            @if($settings && $settings->company_email)
-                <span> | ✉ {{ $settings->company_email }}</span>
-            @endif
-            @if($settings && $settings->tax_id)
-                <span> | Tax ID: {{ $settings->tax_id }}</span>
-            @endif
-            @if($settings && $settings->registration_number)
-                <span> | Reg: {{ $settings->registration_number }}</span>
-            @endif
-        </div>
-
-        {{-- ══ MAIN CONTENT ══ --}}
+        {{-- ══════════════════════════════════════════════
+        CONTENT AREA
+        ══════════════════════════════════════════════ --}}
         <div class="content">
 
-            {{-- ── TWO-COLUMN: Lease Info + Tenant Info ── --}}
-            <div class="two-col">
-
-                {{-- LEFT: Lease & Property Details --}}
-                <div class="col-left">
-
-                    {{-- LEASE INFORMATION --}}
-                    <div class="section">
-                        <div class="section-title"><span class="section-icon">📋</span> Lease Information</div>
+            {{-- ── ROW 1: Lease Info + Tenant Info ── --}}
+            <table class="two-col-table">
+                <tr>
+                    {{-- LEFT: Lease Information --}}
+                    <td>
+                        <div class="section-header">
+                            <span class="icon"></span>Lease Information
+                        </div>
                         <table class="info-table">
                             <tr>
                                 <td class="info-label">Contract No.:</td>
-                                <td class="info-value"><strong>#{{ str_pad($lease->id, 6, '0', STR_PAD_LEFT) }}</strong>
-                                </td>
+                                <td class="info-value">{{ $contractNo }}</td>
                             </tr>
                             <tr>
                                 <td class="info-label">Issue Date:</td>
-                                <td class="info-value">{{ $lease->created_at->format('d F Y') }}</td>
+                                <td class="info-value">{{ $issueDate }}</td>
                             </tr>
                             <tr>
                                 <td class="info-label">Start Date:</td>
-                                <td class="info-value">{{ $lease->start_date->format('d F Y') }}</td>
+                                <td class="info-value">{{ $startDate }}</td>
                             </tr>
                             <tr>
                                 <td class="info-label">End Date:</td>
-                                <td class="info-value">
-                                    {{ $lease->end_date ? $lease->end_date->format('d F Y') : 'Open-ended' }}
-                                    @if($lease->end_date)
-                                        @php $months = $lease->start_date->diffInMonths($lease->end_date); @endphp
-                                        <span style="color:#888; font-size:7pt;">({{ $months }}
-                                            month{{ $months != 1 ? 's' : '' }})</span>
-                                    @endif
-                                </td>
+                                <td class="info-value">{{ $endDate }} <span
+                                        style="font-size:7px;color:#888;">({{ $duration }})</span></td>
                             </tr>
                             <tr>
                                 <td class="info-label">Status:</td>
-                                <td class="info-value">
-                                    <span
-                                        class="status-badge status-{{ $lease->status }}">{{ strtoupper($lease->status) }}</span>
-                                </td>
+                                <td class="info-value"><span class="status-badge">{{ $statusLabel }}</span></td>
                             </tr>
                             <tr>
                                 <td class="info-label">Pay Day:</td>
-                                <td class="info-value">
-                                    {{ $lease->payment_day }}{{ in_array($lease->payment_day, [1, 21, 31]) ? 'st' : (in_array($lease->payment_day, [2, 22]) ? 'nd' : (in_array($lease->payment_day, [3, 23]) ? 'rd' : 'th')) }}
-                                    of each month
-                                </td>
+                                <td class="info-value">{{ $payDayLabel }}</td>
                             </tr>
                             <tr>
                                 <td class="info-label">Frequency:</td>
-                                <td class="info-value">{{ ucwords(str_replace('_', ' ', $lease->payment_frequency)) }}
-                                </td>
+                                <td class="info-value">{{ $frequency }}</td>
                             </tr>
                         </table>
-                    </div>
+                    </td>
 
-                    {{-- PROPERTY DETAILS --}}
-                    <div class="section">
-                        <div class="section-title"><span class="section-icon">🏠</span> Property Details</div>
-                        <table class="info-table">
-                            @if($lease->unit)
-                                <tr>
-                                    <td class="info-label">Property:</td>
-                                    <td class="info-value">{{ optional($lease->unit->property)->name ?? 'N/A' }}</td>
-                                </tr>
-                                <tr>
-                                    <td class="info-label">Unit No.:</td>
-                                    <td class="info-value"><strong>{{ $lease->unit->unit_number }}</strong></td>
-                                </tr>
-                                @if($lease->unit->type)
-                                    <tr>
-                                        <td class="info-label">Unit Type:</td>
-                                        <td class="info-value">{{ ucfirst($lease->unit->type) }}</td>
-                                    </tr>
-                                @endif
-                                @if(optional($lease->unit->property)->address)
-                                    <tr>
-                                        <td class="info-label">Address:</td>
-                                        <td class="info-value">{{ $lease->unit->property->address }}</td>
-                                    </tr>
-                                @endif
-                            @elseif($lease->property)
-                                <tr>
-                                    <td class="info-label">Property:</td>
-                                    <td class="info-value"><strong>{{ $lease->property->name }}</strong> (Whole Property)
-                                    </td>
-                                </tr>
-                                @if($lease->property->address)
-                                    <tr>
-                                        <td class="info-label">Address:</td>
-                                        <td class="info-value">{{ $lease->property->address }}</td>
-                                    </tr>
-                                @endif
-                            @endif
-                        </table>
-                    </div>
-
-                </div>
-
-                {{-- RIGHT: Tenant + Financial --}}
-                <div class="col-right">
-
-                    {{-- TENANT INFORMATION --}}
-                    <div class="section">
-                        <div class="section-title"><span class="section-icon">👤</span> Tenant Information</div>
+                    {{-- RIGHT: Tenant Information --}}
+                    <td>
+                        <div class="section-header">
+                            <span class="icon"></span>Tenant Information
+                        </div>
                         <table class="info-table">
                             <tr>
                                 <td class="info-label">Full Name:</td>
-                                <td class="info-value">
-                                    <strong>{{ optional($lease->tenant->user)->name ?? 'N/A' }}</strong>
-                                </td>
+                                <td class="info-value">{{ $tenantName }}</td>
                             </tr>
                             <tr>
                                 <td class="info-label">Email:</td>
-                                <td class="info-value">{{ optional($lease->tenant->user)->email ?? 'N/A' }}</td>
+                                <td class="info-value">{{ $tenantEmail }}</td>
                             </tr>
                             <tr>
                                 <td class="info-label">Phone:</td>
-                                <td class="info-value">{{ optional($lease->tenant->user)->phone ?? 'N/A' }}</td>
+                                <td class="info-value">{{ $tenantPhone }}</td>
                             </tr>
-                            @if($lease->tenant->id_type && $lease->tenant->id_number)
+                            <tr>
+                                <td class="info-label">{{ $tenantIdType }}:</td>
+                                <td class="info-value">{{ $tenantIdNum }}</td>
+                            </tr>
+                            <tr>
+                                <td class="info-label">Employer:</td>
+                                <td class="info-value">{{ $employer }}</td>
+                            </tr>
+                            <tr>
+                                <td class="info-label">Occupants:</td>
+                                <td class="info-value">{{ $occupants }}</td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+
+            {{-- ── ROW 2: Property Details + Financial Terms ── --}}
+            <table class="two-col-table">
+                <tr>
+                    {{-- LEFT: Property Details --}}
+                    <td>
+                        <div class="section-header">
+                            <span class="icon"></span>Property Details
+                        </div>
+                        <table class="info-table">
+                            <tr>
+                                <td class="info-label">Property:</td>
+                                <td class="info-value">{{ $propertyName }}</td>
+                            </tr>
+                            <tr>
+                                <td class="info-label">Unit No.:</td>
+                                <td class="info-value">{{ $unitNumber }}</td>
+                            </tr>
+                            <tr>
+                                <td class="info-label">Unit Type:</td>
+                                <td class="info-value">{{ $unitType }}</td>
+                            </tr>
+                            @if($address)
                                 <tr>
-                                    <td class="info-label">ID ({{ $lease->tenant->id_type }}):</td>
-                                    <td class="info-value">{{ $lease->tenant->id_number }}</td>
+                                    <td class="info-label">Address:</td>
+                                    <td class="info-value">{{ $address }}</td>
                                 </tr>
                             @endif
-                            @if($lease->tenant->employer_name)
+                            @if($lease->unit && $lease->unit->bedrooms)
                                 <tr>
-                                    <td class="info-label">Employer:</td>
-                                    <td class="info-value">{{ $lease->tenant->employer_name }}</td>
+                                    <td class="info-label">Bedrooms:</td>
+                                    <td class="info-value">{{ $lease->unit->bedrooms }}</td>
                                 </tr>
                             @endif
-                            @if($lease->tenant->number_of_occupants)
+                            @if($lease->unit && $lease->unit->bathrooms)
                                 <tr>
-                                    <td class="info-label">Occupants:</td>
-                                    <td class="info-value">{{ $lease->tenant->number_of_occupants }}</td>
+                                    <td class="info-label">Bathrooms:</td>
+                                    <td class="info-value">{{ $lease->unit->bathrooms }}</td>
+                                </tr>
+                            @endif
+                            @if($lease->unit && $lease->unit->sqft)
+                                <tr>
+                                    <td class="info-label">Area:</td>
+                                    <td class="info-value">{{ number_format($lease->unit->sqft) }} sq ft</td>
                                 </tr>
                             @endif
                         </table>
-                    </div>
+                    </td>
 
-                    {{-- FINANCIAL TERMS --}}
-                    <div class="section">
-                        <div class="section-title"><span class="section-icon">💰</span> Financial Terms</div>
-                        <table class="fin-table">
+                    {{-- RIGHT: Financial Terms --}}
+                    <td>
+                        <div class="section-header">
+                            <span class="icon"></span>Financial Terms
+                        </div>
+                        <table class="financial-table">
                             <thead>
                                 <tr>
                                     <th>Description</th>
-                                    <th class="right">Amount</th>
+                                    <th>Amount</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr>
                                     <td>Total Rent Amount</td>
-                                    <td class="right"><strong>${{ number_format($lease->rent_amount, 2) }}</strong></td>
+                                    <td>${{ $rentAmount }}</td>
                                 </tr>
-                                @if((float) $lease->deposit_amount > 0)
-                                    <tr>
-                                        <td>Security Deposit</td>
-                                        <td class="right">${{ number_format($lease->deposit_amount, 2) }}</td>
-                                    </tr>
-                                @endif
-                                @php
-                                    $freqMap = ['monthly' => 1, 'quarterly' => 3, 'semi_annually' => 6, 'yearly' => 12];
-                                    $freqMonths = $freqMap[$lease->payment_frequency] ?? 1;
-                                    $totalMonths = $lease->end_date ? (int) $lease->start_date->diffInMonths($lease->end_date) : null;
-                                    $installments = $totalMonths ? (int) ceil($totalMonths / $freqMonths) : null;
-                                    $installmentAmt = ($installments && $installments > 0) ? round($lease->rent_amount / $installments, 2) : null;
-                                @endphp
-                                @if($installments)
-                                    <tr>
-                                        <td>{{ ucwords(str_replace('_', ' ', $lease->payment_frequency)) }} Installment</td>
-                                        <td class="right">${{ number_format($installmentAmt, 2) }}</td>
-                                    </tr>
-                                    <tr class="fin-total">
-                                        <td>No. of Installments</td>
-                                        <td class="right">{{ $installments }}</td>
-                                    </tr>
-                                @endif
+                                <tr>
+                                    <td>Security Deposit</td>
+                                    <td>${{ $depositAmount }}</td>
+                                </tr>
+                                <tr>
+                                    <td>{{ $frequency }} Installment</td>
+                                    <td>${{ $installmentAmt }}</td>
+                                </tr>
+                                <tr>
+                                    <td>No. of Installments</td>
+                                    <td>{{ $numInstallments }}</td>
+                                </tr>
                             </tbody>
                         </table>
-                    </div>
+                    </td>
+                </tr>
+            </table>
 
+            {{-- ── NOTES ── --}}
+            @if($notes)
+                <div class="section-header" style="margin-top: 10px;">
+                    <span class="icon"></span>Notes
                 </div>
-            </div>{{-- end two-col --}}
+                <div class="notes-box">{{ $notes }}</div>
+            @endif
 
-        </div>{{-- end content --}}
-
-        {{-- ══ TERMS & CONDITIONS (full width) ══ --}}
-        @if(($settings && $settings->lease_terms) || $lease->special_terms || $lease->notes)
-            <div class="full-width">
-                <hr class="divider">
-
-                @if($settings && $settings->lease_terms)
-                    <div class="section">
-                        <div class="section-title" style="margin-left:0"><span class="section-icon">📜</span> Terms and
-                            Conditions</div>
-                        <div class="terms-box">
-                            {!! nl2br(e($settings->lease_terms)) !!}
-                        </div>
-                    </div>
-                @endif
-
-                @if($lease->special_terms)
-                    <div class="section" style="margin-top:4px">
-                        <div class="section-title" style="margin-left:0"><span class="section-icon">⚡</span> Special Terms</div>
-                        <div class="terms-box">
-                            {!! nl2br(e($lease->special_terms)) !!}
-                        </div>
-                    </div>
-                @endif
-
-                @if($lease->notes)
-                    <div class="section" style="margin-top:4px">
-                        <div class="section-title" style="margin-left:0"><span class="section-icon">📝</span> Notes</div>
-                        <div class="notes-box">
-                            {!! nl2br(e($lease->notes)) !!}
-                        </div>
-                    </div>
-                @endif
-            </div>
-        @endif
-
-        {{-- ══ LEGAL DECLARATION ══ --}}
-        <div class="full-width">
-            <div class="legal-declaration">
-                <strong>LEGAL DECLARATION:</strong> Both parties acknowledge that they have read, understood, and agree
-                to all terms and conditions set forth in this lease agreement. This contract is legally binding upon
-                execution by both parties and shall be governed by the applicable laws and regulations. Any disputes
-                arising from this agreement shall be resolved through proper legal channels.
-            </div>
-        </div>
-
-        {{-- ══ SIGNATURE SECTION ══ --}}
-        <div class="full-width">
-            <hr class="divider">
-            <div class="section-title" style="text-align:center; border:none; margin-bottom:4px;">
-                <span class="section-icon">✍</span> Signatures and Authorization
-            </div>
-
-            <div class="sig-section">
-                {{-- Landlord / Company --}}
-                <div class="sig-cell sig-cell-left">
-                    @if(!empty($imageData['signature']))
-                        <div>
-                            <img src="{{ $imageData['signature'] }}" class="sig-image" alt="Company Signature">
-                        </div>
-                    @else
-                        <div style="height:60px;"></div>
-                    @endif
-
-                    @if($settings && $settings->show_company_stamp)
-                        <div class="stamp-area">
-                            <span class="stamp-text">SEAL</span>
-                        </div>
-                    @endif
-
-                    <div class="sig-line">
-                        <div class="sig-name">{{ $settings->company_legal_name ?? ($lease->company->name ?? '') }}</div>
-                        <div class="sig-role">Landlord / Authorized Representative</div>
-                    </div>
-                    <div class="sig-date-line">Date: ____________________</div>
+            {{-- ── SPECIAL TERMS ── --}}
+            @if($specialTerms)
+                <div class="section-header" style="margin-top: 10px;">
+                    <span class="icon"></span>Special Terms
                 </div>
+                <div class="terms-box">{!! nl2br(e($specialTerms)) !!}</div>
+            @endif
 
-                {{-- Tenant --}}
-                <div class="sig-cell">
-                    <div style="height:60px;"></div>
-
-                    <div class="sig-line">
-                        <div class="sig-name">{{ optional($lease->tenant->user)->name ?? 'Tenant' }}</div>
-                        <div class="sig-role">Tenant</div>
-                    </div>
-                    <div class="sig-date-line">Date: ____________________</div>
+            {{-- ── TERMS & CONDITIONS (from company settings) ── --}}
+            @if($leaseTerms)
+                <div class="section-header" style="margin-top: 10px;">
+                    <span class="icon"></span>Terms &amp; Conditions
                 </div>
-            </div>
-        </div>
-
-        {{-- ── Gold accent line before footer ── --}}
-        <div class="gold-accent"></div>
-
-        {{-- ══ FOOTER BAND ══ --}}
-        <div class="footer-band">
-            @if($settings && $settings->lease_footer_text)
-                {{ $settings->lease_footer_text }}
-                &nbsp;|&nbsp;
+                <div class="terms-box">{!! nl2br(e($leaseTerms)) !!}</div>
             @else
-                This is a legally binding agreement. Please read carefully before signing.
-                &nbsp;|&nbsp;
+                <div class="section-header" style="margin-top: 10px;">
+                    <span class="icon"></span>Terms &amp; Conditions
+                </div>
+                <div class="terms-box">
+                    <ol>
+                        <li>The Tenant agrees to pay rent on the {{ $payDayLabel }} during the term of this lease.</li>
+                        <li>A security deposit of ${{ $depositAmount }} is required and will be held by the Landlord for the
+                            duration of the lease.</li>
+                        <li>The Tenant shall not sublease, assign, or transfer the premises without the prior written
+                            consent of the Landlord.</li>
+                        <li>The Tenant shall maintain the premises in a clean and habitable condition and promptly report
+                            any maintenance issues.</li>
+                        <li>Either party may terminate this agreement with written notice as prescribed by applicable
+                            tenancy law.</li>
+                        <li>Late payments may incur additional fees as determined by the Landlord's policies.</li>
+                        <li>The Tenant shall comply with all applicable local, state, and federal laws and regulations.</li>
+                        <li>This lease shall be governed by the laws of the jurisdiction in which the property is located.
+                        </li>
+                    </ol>
+                </div>
             @endif
-            <span class="footer-highlight">Contract #{{ str_pad($lease->id, 6, '0', STR_PAD_LEFT) }}</span>
-            &nbsp;|&nbsp; Generated: {{ now()->format('d M Y, H:i') }}
-            @if($settings && $settings->website)
-                &nbsp;|&nbsp; {{ $settings->website }}
+
+            {{-- ── LEGAL DECLARATION ── --}}
+            <div class="legal-box">
+                <strong>Legal Declaration:</strong>
+                Both parties acknowledge that they have read, understood, and agree to all terms and conditions set
+                forth in this lease agreement.
+                This contract is legally binding upon execution by both parties and shall be governed by the applicable
+                laws and regulations.
+                Any disputes arising from this agreement shall be resolved through proper legal channels.
+                @if($taxId)
+                    <br>Company Tax ID: {{ $taxId }}
+                @endif
+                @if($regNo)
+                    &nbsp;|&nbsp; Registration No.: {{ $regNo }}
+                @endif
+            </div>
+
+            {{-- ══════════════════════════════════════════════
+            SIGNATURES
+            ══════════════════════════════════════════════ --}}
+            <div class="signature-header">✦&nbsp;&nbsp;Signatures and Authorization&nbsp;&nbsp;✦</div>
+
+            <table class="signature-table">
+                <tr>
+                    {{-- Landlord / Company signature --}}
+                    <td>
+                        <div class="sig-block">
+                            <div class="sig-role">Landlord / Property Manager</div>
+                            <div class="sig-name">{{ $companyName }}</div>
+                            <div class="sig-line">
+                                @if($imageData['signature'] ?? null)
+                                    <img src="{{ $imageData['signature'] }}" alt="Signature">
+                                @endif
+                            </div>
+                            <div class="sig-date">Date: {{ $issueDate }}</div>
+                        </div>
+                    </td>
+
+                    {{-- Tenant signature --}}
+                    <td>
+                        <div class="sig-block">
+                            <div class="sig-role">Tenant</div>
+                            <div class="sig-name">{{ $tenantName }}</div>
+                            <div class="sig-line">
+                                {{-- Tenant signs physically --}}
+                            </div>
+                            <div class="sig-date">Date: ___________________</div>
+                        </div>
+                    </td>
+                </tr>
+            </table>
+
+            {{-- ── Company Stamp ── --}}
+            @if($settings->show_company_stamp && ($imageData['logo'] ?? null))
+                <div class="stamp-area">
+                    <img src="{{ $imageData['logo'] }}" alt="Company Stamp">
+                </div>
             @endif
+
+        </div>{{-- /content --}}
+
+        {{-- ══════════════════════════════════════════════
+        FOOTER
+        ══════════════════════════════════════════════ --}}
+        <div class="footer-band">
+            <table class="footer-table">
+                <tr>
+                    <td class="footer-left">
+                        @if($companyAddr){{ $companyAddr }}@endif
+                        @if($companyPhone)&nbsp;&nbsp;|&nbsp;&nbsp;{{ $companyPhone }}@endif
+                    </td>
+                    <td class="footer-center">
+                        @if($footerText)
+                            {{ $footerText }}
+                        @else
+                            This document is confidential and intended solely for the parties named herein.
+                        @endif
+                    </td>
+                    <td class="footer-right">
+                        @if($companyEmail){{ $companyEmail }}@endif
+                        @if($companyWeb)&nbsp;&nbsp;|&nbsp;&nbsp;{{ $companyWeb }}@endif
+                    </td>
+                </tr>
+            </table>
         </div>
 
-    </div>{{-- end page-wrapper --}}
+    </div>{{-- /page --}}
+
 </body>
 
 </html>
