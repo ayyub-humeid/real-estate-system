@@ -363,7 +363,14 @@ class LeaseResource extends Resource
                             $imageData = [];
 
                             foreach (['logo', 'lease_background', 'signature'] as $field) {
-                                $imageData[$field] = $settings && $settings->{$field} ? storage_url($settings->{$field}) : null;
+                                $path = $settings->{$field} ?? null;
+                                if ($path && \Illuminate\Support\Facades\Storage::exists($path)) {
+                                    $content = \Illuminate\Support\Facades\Storage::get($path);
+                                    $mime    = \Illuminate\Support\Facades\Storage::mimeType($path) ?: 'image/png';
+                                    $imageData[$field] = 'data:' . $mime . ';base64,' . base64_encode($content);
+                                } else {
+                                    $imageData[$field] = null;
+                                }
                             }
 
                             // Generate PDF – A4 portrait, single page optimised
