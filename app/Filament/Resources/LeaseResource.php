@@ -361,30 +361,19 @@ class LeaseResource extends Resource
                             // DomPDF cannot fetch remote URLs (S3/R2), so we download
                             // the file content and convert to data URI inline.
                             $imageData = [];
-                            $disk = \Illuminate\Support\Facades\Storage::disk();
 
                             foreach (['logo', 'lease_background', 'signature'] as $field) {
-                                if ($settings && $settings->{$field} && $disk->exists($settings->{$field})) {
-                                    try {
-                                        $content = $disk->get($settings->{$field});
-                                        $mime = $disk->mimeType($settings->{$field}) ?: 'image/png';
-                                        $imageData[$field] = 'data:' . $mime . ';base64,' . base64_encode($content);
-                                    } catch (\Throwable $e) {
-                                        $imageData[$field] = null;
-                                    }
-                                } else {
-                                    $imageData[$field] = null;
-                                }
+                                $imageData[$field] = $settings && $settings->{$field} ? storage_url($settings->{$field}) : null;
                             }
 
                             // Generate PDF – A4 portrait, single page optimised
                             $pdf = \PDF::loadView('pdf.lease-contract', [
-                                'lease'     => $lease,
-                                'settings'  => $settings,
+                                'lease' => $lease,
+                                'settings' => $settings,
                                 'imageData' => $imageData,
                             ])
-                            ->setPaper('A4', 'portrait')
-                            ->setWarnings(false);
+                                ->setPaper('A4', 'portrait')
+                                ->setWarnings(false);
 
                             echo $pdf->output();
                         }, 'lease-' . str_pad($record->id, 6, '0', STR_PAD_LEFT) . '.pdf');
