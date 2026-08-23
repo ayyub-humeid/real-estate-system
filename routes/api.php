@@ -20,14 +20,14 @@ Route::get('/user', function (Request $request) {
 use Illuminate\Support\Facades\Broadcast;
 Broadcast::routes(['middleware' => ['auth:sanctum']]);
 
-// ── Stripe Webhook (Public Callback) ─────────────────────────
+// â”€â”€ Stripe Webhook (Public Callback) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 Route::post('/stripe/webhook', [StripeWebhookController::class, 'handleWebhook']);
 
-// ── Auth Endpoints (Public) ──────────────────────────────────
+// â”€â”€ Auth Endpoints (Public) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 Route::post('/auth/register', [AuthController::class, 'register']);
 Route::post('/auth/login', [AuthController::class, 'login']);
 
-// ── Auth & Dashboard Endpoints (Protected) ───────────────────
+// â”€â”€ Auth & Dashboard Endpoints (Protected) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/me', [AuthController::class, 'me']);
@@ -35,11 +35,11 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     // Stripe Checkout Session Creation
     Route::post('/checkout/session', [CheckoutController::class, 'createSession']);
     Route::post('/checkout/verify-session', [CheckoutController::class, 'verifySession']);
-    Route::post('/checkout/lease-session', [CheckoutController::class, 'createLeaseSession']);
+    Route::post('/checkout/lease-session', [CheckoutController::class, 'createLeaseSession']); // Role guard in controller via isTenant() — checks both column + Spatie
     Route::post('/checkout/payment-session', [CheckoutController::class, 'createPaymentSession']);
     Route::post('/checkout/verify-payment-session', [CheckoutController::class, 'verifyPaymentSession']);
 
-    // Tenant Dashboard stats — tenants only
+    // Tenant Dashboard stats â€” tenants only
     Route::get('/tenant/dashboard', [TenantDashboardController::class, 'index'])
         ->middleware('role:tenant,sanctum');
 
@@ -80,7 +80,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
         ->middleware('role:tenant,sanctum');
 });
 
-// ── General Public Endpoints
+// â”€â”€ General Public Endpoints
 Route::group([
     'as' => 'api.',
     //    'middleware'=>'auth:sanctum',

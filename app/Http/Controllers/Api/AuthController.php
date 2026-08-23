@@ -13,7 +13,7 @@ use Illuminate\Validation\ValidationException;
 class AuthController extends Controller
 {
     /**
-     * تسجيل حساب مستأجر جديد (Sign Up).
+     * طھط³ط¬ظٹظ„ ط­ط³ط§ط¨ ظ…ط³طھط£ط¬ط± ط¬ط¯ظٹط¯ (Sign Up).
      */
     public function register(Request $request)
     {
@@ -29,10 +29,14 @@ class AuthController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'phone' => $request->phone,
-            'role' => 'tenant', // افتراضياً مستأجر
+            'role' => 'tenant', // ط§ظپطھط±ط§ط¶ظٹط§ظ‹ ظ…ط³طھط£ط¬ط±
         ]);
 
-        // إنشاء بروفايل المستأجر المربوط به (بدون Global Scope لأنه مستأجر جديد بلا شركة)
+        // ط¥ظ†ط´ط§ط، ط¨ط±ظˆظپط§ظٹظ„ ط§ظ„ظ…ط³طھط£ط¬ط± ط§ظ„ظ…ط±ط¨ظˆط· ط¨ظ‡ (ط¨ط¯ظˆظ† Global Scope ظ„ط£ظ†ظ‡ ظ…ط³طھط£ط¬ط± ط¬ط¯ظٹط¯ ط¨ظ„ط§ ط´ط±ظƒط©)
+        // Assign the Spatie 'tenant' role so middleware and hasRole() checks work
+        \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'tenant', 'guard_name' => 'web']);
+        $user->assignRole('tenant');
+
         Tenant::withoutGlobalScopes()->create([
             'user_id' => $user->id,
             'status' => 'active',
@@ -58,7 +62,7 @@ class AuthController extends Controller
     }
 
     /**
-     * تسجيل الدخول (Sign In).
+     * طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ (Sign In).
      */
     public function login(Request $request)
     {
@@ -102,7 +106,7 @@ class AuthController extends Controller
     }
 
     /**
-     * تسجيل الخروج (Logout).
+     * طھط³ط¬ظٹظ„ ط§ظ„ط®ط±ظˆط¬ (Logout).
      */
     public function logout(Request $request)
     {
@@ -115,7 +119,7 @@ class AuthController extends Controller
     }
 
     /**
-     * جلب بيانات المستخدم الحالي (Me).
+     * ط¬ظ„ط¨ ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ط³طھط®ط¯ظ… ط§ظ„ط­ط§ظ„ظٹ (Me).
      */
     public function me(Request $request)
     {
