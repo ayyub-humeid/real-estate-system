@@ -63,7 +63,7 @@ class PaymentsRelationManager extends RelationManager
                             </div>
                             <div>
                                 <span style="color:#6b7280;">Installments: </span>
-                                <span style="font-weight:600;">' . $lease->payments()->where('type', 'rent')->where('status', '!=', 'cancelled')->count() . '</span>
+                                <span style="font-weight:600;" class="text-gray-900 dark:text-white">' . $lease->payments()->where('type', 'rent')->where('status', '!=', 'cancelled')->count() . '</span>
                             </div>
                         </div>
                         <div style="background:#e5e7eb;border-radius:9999px;height:10px;overflow:hidden;">

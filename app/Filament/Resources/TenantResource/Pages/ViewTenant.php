@@ -166,7 +166,7 @@ class ViewTenant extends ViewRecord
                                     ->label('Member Since')
                                     ->since()
                                     ->size(Infolists\Components\TextEntry\TextEntrySize::Large)
-                                    ->color('gray')
+                                    ->color('info')
                                     ->icon('heroicon-m-calendar')
                                     ->badge(),
                                 
@@ -175,7 +175,7 @@ class ViewTenant extends ViewRecord
                                     ->state(fn($record) => $record->created_at->format('M d, Y'))
                                     ->color('gray')
                                     ->size(Infolists\Components\TextEntry\TextEntrySize::Small),
-                            ])->extraAttributes(['class' => 'bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg border border-gray-100 dark:border-gray-700']),
+                            ])->extraAttributes(['class' => 'bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-lg border border-indigo-100 dark:border-indigo-800']),
                         ])->from('md'),
                     ])
                     ->collapsible()
