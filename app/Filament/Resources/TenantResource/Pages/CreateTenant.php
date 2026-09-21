@@ -27,6 +27,10 @@ class CreateTenant extends CreateRecord
                 // Extract user data
                 $userData = $data['user'];
                 unset($data['user']);
+                
+                if (isset($data['company_id'])) {
+                    $userData['company_id'] = $data['company_id'];
+                }
 
                 // ✅ Hash password
                 if (isset($userData['password'])) {
