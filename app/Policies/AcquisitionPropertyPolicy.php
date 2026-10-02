@@ -1,0 +1,3 @@
+<?php
+namespace App\Policies; use App\Models\{AcquisitionProperty,User}; use App\Policies\Concerns\CompanyOwnedPolicy;
+class AcquisitionPropertyPolicy { use CompanyOwnedPolicy; public function viewAny(User $u):bool{return $this->canForResource($u,'view_any_acquisition_property');} public function view(User $u,AcquisitionProperty $r):bool{return $this->canForRecord($u,'view_acquisition_property',$r);} public function create(User $u):bool{return $this->canForResource($u,'create_acquisition_property');} public function update(User $u,AcquisitionProperty $r):bool{return $this->canForRecord($u,'update_acquisition_property',$r);} public function delete(User $u,AcquisitionProperty $r):bool{return $this->canForRecord($u,'delete_acquisition_property',$r);} }

@@ -1,0 +1,3 @@
+<?php
+namespace App\Policies; use App\Models\{Party,User}; use App\Policies\Concerns\CompanyOwnedPolicy;
+class PartyPolicy { use CompanyOwnedPolicy; public function viewAny(User $u):bool{return $this->canForResource($u,'view_any_party');} public function view(User $u,Party $r):bool{return $this->canForRecord($u,'view_party',$r);} public function create(User $u):bool{return $this->canForResource($u,'create_party');} public function update(User $u,Party $r):bool{return $this->canForRecord($u,'update_party',$r);} public function delete(User $u,Party $r):bool{return $this->canForRecord($u,'delete_party',$r);} public function deleteAny(User $u):bool{return $this->canForResource($u,'delete_any_party');} }

@@ -1,0 +1,3 @@
+<?php
+namespace App\Policies; use App\Models\{PropertyOwnership,User}; use App\Policies\Concerns\CompanyOwnedPolicy;
+class PropertyOwnershipPolicy { use CompanyOwnedPolicy; public function viewAny(User $u):bool{return $this->canForResource($u,'view_any_property_ownership');} public function view(User $u,PropertyOwnership $r):bool{return $this->canForRecord($u,'view_property_ownership',$r);} public function create(User $u):bool{return $this->canForResource($u,'change_property_ownership');} public function update(User $u,PropertyOwnership $r):bool{return false;} public function delete(User $u,PropertyOwnership $r):bool{return false;} public function change(User $u,PropertyOwnership $r):bool{return $this->canForRecord($u,'change_property_ownership',$r);} }

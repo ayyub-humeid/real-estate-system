@@ -1,0 +1,3 @@
+<?php
+namespace App\Policies; use App\Models\{AcquisitionParty,User}; use App\Policies\Concerns\CompanyOwnedPolicy;
+class AcquisitionPartyPolicy { use CompanyOwnedPolicy; public function viewAny(User $u):bool{return $this->canForResource($u,'view_any_acquisition_party');} public function view(User $u,AcquisitionParty $r):bool{return $this->canForRecord($u,'view_acquisition_party',$r);} public function create(User $u):bool{return $this->canForResource($u,'create_acquisition_party');} public function update(User $u,AcquisitionParty $r):bool{return $this->canForRecord($u,'update_acquisition_party',$r);} public function delete(User $u,AcquisitionParty $r):bool{return $this->canForRecord($u,'delete_acquisition_party',$r);} }

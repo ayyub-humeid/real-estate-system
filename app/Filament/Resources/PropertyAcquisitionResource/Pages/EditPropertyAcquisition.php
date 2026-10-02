@@ -1,0 +1,1 @@
+<?php namespace App\Filament\Resources\PropertyAcquisitionResource\Pages; use App\Filament\Resources\PropertyAcquisitionResource; use Filament\Resources\Pages\EditRecord; class EditPropertyAcquisition extends EditRecord { protected static string $resource=PropertyAcquisitionResource::class; }

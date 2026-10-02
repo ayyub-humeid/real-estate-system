@@ -13,6 +13,22 @@ class RolesAndPermissionsSeeder extends Seeder
         // Reset cached roles and permissions
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
+        // Shield generates permissions for top-level resources. These Phase 01
+        // relation models also need explicit permissions so they are assignable
+        // in the Roles UI and usable by their policies.
+        $phaseOnePermissions = [
+            'approve_property_acquisition', 'cancel_property_acquisition', 'complete_property_acquisition',
+            'view_any_acquisition_property', 'view_acquisition_property', 'create_acquisition_property', 'update_acquisition_property', 'delete_acquisition_property',
+            'view_any_acquisition_party', 'view_acquisition_party', 'create_acquisition_party', 'update_acquisition_party', 'delete_acquisition_party',
+            'view_any_property_ownership', 'view_property_ownership', 'change_property_ownership',
+            'view_any_due_diligence_case', 'view_due_diligence_case', 'create_due_diligence_case', 'update_due_diligence_case', 'delete_due_diligence_case', 'clear_due_diligence_case',
+            'view_any_due_diligence_item', 'view_due_diligence_item', 'create_due_diligence_item', 'update_due_diligence_item', 'delete_due_diligence_item', 'waive_due_diligence_item',
+        ];
+
+        foreach ($phaseOnePermissions as $permission) {
+            Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'web']);
+        }
+
         // 0. Super Admin role (Ensure it exists)
         Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
 
