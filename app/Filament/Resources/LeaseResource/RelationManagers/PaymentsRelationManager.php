@@ -12,17 +12,17 @@ use Illuminate\Support\HtmlString;
 class PaymentsRelationManager extends RelationManager
 {
     protected static string $relationship = 'payments';
-    protected static ?string $title       = 'Payments / Installments';
-    protected static ?string $icon        = 'heroicon-o-banknotes';
+    protected static ?string $title = 'Payments / Installments';
+    protected static ?string $icon = 'heroicon-o-banknotes';
 
     public function table(Table $table): Table
     {
         return $table
             ->recordTitleAttribute('amount')
-            ->modifyQueryUsing(fn ($query) => $query->with(['recordedBy:id,name']))
+            ->modifyQueryUsing(fn($query) => $query->with(['recordedBy:id,name']))
             ->header(function () {
                 // ✅ Lease-level summary header
-                $lease      = $this->getOwnerRecord();
+                $lease = $this->getOwnerRecord();
                 $rentAmount = (float) $lease->rent_amount;
 
                 $totalPaid = $lease->payments()
@@ -30,15 +30,15 @@ class PaymentsRelationManager extends RelationManager
                     ->where('status', '!=', 'cancelled')
                     ->sum('paid_amount');
 
-                $totalPaid  = (float) $totalPaid;
-                $remaining  = max(0, $rentAmount - $totalPaid);
-                $percent    = $rentAmount > 0
+                $totalPaid = (float) $totalPaid;
+                $remaining = max(0, $rentAmount - $totalPaid);
+                $percent = $rentAmount > 0
                     ? min(100, (int) round(($totalPaid / $rentAmount) * 100))
                     : 0;
 
                 $isFullyPaid = $totalPaid >= $rentAmount && $rentAmount > 0;
 
-                $barColor  = $isFullyPaid ? '#10b981' : ($percent >= 75 ? '#f59e0b' : '#3b82f6');
+                $barColor = $isFullyPaid ? '#10b981' : ($percent >= 75 ? '#f59e0b' : '#3b82f6');
                 $statusBadge = $isFullyPaid
                     ? '<span style="background:#d1fae5;color:#065f46;padding:2px 10px;border-radius:9999px;font-size:12px;font-weight:600;">✅ Fully Paid</span>'
                     : '<span style="background:#fef3c7;color:#92400e;padding:2px 10px;border-radius:9999px;font-size:12px;font-weight:600;">⏳ ' . $percent . '% Paid</span>';
@@ -63,7 +63,7 @@ class PaymentsRelationManager extends RelationManager
                             </div>
                             <div>
                                 <span style="color:#6b7280;">Installments: </span>
-                                <span style="font-weight:600;" class="text-gray-900 dark:text-white">' . $lease->payments()->where('type', 'rent')->where('status', '!=', 'cancelled')->count() . '</span>
+                                <span style="font-weight:600;" class="text-black-500 dark:text-white">' . $lease->payments()->where('type', 'rent')->where('status', '!=', 'cancelled')->count() . '</span>
                             </div>
                         </div>
                         <div style="background:#e5e7eb;border-radius:9999px;height:10px;overflow:hidden;">
@@ -85,7 +85,7 @@ class PaymentsRelationManager extends RelationManager
                     ->label('Due Date')
                     ->date()
                     ->sortable()
-                    ->color(fn ($record) => $record->is_overdue ? 'danger' : null),
+                    ->color(fn($record) => $record->is_overdue ? 'danger' : null),
 
                 Tables\Columns\TextColumn::make('amount')
                     ->label('Installment')
@@ -100,21 +100,22 @@ class PaymentsRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('remaining_amount')
                     ->label('Balance')
                     ->money('USD')
-                    ->color(fn ($state) => $state > 0 ? 'danger' : 'success'),
+                    ->color(fn($state) => $state > 0 ? 'danger' : 'success'),
 
                 // ✅ Per-installment mini progress bar
                 Tables\Columns\TextColumn::make('payment_progress')
                     ->label('Progress')
-                    ->state(fn ($record) => $record->amount > 0
-                        ? min(100, (int) round(($record->paid_amount / $record->amount) * 100))
-                        : 0
+                    ->state(
+                        fn($record) => $record->amount > 0
+                            ? min(100, (int) round(($record->paid_amount / $record->amount) * 100))
+                            : 0
                     )
                     ->suffix('%')
                     ->badge()
-                    ->color(fn ($state) => match (true) {
+                    ->color(fn($state) => match (true) {
                         $state >= 100 => 'success',
-                        $state >= 50  => 'warning',
-                        default       => 'danger',
+                        $state >= 50 => 'warning',
+                        default => 'danger',
                     }),
 
                 Tables\Columns\TextColumn::make('payment_date')
@@ -125,9 +126,9 @@ class PaymentsRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
                     ->colors([
-                        'gray'    => 'pending',
+                        'gray' => 'pending',
                         'success' => 'paid',
-                        'danger'  => 'overdue',
+                        'danger' => 'overdue',
                         'warning' => 'partial',
                     ]),
 
@@ -148,10 +149,10 @@ class PaymentsRelationManager extends RelationManager
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
                     ->options([
-                        'pending'   => 'Pending',
-                        'paid'      => 'Paid',
-                        'overdue'   => 'Overdue',
-                        'partial'   => 'Partial',
+                        'pending' => 'Pending',
+                        'paid' => 'Paid',
+                        'overdue' => 'Overdue',
+                        'partial' => 'Partial',
                         'cancelled' => 'Cancelled',
                     ])
                     ->native(false)
@@ -160,9 +161,10 @@ class PaymentsRelationManager extends RelationManager
             ->headerActions([
                 Tables\Actions\CreateAction::make()
                     ->mutateFormDataUsing(function (array $data): array {
-                        $data['lease_id']    = $this->getOwnerRecord()->id;
+                        $data['lease_id'] = $this->getOwnerRecord()->id;
                         $data['recorded_by'] = auth()->id();
-                        $data['remaining_amount'] = max(0,
+                        $data['remaining_amount'] = max(
+                            0,
                             (float) ($data['amount'] ?? 0) - (float) ($data['paid_amount'] ?? 0)
                         );
                         return $data;
@@ -175,12 +177,13 @@ class PaymentsRelationManager extends RelationManager
                     ->color('info')
                     ->requiresConfirmation()
                     ->modalHeading('Generate Payment Schedule')
-                    ->modalDescription(fn () =>
-                        'This will create ' .
-                        $this->getOwnerRecord()->payments()->count() .
-                        ' existing installments. New ones will be added for any missing due dates.'
+                    ->modalDescription(
+                        fn() =>
+                            'This will create ' .
+                            $this->getOwnerRecord()->payments()->count() .
+                            ' existing installments. New ones will be added for any missing due dates.'
                     )
-                    ->visible(fn () => $this->getOwnerRecord()->status === 'active')
+                    ->visible(fn() => $this->getOwnerRecord()->status === 'active')
                     ->action(function () {
                         $this->getOwnerRecord()->generatePaymentSchedule();
 
@@ -199,23 +202,23 @@ class PaymentsRelationManager extends RelationManager
                     ->label('Pay')
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
-                    ->visible(fn ($record) => ! $record->is_paid)
+                    ->visible(fn($record) => !$record->is_paid)
                     ->form([
                         Forms\Components\TextInput::make('amount')
                             ->label('Amount to Pay')
                             ->numeric()
                             ->prefix('$')
                             ->required()
-                            ->default(fn ($record) => $record->remaining_amount),
+                            ->default(fn($record) => $record->remaining_amount),
 
                         Forms\Components\Select::make('method')
                             ->label('Payment Method')
                             ->options([
-                                'cash'          => 'Cash',
+                                'cash' => 'Cash',
                                 'bank_transfer' => 'Bank Transfer',
-                                'check'         => 'Check',
-                                'credit_card'   => 'Credit Card',
-                                'online'        => 'Online',
+                                'check' => 'Check',
+                                'credit_card' => 'Credit Card',
+                                'online' => 'Online',
                             ])
                             ->required()
                             ->native(false),
@@ -248,7 +251,7 @@ class PaymentsRelationManager extends RelationManager
                 Tables\Actions\Action::make('generate')
                     ->label('Generate Payment Schedule')
                     ->icon('heroicon-o-calendar')
-                    ->visible(fn () => $this->getOwnerRecord()->status === 'active')
+                    ->visible(fn() => $this->getOwnerRecord()->status === 'active')
                     ->action(function () {
                         $this->getOwnerRecord()->generatePaymentSchedule();
 
@@ -286,7 +289,7 @@ class PaymentsRelationManager extends RelationManager
                     ->required()
                     ->numeric()
                     ->prefix('$')
-                    ->default(fn () => $this->getOwnerRecord()->rent_amount),
+                    ->default(fn() => $this->getOwnerRecord()->rent_amount),
 
                 Forms\Components\TextInput::make('paid_amount')
                     ->label('Amount Paid')
@@ -319,11 +322,11 @@ class PaymentsRelationManager extends RelationManager
 
                 Forms\Components\Select::make('payment_method')
                     ->options([
-                        'cash'          => 'Cash',
+                        'cash' => 'Cash',
                         'bank_transfer' => 'Bank Transfer',
-                        'check'         => 'Check',
-                        'credit_card'   => 'Credit Card',
-                        'online'        => 'Online',
+                        'check' => 'Check',
+                        'credit_card' => 'Credit Card',
+                        'online' => 'Online',
                     ])
                     ->native(false),
 
@@ -332,10 +335,10 @@ class PaymentsRelationManager extends RelationManager
                 Forms\Components\Select::make('status')
                     ->required()
                     ->options([
-                        'pending'   => 'Pending',
-                        'paid'      => 'Paid',
-                        'overdue'   => 'Overdue',
-                        'partial'   => 'Partial',
+                        'pending' => 'Pending',
+                        'paid' => 'Paid',
+                        'overdue' => 'Overdue',
+                        'partial' => 'Partial',
                         'cancelled' => 'Cancelled',
                     ])
                     ->default('pending')
