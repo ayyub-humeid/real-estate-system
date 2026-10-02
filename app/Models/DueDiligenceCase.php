@@ -1,0 +1,4 @@
+<?php
+namespace App\Models;
+use Illuminate\Database\Eloquent\Model; use Illuminate\Database\Eloquent\Relations\{BelongsTo,HasMany,MorphMany};
+class DueDiligenceCase extends Model { use \App\Traits\HasCompany; public const STATUSES=['open','in_review','cleared','blocked','closed']; protected $fillable=['company_id','property_acquisition_id','property_id','status','opened_at','completed_at','opened_by','completed_by','summary']; protected $casts=['opened_at'=>'datetime','completed_at'=>'datetime']; public function acquisition():BelongsTo{return $this->belongsTo(PropertyAcquisition::class,'property_acquisition_id');} public function property():BelongsTo{return $this->belongsTo(Property::class);} public function items():HasMany{return $this->hasMany(DueDiligenceItem::class);} public function documents():MorphMany{return $this->morphMany(Document::class,'documentable');} }
