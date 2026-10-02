@@ -51,7 +51,19 @@ class PartyResource extends Resource
             Tables\Columns\IconColumn::make('is_active')->boolean(),
         ])->actions([
             Tables\Actions\EditAction::make(),
-            Tables\Actions\DeleteAction::make(),
+            Tables\Actions\DeleteAction::make()
+                ->before(function (Party $record, Tables\Actions\DeleteAction $action) {
+                    if ($record->propertyOwnerships()->exists() || $record->acquisitionParties()->exists()) {
+                        \Filament\Notifications\Notification::make()
+                            ->warning()
+                            ->title('Cannot delete this party')
+                            ->body('This party is linked to historical records (such as property ownerships or acquisitions). You must remove those links first or use a different workflow.')
+                            ->persistent()
+                            ->send();
+                        
+                        $action->cancel();
+                    }
+                }),
         ]);
     }
 
