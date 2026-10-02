@@ -13,11 +13,17 @@ class PropertyAcquisitionService
     public function attachProperty(User $actor, PropertyAcquisition $acquisition, Property $property, array $attributes=[]): AcquisitionProperty
     {
         $this->authorize($actor, 'update', $acquisition); $this->sameCompany($acquisition, $property);
+        if ($acquisition->acquisitionProperties()->where('property_id', $property->id)->exists()) {
+            throw ValidationException::withMessages(['property_id' => 'This property is already attached to this acquisition.']);
+        }
         return AcquisitionProperty::create(array_merge($attributes, ['company_id'=>$acquisition->company_id, 'property_acquisition_id'=>$acquisition->id, 'property_id'=>$property->id]));
     }
     public function attachParty(User $actor, PropertyAcquisition $acquisition, Party $party, string $role, array $attributes=[]): AcquisitionParty
     {
         $this->authorize($actor, 'update', $acquisition); $this->sameCompany($acquisition, $party);
+        if ($acquisition->acquisitionParties()->where('party_id', $party->id)->where('role', $role)->exists()) {
+            throw ValidationException::withMessages(['party_id' => "This party is already attached as a {$role} to this acquisition."]);
+        }
         return AcquisitionParty::create(array_merge($attributes, ['company_id'=>$acquisition->company_id, 'property_acquisition_id'=>$acquisition->id, 'party_id'=>$party->id, 'role'=>$role]));
     }
     public function transition(User $actor, PropertyAcquisition $acquisition, string $to, ?string $reason=null): PropertyAcquisition

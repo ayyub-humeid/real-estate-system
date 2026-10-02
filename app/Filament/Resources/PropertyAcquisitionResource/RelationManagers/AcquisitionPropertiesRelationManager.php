@@ -62,8 +62,42 @@ class AcquisitionPropertiesRelationManager extends RelationManager
                     ->money('USD'),
             ])
             ->headerActions([
-                Tables\Actions\CreateAction::make()
-                    ->using(function (array $data) {
+                Tables\Actions\Action::make('addProperty')
+                    ->label('Add Property')
+                    ->visible(fn (): bool => auth()->user()->can('create_acquisition_property'))
+                    ->form([
+                        Forms\Components\Select::make('property_id')
+                            ->label('Property')
+                            ->options(function () {
+                                $companyId = $this->getOwnerRecord()->company_id;
+                                return Property::withoutGlobalScopes()
+                                    ->where('company_id', $companyId)
+                                    ->pluck('name', 'id');
+                            })
+                            ->searchable()
+                            ->preload()
+                            ->required()
+                            ->rules([
+                                function () {
+                                    return function (string $attribute, $value, \Closure $fail) {
+                                        if ($this->getOwnerRecord()->acquisitionProperties()->where('property_id', $value)->exists()) {
+                                            $fail('This property is already attached to this acquisition.');
+                                        }
+                                    };
+                                }
+                            ]),
+                        Forms\Components\TextInput::make('share_percentage')
+                            ->label('Share Percentage (%)')
+                            ->numeric()
+                            ->minValue(0)
+                            ->maxValue(100)
+                            ->suffix('%'),
+                        Forms\Components\TextInput::make('allocated_value')
+                            ->numeric()
+                            ->prefix('$'),
+                        Forms\Components\Textarea::make('notes'),
+                    ])
+                    ->action(function (array $data) {
                         try {
                             $property = Property::withoutGlobalScopes()->findOrFail($data['property_id']);
 

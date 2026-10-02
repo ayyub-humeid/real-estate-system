@@ -116,8 +116,101 @@ class AcquisitionPartiesRelationManager extends RelationManager
                     ->suffix('%'),
             ])
             ->headerActions([
-                Tables\Actions\CreateAction::make()
-                    ->using(function (array $data) {
+                Tables\Actions\Action::make('addParty')
+                    ->label('Add Party')
+                    ->visible(fn (): bool => auth()->user()->can('create_acquisition_party'))
+                    ->form([
+                        Forms\Components\Select::make('party_id')
+                            ->label('Party')
+                            ->options(function () {
+                                $companyId = $this->getOwnerRecord()->company_id;
+
+                                return Party::withoutGlobalScopes()
+                                    ->where('company_id', $companyId)
+                                    ->pluck('name', 'id');
+                            })
+                            ->searchable()
+                            ->preload()
+                            ->required()
+                            ->rules([
+                                function () {
+                                    return function (string $attribute, $value, \Closure $fail) {
+                                        $role = request()->input('data.role') ?? request()->input('mountedTableActionsData.0.role');
+                                        if ($role && $this->getOwnerRecord()->acquisitionParties()->where('party_id', $value)->where('role', $role)->exists()) {
+                                            $fail("This party is already attached as a {$role} to this acquisition.");
+                                        }
+                                    };
+                                }
+                            ]),
+
+                        Forms\Components\Select::make('role')
+                            ->options([
+                                'seller' => 'Seller',
+                                'buyer' => 'Buyer',
+                                'broker' => 'Broker',
+                                'investor' => 'Investor',
+                                'guarantor' => 'Guarantor',
+                                'other' => 'Other',
+                            ])
+                            ->required()
+                            ->live(),
+
+                        Forms\Components\TextInput::make('share_percentage')
+                            ->label('Share Percentage (%)')
+                            ->numeric()
+                            ->minValue(0)
+                            ->maxValue(100)
+                            ->suffix('%')
+                            ->helperText(function (Forms\Get $get) {
+                                $role = $get('role');
+
+                                if (empty($role)) {
+                                    return 'Select a role first to see current allocation.';
+                                }
+
+                                $existing = (float) $this->getOwnerRecord()
+                                    ->acquisitionParties()
+                                    ->where('role', $role)
+                                    ->sum('share_percentage');
+
+                                $remaining = max(0, 100 - $existing);
+
+                                return "Role \"{$role}\" — Currently allocated: {$existing}% — Remaining: {$remaining}%";
+                            })
+                            ->rules([
+                                function () {
+                                    return function (string $attribute, $value, \Closure $fail) {
+                                        if ($value === null || $value === '') {
+                                            return;
+                                        }
+
+                                        // Get the role from the form data
+                                        $role = request()->input('data.role')
+                                            ?? request()->input('mountedTableActionsData.0.role')
+                                            ?? null;
+
+                                        if (empty($role)) {
+                                            return; // role is required separately; skip percentage check
+                                        }
+
+                                        $existing = (float) $this->getOwnerRecord()
+                                            ->acquisitionParties()
+                                            ->where('role', $role)
+                                            ->sum('share_percentage');
+
+                                        $total = $existing + (float) $value;
+
+                                        if ($total > 100) {
+                                            $remaining = max(0, 100 - $existing);
+                                            $fail("Total \"{$role}\" share would be {$total}%, exceeding 100%. Currently allocated for \"{$role}\": {$existing}%. Maximum you can assign: {$remaining}%.");
+                                        }
+                                    };
+                                },
+                            ]),
+
+                        Forms\Components\Textarea::make('notes'),
+                    ])
+                    ->action(function (array $data) {
                         try {
                             $party = Party::withoutGlobalScopes()->findOrFail($data['party_id']);
 

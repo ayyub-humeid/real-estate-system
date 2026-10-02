@@ -68,13 +68,26 @@ class DueDiligenceCasesRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('items_count')->counts('items'),
             ])
             ->headerActions([
-                Tables\Actions\CreateAction::make()
-                    ->mutateFormDataUsing(function (array $data): array {
+                Tables\Actions\Action::make('createCase')
+                    ->label('Create Case')
+                    ->visible(fn (): bool => auth()->user()->can('create', \App\Models\DueDiligenceCase::class))
+                    ->form(fn (Form $form) => $this->form($form)->getComponents())
+                    ->action(function (array $data) {
                         $data['company_id'] = $this->getOwnerRecord()->company_id;
                         $data['opened_at'] = now();
                         $data['opened_by'] = auth()->id();
+                        $data['property_acquisition_id'] = $this->getOwnerRecord()->id;
 
-                        return $data;
+                        // Create the case
+                        $case = \App\Models\DueDiligenceCase::create(collect($data)->except('items')->toArray());
+
+                        // Create the items if any
+                        if (!empty($data['items'])) {
+                            foreach ($data['items'] as $item) {
+                                $item['company_id'] = $this->getOwnerRecord()->company_id;
+                                $case->items()->create($item);
+                            }
+                        }
                     }),
             ])
             ->actions([
@@ -114,6 +127,7 @@ class DueDiligenceCasesRelationManager extends RelationManager
                                 ->send();
                         }
                     }),
+                Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
             ]);
     }

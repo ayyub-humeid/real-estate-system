@@ -3715,9 +3715,59 @@ The validation must:
 3. **Show role-specific helper text** below the field with current allocation for the selected role.
 4. **Make the role field `->live()`** so the helper text updates reactively when the user changes the role.
 
-### General Pattern
-
 For any percentage field with a 100% cap, always identify the correct grouping key (role, category, type, etc.) and scope the sum query accordingly. Never assume a flat global sum is correct.
+
+---
+
+## Dual-Database Testing Requirement (MySQL & PostgreSQL)
+
+To ensure the application behaves identically across diverse environments (e.g., local MySQL development vs. Render/Production PostgreSQL deployment), **every phase or critical feature must be tested against both MySQL and PostgreSQL**. 
+
+1. **Why It Matters**: PostgreSQL handles data types, unique constraints, and strict typing differently than MySQL. Migrations or queries that succeed silently in MySQL might throw exceptions in PostgreSQL (e.g., boolean/integer conversions, implicit casting, grouping).
+2. **Execution**: Always run the PHPUnit test suite using both testing configurations before declaring a phase complete:
+   ```bash
+   php artisan test
+   php artisan test --configuration phpunit.pgsql.xml
+   ```
+
+---
+
+## Filament Relation Manager Create Actions & Authorization
+
+For complex `belongsToMany` or polymorphic relationships where Filament's standard `CreateAction` or `AttachAction` buttons inexplicably fail to render:
+
+1. **The Cause**: Filament implicitly checks for `attachAny` / `create` permissions on the pivot policy, which are often undefined or incorrectly inferred.
+2. **The Solution**: Bypass the implicit checks by using a custom `Action::make()` instead of `CreateAction::make()`.
+3. **Implementation**:
+    ```php
+    Tables\Actions\Action::make('createRecord')
+        ->label('Create')
+        ->visible(fn (): bool => auth()->user()->can('create', TargetModel::class))
+        ->form([ /* ... duplicate or call schema ... */ ])
+        ->action(function (array $data) {
+            // Manually create and attach the record
+        })
+    ```
+This guarantees the "Create" button displays based strictly on the explicitly provided `visible()` logic rather than hidden underlying policy requirements.
+
+---
+
+## Filament UI/UX Action Guidelines
+
+To prevent silent failures, confusing states, or inaccessible nested data, follow these strict rules when adding actions to Pages or Relation Managers:
+
+1. **Explicit Notifications for State Changes**: Any custom action that alters the database (e.g., transitions, cancellations, approvals) **must** end with a visible notification to inform the user the action succeeded.
+    ```php
+    ->action(function () {
+        app(WorkflowService::class)->execute($this->record);
+        \Filament\Notifications\Notification::make()->success()->title('Action Successful')->send();
+    })
+    ```
+2. **Conditional Visibility**: If an action is no longer valid (e.g., you cannot "Cancel" a record that is already "Cancelled" or "Completed"), use `->visible()` to hide the button so the user isn't misled.
+    ```php
+    ->visible(fn () => !in_array($this->record->status, ['cancelled', 'completed']))
+    ```
+3. **View Actions for Repeaters**: If a Relation Manager table contains complex items (like a `Repeater` in the form) but the table only shows an `items_count`, you **must** include a `Tables\Actions\ViewAction::make()` in the table actions so the user can actually inspect the nested data without needing to explicitly edit it.
 
 ---
 

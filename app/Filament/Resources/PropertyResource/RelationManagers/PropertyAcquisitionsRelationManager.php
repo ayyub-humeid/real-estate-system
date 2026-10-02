@@ -40,8 +40,21 @@ class PropertyAcquisitionsRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('agreed_value')->money(fn ($record): string => $record->currency ?? 'USD'),
             ])
             ->headerActions([
-                Tables\Actions\CreateAction::make()
-                    ->using(function (array $data): PropertyAcquisition {
+                Tables\Actions\Action::make('createAcquisition')
+                    ->label('Create acquisition')
+                    ->visible(fn (): bool => auth()->user()->can('create', PropertyAcquisition::class))
+                    ->form([
+                        Forms\Components\TextInput::make('reference_number'),
+                        Forms\Components\Select::make('type')
+                            ->options(array_combine(PropertyAcquisition::TYPES, PropertyAcquisition::TYPES))
+                            ->required(),
+                        Forms\Components\DatePicker::make('acquisition_date'),
+                        Forms\Components\TextInput::make('agreed_value')->numeric(),
+                        Forms\Components\TextInput::make('currency')->maxLength(10),
+                        Forms\Components\Textarea::make('description')->columnSpanFull(),
+                        Forms\Components\Textarea::make('notes')->columnSpanFull(),
+                    ])
+                    ->action(function (array $data): void {
                         $property = $this->getOwnerRecord();
                         $acquisition = PropertyAcquisition::create(array_merge($data, [
                             'company_id' => $property->company_id,
@@ -51,8 +64,6 @@ class PropertyAcquisitionsRelationManager extends RelationManager
                         $property->propertyAcquisitions()->attach($acquisition->id, [
                             'company_id' => $property->company_id,
                         ]);
-
-                        return $acquisition;
                     }),
             ])
             ->actions([
