@@ -1,111 +1,105 @@
 # IMPLEMENTATION REPORT — Phase 01: Property, Acquisition & Ownership
 
-## 1. Phase Result
+## Status
 
 ```text
-Status: Completed (Phase 01 tests pass; test environment is isolated and guarded).
+READY TO CLOSE — Phase 01 targeted verification passes on MySQL and PostgreSQL.
 ```
 
-## 2. Repository Inspection Findings
+## Scope Delivered
 
-### Reused
-- `properties`, the `HasCompany` global scope, database notifications, Filament/Shield patterns, and polymorphic `documents`.
+- Reused the existing `properties`, `HasCompany` global scope, Filament, Shield, database notifications, and generic polymorphic documents infrastructure.
+- Added the Phase 01 domain tables/models: `parties`, `property_acquisitions`, `acquisition_properties`, `acquisition_parties`, `property_ownerships`, `due_diligence_cases`, and `due_diligence_items`.
+- Kept contracts and payment redesign out of scope.
 
-### Newly Created
-- Parties, acquisitions, relationship records, ownership history, due diligence, policies, workflow service, notifications, Filament resources, and tests.
+## Domain and Workflow
 
-### Intentionally Left Unchanged
-- Contracts and payments: no generic contract model exists yet, and their redesign is explicitly deferred.
+- Acquisition lifecycle is `draft → under_due_diligence → approved → completed`, with cancellation permitted from the approved pre-terminal states.
+- Starting due diligence requires at least one Property and one Party. Approval requires every due-diligence case to be `cleared`.
+- Required pending or failed items set the case to `blocked`; authorized waiver permits subsequent clearance.
+- Ownership changes use the replacement transaction: validate an exact active total of 100%, close prior active rows, create the new rows, and retain complete history. Ownership records are not directly edited or deleted.
+- `AcquisitionProperty.share_percentage` is per attached Property; it is not summed globally across an acquisition.
+- `AcquisitionParty.share_percentage` is constrained per `role` group. A seller and buyer can each be 100%; create and edit validation excludes the current record before summing its role group.
 
-## 3. Database Changes
+## Authorization and Shield
 
-### Migrations Added
-- `2026_10_01_000000_create_property_acquisition_domain_tables.php`
-
-### Tables / Indexes
-- Added the Phase 01 company-owned tables, foreign keys, workflow indexes, and the acquisition/property uniqueness constraint.
-- No legacy records were backfilled: no trustworthy owner or acquisition data exists.
-
-## 4. Models & Relationships
-- `Property` now exposes ownership history, active ownerships, acquisition links, and generic documents.
-- All new tenant-sensitive models use the existing `HasCompany` trait.
-
-## 5. Policies & Filament Shield
-- Added a policy for every new model with tenant checks for record operations.
-- Added separate workflow permissions for approval, cancellation, completion, waiver, clearance, and ownership changes.
-- Super Admin is an explicit, tested policy privilege for Phase 01 resources; it does not depend on generated Shield CRUD permissions merely to see or create Phase 01 records.
-
-## 6. Filament / Livewire
-- Added Party and Property Acquisition resources plus acquisition and ownership relation managers.
-- Workflow actions call the domain service, avoiding browser reloads.
-- Super Admins must select a target company before creating a Party or Property Acquisition; company users are server-side bound to their own company.
-
-## 7. Notifications
-
-| Event | Recipient strategy | Channel | Implementation |
-|---|---|---|---|
-| Acquisition transition / due-diligence clearance | Actor and company users able to view acquisitions | database | `DB::afterCommit` |
-
-## 8. Performance
-- Acquisition lists use relationship counts rather than eager-loading collections.
-- Added indexes for company/status, parent/status, and active ownership resolution.
-
-## 9. Automated Tests
-
-### Tests Added
+`PropertyAcquisitionResource` is a top-level Shield resource and uses the generated `::` convention exclusively:
 
 ```text
-Feature: PropertyAcquisitionWorkflowTest, DueDiligenceWorkflowTest
-Feature: PartyCreationTest
+view_any_property::acquisition
+view_property::acquisition
+create_property::acquisition
+update_property::acquisition
+delete_property::acquisition
+...standard Shield restore/replicate/reorder permissions
 ```
 
-### Important Scenarios Covered
-- Multiple links, cross-tenant rejection, cancelled transition protection, ownership history, due-diligence blockers, authorized waiver/clearance, and safe Super Admin Party creation.
-
-### Test Result
+Relation-manager and workflow operations use the existing custom underscore permissions, for example:
 
 ```text
-Command: `php vendor/bin/phpunit tests/Feature/PropertyAcquisitionWorkflowTest.php tests/Feature/DueDiligenceWorkflowTest.php`
-
-Passed: 8 tests, 21 assertions across the Phase 01 workflow and Super Admin Party-creation coverage (PHP 8.4.20; MySQL `realState_test` and PostgreSQL `realstate_pg_test`; Phase 01 uses Laravel `RefreshDatabase`).
-
-### Full Suite Result
-
-```text
-Command: `php vendor/bin/phpunit`
-Result: completed: 15 tests, 26 assertions; two existing LeaseBalance tests fail because they expect `rent_amount` to be a monthly amount while the current schedule generator distributes it as a total lease amount. No migration-reset or database-isolation failures remain.
+create_acquisition_property
+update_acquisition_party
+clear_due_diligence_case
+waive_due_diligence_item
+change_property_ownership
+approve_property_acquisition
+cancel_property_acquisition
+complete_property_acquisition
 ```
 
-### PostgreSQL Compatibility Result
+- Policies enforce all record/workflow permissions server-side.
+- `completed` and `cancelled` acquisitions cannot be deleted even when the actor has the Shield delete permission. Draft deletion remains allowed when that permission exists; bulk acquisition deletion is disabled because it cannot safely enforce the per-record history rule.
+- Acquisition History creation calls a service which checks `create_property::acquisition` server-side, uses a transaction, and derives the company from the parent Property.
 
-```text
-Clean migration: passed on PostgreSQL `realstate_pg_test` (port 6000).
-All non-LeaseBalance tests: 16 passed, 38 assertions.
-The two LeaseBalance failures are identical to MySQL and are not PostgreSQL-dialect failures.
-```
-```
+## Multi-Tenancy and Super Admin
 
-## 10. Manual Testing Still Required
-- Confirm generated Shield CRUD permissions after running the project’s Shield generation workflow.
-- Verify Filament actions using company-admin and restricted roles.
+- New company-owned models reuse `HasCompany` and the existing `CompanyScope`.
+- Association services reject cross-company Property/Party links.
+- Child creation derives `company_id` from its parent Acquisition or Property, never from a Super Admin user.
+- Super Admin child selectors query explicitly with `withoutGlobalScopes()` and the parent company ID. Due Diligence and ownership selectors therefore only display records that belong to the parent context; cross-company IDs are also rejected in the service layer.
 
-## 11. Deferred Intentionally
-- Generic contract integration beyond existing document support, and the payments redesign.
+## Filament
 
-## 12. Existing Behavior Changed
-- Existing properties remain intact and now support ownership history and generic documents; no legacy property values were repurposed.
+- Added Party and Property Acquisition resources.
+- Property has Ownership History and Acquisition History relation managers.
+- Acquisition has Properties, Parties, and Due Diligence relation managers.
+- Workflow operations are reactive and do not force a browser reload.
+- Relation-manager actions that delegate to the service retain server-side policy checks; validation failures use domain exceptions for Filament to render.
 
-## 13. Risks / Follow-Up Notes for Next Phase
-- Run Shield generation in the target environment to create the standard CRUD permissions for the two new Filament resources; workflow permissions are seeded explicitly.
-- Tests require a clean test-database migration before PHPUnit starts. The base test case accepts only MySQL `realState_test` or PostgreSQL `realstate_pg_test`; `.env.testing` and `.env.testing.pgsql` define the isolated connections explicitly.
+## Notifications
 
-## 14. Files Created / Modified
+- Acquisition transition, due-diligence clearance, and ownership replacement notifications are registered with `DB::afterCommit`.
+- Recipients are restricted to the actor and same-company users with the relevant acquisition/ownership view permission. Users in another company and unrelated same-company users do not receive the ownership notification.
+- Direct ownership replacement now has an intentional recipient path even without an Acquisition reference.
+- Filament success toasts are separate actor UX feedback; persistent domain notifications are dispatched once by the service after commit.
 
-### Created
-- Phase 01 migration, seven models, seven policies, workflow service/notification, two Filament resources with relation managers, and two feature-test classes.
+## Database Compatibility
 
-### Modified
-- `Property`, `PropertyResource`, `RolesAndPermissionsSeeder`, base test setup, and existing test fixtures.
+The migration uses portable Laravel Schema Builder definitions. The MySQL unique-index name for `acquisition_properties` is explicitly short enough for MySQL while remaining PostgreSQL-compatible.
 
-### Removed
-- None.
+| Engine | Isolated database | Clean migration | Phase 01 targeted tests |
+| --- | --- | --- | --- |
+| MySQL | `realState_test` | Passed | Passed — 18 tests, 55 assertions |
+| PostgreSQL (port 6000) | `realstate_pg_test` | Passed | Passed — 18 tests, 55 assertions |
+
+## Test Coverage
+
+- same-company multiple Properties/Parties and cross-company rejection
+- invalid/unauthorized approval, completion, cancellation, waiver, and clearance
+- due-diligence required-item blockers and clearance
+- Property/Party share semantics including edit exclusion and role change
+- ownership percentage validation/history preservation and company-as-owner Party reuse
+- completed/cancelled deletion protection
+- Acquisition History server-side authorization and parent-company inheritance
+- Super Admin parent context and Due Diligence cross-company rejection
+- notification recipients and rollback behavior
+
+## Files Added or Updated
+
+- Phase 01 migration, models, policies, workflow service, notification, resources/relation managers, test database guard/configuration, and Phase 01 feature tests.
+- `AGENTS.md` / global guidance contains the reusable Shield naming, parent-company inheritance, relation-manager authorization, notification, and dual-database verification lessons discovered during Phase 01.
+
+## Deferred Intentionally
+
+- Contract redesign/integration beyond existing generic document compatibility.
+- Payment redesign and all Phase 02+ work.

@@ -28,7 +28,7 @@ class SuperAdminPhaseOneAccessTest extends TestCase
 
         $this->assertFalse($superAdmin->can('viewAny', PropertyAcquisition::class));
 
-        foreach (['view_any_property_acquisition', 'view_property_acquisition', 'update_property_acquisition'] as $name) {
+        foreach (['view_any_property::acquisition', 'view_property::acquisition', 'update_property::acquisition'] as $name) {
             $superAdmin->givePermissionTo(Permission::create(['name' => $name, 'guard_name' => 'web']));
         }
 
