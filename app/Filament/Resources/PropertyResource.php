@@ -68,6 +68,24 @@ class PropertyResource extends Resource
                         ->columnSpanFull()
                         ->prefixIcon('heroicon-m-home'),
 
+                    Forms\Components\Select::make('type')
+                        ->label('Property Type')
+                        ->options([
+                            'Land' => 'Land',
+                            'Apartment' => 'Apartment',
+                            'Villa' => 'Villa',
+                            'House' => 'House',
+                            'Commercial' => 'Commercial',
+                            'Other' => 'Other',
+                        ])
+                        ->searchable()
+                        ->preload(),
+
+                    Forms\Components\TextInput::make('space')
+                        ->label('Space / Area')
+                        ->numeric()
+                        ->suffix('m²'),
+
                     Forms\Components\TextInput::make('rent_price')
                         ->label('Rent Price for Whole Property (Optional)')
                         ->numeric()
@@ -146,6 +164,19 @@ class PropertyResource extends Resource
                     ->badge()
                     ->color('info'),
 
+                Tables\Columns\TextColumn::make('type')
+                    ->label('Type')
+                    ->searchable()
+                    ->sortable()
+                    ->badge(),
+
+                Tables\Columns\TextColumn::make('space')
+                    ->label('Space')
+                    ->numeric()
+                    ->suffix(' m²')
+                    ->sortable()
+                    ->toggleable(),
+
                 Tables\Columns\TextColumn::make('location.name')
                     ->label('Location')
                     ->searchable()
@@ -211,6 +242,8 @@ class PropertyResource extends Resource
         return [
             RelationManagers\UnitsRelationManager::class,
             RelationManagers\ImagesRelationManager::class,
+            RelationManagers\OwnershipsRelationManager::class,
+            RelationManagers\PropertyAcquisitionsRelationManager::class,
         ];
     }
 

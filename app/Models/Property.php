@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Facades\Auth;
 
@@ -17,6 +18,8 @@ class Property extends Model
         'location_id',
         'name',
         'address',
+        'type',
+        'space',
         'description',
         'rent_price',
     ];
@@ -50,6 +53,11 @@ class Property extends Model
     {
         return $this->hasMany(Unit::class);
     }
+    public function ownerships(): HasMany { return $this->hasMany(PropertyOwnership::class); }
+    public function activeOwnerships(): HasMany { return $this->ownerships()->whereNull('end_date'); }
+    public function acquisitionProperties(): HasMany { return $this->hasMany(AcquisitionProperty::class); }
+    public function propertyAcquisitions(): BelongsToMany { return $this->belongsToMany(PropertyAcquisition::class, 'acquisition_properties')->withPivot(['share_percentage', 'allocated_value', 'notes'])->withTimestamps(); }
+    public function documents(): MorphMany { return $this->morphMany(Document::class, 'documentable'); }
 
     /**
      * Polymorphic: all images belonging to this property.

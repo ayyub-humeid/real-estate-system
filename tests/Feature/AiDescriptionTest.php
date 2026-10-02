@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Company;
+use App\Models\Location;
 use App\Models\Property;
 use App\Models\Unit;
 use App\Models\UnitFeature;
@@ -42,6 +43,11 @@ class AiDescriptionTest extends TestCase
 
         $this->property = Property::create([
             'company_id' => $this->company->id,
+            'location_id' => Location::create([
+                'company_id' => $this->company->id,
+                'name' => 'Ramallah',
+                'type' => 'city',
+            ])->id,
             'name'       => 'Sunset Towers',
             'address'    => 'Downtown, Ramallah',
         ]);
