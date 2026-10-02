@@ -241,6 +241,39 @@ class AcquisitionPartiesRelationManager extends RelationManager
                     }),
             ])
             ->actions([
+                Tables\Actions\Action::make('editParty')
+                    ->label('Edit')
+                    ->visible(fn (): bool => auth()->user()->can('update_acquisition_party'))
+                    ->fillForm(fn (AcquisitionParty $record): array => $record->only(['role', 'share_percentage', 'notes']))
+                    ->form([
+                        Forms\Components\Select::make('role')
+                            ->options([
+                                'seller' => 'Seller', 'buyer' => 'Buyer', 'broker' => 'Broker',
+                                'investor' => 'Investor', 'guarantor' => 'Guarantor', 'other' => 'Other',
+                            ])
+                            ->required()
+                            ->live(),
+                        Forms\Components\TextInput::make('share_percentage')
+                            ->label('Share Percentage (%)')
+                            ->numeric()
+                            ->minValue(0)
+                            ->maxValue(100)
+                            ->suffix('%'),
+                        Forms\Components\Textarea::make('notes'),
+                    ])
+                    ->action(function (AcquisitionParty $record, array $data) {
+                        try {
+                            return app(PropertyAcquisitionService::class)->updateAcquisitionParty(auth()->user(), $record, $data);
+                        } catch (ValidationException $e) {
+                            Notification::make()->danger()->title('Cannot Update Party')
+                                ->body(collect($e->errors())->flatten()->first())->send();
+                            return null;
+                        } catch (AuthorizationException) {
+                            Notification::make()->danger()->title('Unauthorized')
+                                ->body('You do not have permission to update parties in this acquisition.')->send();
+                            return null;
+                        }
+                    }),
                 Tables\Actions\DeleteAction::make(),
             ]);
     }

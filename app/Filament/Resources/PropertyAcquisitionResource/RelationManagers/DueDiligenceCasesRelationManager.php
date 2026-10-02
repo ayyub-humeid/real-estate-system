@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\PropertyAcquisitionResource\RelationManagers;
 
+use App\Models\Property;
 use App\Services\PropertyAcquisitionService;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -18,7 +19,23 @@ class DueDiligenceCasesRelationManager extends RelationManager
     {
         return $form->schema([
             Forms\Components\Select::make('property_id')
-                ->relationship('property', 'name'),
+                ->label('Property')
+                ->options(fn (): array => Property::withoutGlobalScopes()
+                    ->where('company_id', $this->getOwnerRecord()->company_id)
+                    ->pluck('name', 'id')
+                    ->all())
+                ->searchable()
+                ->preload()
+                ->rule(function () {
+                    return function (string $attribute, mixed $value, \Closure $fail): void {
+                        if ($value && ! Property::withoutGlobalScopes()
+                            ->whereKey($value)
+                            ->where('company_id', $this->getOwnerRecord()->company_id)
+                            ->exists()) {
+                            $fail('The selected property must belong to this acquisition company.');
+                        }
+                    };
+                }),
             Forms\Components\Textarea::make('summary'),
             Forms\Components\Repeater::make('items')
                 ->relationship()
@@ -73,21 +90,11 @@ class DueDiligenceCasesRelationManager extends RelationManager
                     ->visible(fn (): bool => auth()->user()->can('create', \App\Models\DueDiligenceCase::class))
                     ->form(fn (Form $form) => $this->form($form)->getComponents())
                     ->action(function (array $data) {
-                        $data['company_id'] = $this->getOwnerRecord()->company_id;
-                        $data['opened_at'] = now();
-                        $data['opened_by'] = auth()->id();
-                        $data['property_acquisition_id'] = $this->getOwnerRecord()->id;
-
-                        // Create the case
-                        $case = \App\Models\DueDiligenceCase::create(collect($data)->except('items')->toArray());
-
-                        // Create the items if any
-                        if (!empty($data['items'])) {
-                            foreach ($data['items'] as $item) {
-                                $item['company_id'] = $this->getOwnerRecord()->company_id;
-                                $case->items()->create($item);
-                            }
-                        }
+                        app(PropertyAcquisitionService::class)->createDueDiligenceCase(
+                            auth()->user(),
+                            $this->getOwnerRecord(),
+                            $data,
+                        );
                     }),
             ])
             ->actions([

@@ -42,7 +42,12 @@ class OwnershipsRelationManager extends RelationManager
                             ->live()
                             ->required(),
                         Forms\Components\Select::make('party_id')
-                            ->relationship('party', 'name')
+                            ->options(fn (): array => Party::withoutGlobalScopes()
+                                ->where('company_id', $this->getOwnerRecord()->company_id)
+                                ->pluck('name', 'id')
+                                ->all())
+                            ->searchable()
+                            ->preload()
                             ->visible(fn (Forms\Get $get): bool => $get('owner_type') === 'party')
                             ->required(fn (Forms\Get $get): bool => $get('owner_type') === 'party'),
                         Forms\Components\Select::make('company_id')
@@ -59,7 +64,7 @@ class OwnershipsRelationManager extends RelationManager
                     $owners = collect($data['owners'])->map(function (array $owner) use ($property, $service): array {
                         $party = $owner['owner_type'] === 'company'
                             ? $service->partyForCompany($property, Company::findOrFail($owner['company_id']))
-                            : Party::findOrFail($owner['party_id']);
+                            : Party::withoutGlobalScopes()->findOrFail($owner['party_id']);
 
                         return ['party' => $party, 'percentage' => $owner['percentage'], 'notes' => $owner['notes'] ?? null];
                     })->all();

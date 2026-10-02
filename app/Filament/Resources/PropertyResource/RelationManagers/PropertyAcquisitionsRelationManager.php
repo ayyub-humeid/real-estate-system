@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\PropertyResource\RelationManagers;
 
 use App\Models\PropertyAcquisition;
+use App\Services\PropertyAcquisitionService;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -55,15 +56,11 @@ class PropertyAcquisitionsRelationManager extends RelationManager
                         Forms\Components\Textarea::make('notes')->columnSpanFull(),
                     ])
                     ->action(function (array $data): void {
-                        $property = $this->getOwnerRecord();
-                        $acquisition = PropertyAcquisition::create(array_merge($data, [
-                            'company_id' => $property->company_id,
-                            'status' => 'draft',
-                        ]));
-
-                        $property->propertyAcquisitions()->attach($acquisition->id, [
-                            'company_id' => $property->company_id,
-                        ]);
+                        app(PropertyAcquisitionService::class)->createForProperty(
+                            auth()->user(),
+                            $this->getOwnerRecord(),
+                            $data,
+                        );
                     }),
             ])
             ->actions([

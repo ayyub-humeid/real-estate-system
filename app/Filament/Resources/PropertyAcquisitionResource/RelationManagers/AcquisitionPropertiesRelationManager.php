@@ -64,7 +64,7 @@ class AcquisitionPropertiesRelationManager extends RelationManager
             ->headerActions([
                 Tables\Actions\Action::make('addProperty')
                     ->label('Add Property')
-                    ->visible(fn (): bool => auth()->user()->can('create_acquisition_property'))
+                    ->visible(fn(): bool => auth()->user()->can('create_acquisition_property'))
                     ->form([
                         Forms\Components\Select::make('property_id')
                             ->label('Property')
