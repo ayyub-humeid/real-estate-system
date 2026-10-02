@@ -29,11 +29,13 @@ class PropertyAcquisitionPolicy
     }
     public function delete(User $user, PropertyAcquisition $acquisition): bool
     {
-        return $user->can('delete_property::acquisition');
+        return $user->can('delete_property::acquisition')
+            && ! in_array($acquisition->status, ['completed', 'cancelled'], true);
     }
     public function deleteAny(User $user): bool
     {
-        return $user->can('delete_any_property::acquisition');
+        // Bulk deletion cannot safely enforce the per-record history rule.
+        return false;
     }
     public function forceDelete(User $user, PropertyAcquisition $acquisition): bool
     {
