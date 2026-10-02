@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Company;
 use App\Models\Lease;
+use App\Models\Location;
 use App\Models\Payment;
 use App\Models\Property;
 use App\Models\Tenant;
@@ -21,18 +22,27 @@ class LeaseBalanceTest extends TestCase
     {
         parent::setUp();
         
-        $this->company = Company::create(['name' => 'Test Company']);
+        $this->company = Company::create([
+            'name' => 'Test Company',
+            'email' => 'lease-test-' . uniqid() . '@test.com',
+        ]);
         $this->user = User::factory()->create(['company_id' => $this->company->id]);
         $this->actingAs($this->user);
 
         $this->property = Property::create([
             'company_id' => $this->company->id,
+            'location_id' => Location::create([
+                'company_id' => $this->company->id,
+                'name' => 'Test City',
+                'type' => 'city',
+            ])->id,
             'name' => 'Test Property',
             'address' => '123 Test St',
         ]);
 
         $this->unit = Unit::create([
             'property_id' => $this->property->id,
+            'rent_price' => 1000,
             'unit_number' => 'A1',
             'status' => 'available',
         ]);
