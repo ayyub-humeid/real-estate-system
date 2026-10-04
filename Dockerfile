@@ -68,4 +68,4 @@ EXPOSE ${PORT}
 # Run a script on startup that sets up caching and starts Apache
 # TEMPORARY Phase 02 deployment bootstrap. Remove the Shield/seed commands after
 # the first successful production deployment; migrations must remain in release flow.
-CMD npm run build && php artisan package:discover && php artisan storage:link && php artisan config:clear && php artisan migrate --force --database=pgsql_direct && DB_CONNECTION=pgsql_direct php artisan shield:generate --all --option=permissions --panel=admin --no-interaction && php artisan db:seed --class=RolesAndPermissionsSeeder --force --database=pgsql_direct && php artisan optimize && apache2-foreground
+CMD npm run build && php artisan package:discover && php artisan storage:link && php artisan config:clear && php artisan migrate --force --database=pgsql_direct  && php artisan optimize && apache2-foreground
