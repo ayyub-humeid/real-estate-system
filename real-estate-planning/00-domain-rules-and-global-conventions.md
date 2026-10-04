@@ -3897,3 +3897,5 @@ For reusable business categories such as Project Building Type and Planned Unit 
 5. Add new catalogue entries deliberately in a future release. Do not rename or remove a stored key without an explicit data-migration plan.
 
 For compact Filament action buttons and action groups that rely on icons, always add a concise `->tooltip()` naming the action group or purpose. Icons improve scanning, but the tooltip is required so unfamiliar users and keyboard/mouse users can understand the action before opening it.
+
+When running `shield:generate` in CI/CD, Docker, or any non-interactive environment, always supply the explicit Filament panel ID (currently `--panel=admin`) and `--no-interaction`. Without a panel ID Shield opens an interactive selector and deployment fails with `Required.`.
