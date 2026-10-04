@@ -13,19 +13,72 @@ class RolesAndPermissionsSeeder extends Seeder
         // Reset cached roles and permissions
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
-        // Shield generates permissions for top-level resources. These Phase 01
-        // relation models also need explicit permissions so they are assignable
-        // in the Roles UI and usable by their policies.
-        $phaseOnePermissions = [
-            'approve_property_acquisition', 'cancel_property_acquisition', 'complete_property_acquisition',
-            'view_any_acquisition_property', 'view_acquisition_property', 'create_acquisition_property', 'update_acquisition_property', 'delete_acquisition_property',
-            'view_any_acquisition_party', 'view_acquisition_party', 'create_acquisition_party', 'update_acquisition_party', 'delete_acquisition_party',
-            'view_any_property_ownership', 'view_property_ownership', 'change_property_ownership',
-            'view_any_due_diligence_case', 'view_due_diligence_case', 'create_due_diligence_case', 'update_due_diligence_case', 'delete_due_diligence_case', 'clear_due_diligence_case',
-            'view_any_due_diligence_item', 'view_due_diligence_item', 'create_due_diligence_item', 'update_due_diligence_item', 'delete_due_diligence_item', 'waive_due_diligence_item',
+        // Shield generates top-level resource permissions. Relation-manager and
+        // workflow permissions remain explicit so they are assignable in Roles.
+        $customDomainPermissions = [
+            'approve_property_acquisition',
+            'cancel_property_acquisition',
+            'complete_property_acquisition',
+            'view_any_acquisition_property',
+            'view_acquisition_property',
+            'create_acquisition_property',
+            'update_acquisition_property',
+            'delete_acquisition_property',
+            'view_any_acquisition_party',
+            'view_acquisition_party',
+            'create_acquisition_party',
+            'update_acquisition_party',
+            'delete_acquisition_party',
+            'view_any_property_ownership',
+            'view_property_ownership',
+            'change_property_ownership',
+            'view_any_due_diligence_case',
+            'view_due_diligence_case',
+            'create_due_diligence_case',
+            'update_due_diligence_case',
+            'delete_due_diligence_case',
+            'clear_due_diligence_case',
+            'view_any_due_diligence_item',
+            'view_due_diligence_item',
+            'create_due_diligence_item',
+            'update_due_diligence_item',
+            'delete_due_diligence_item',
+            'waive_due_diligence_item',
+            'approve_project',
+            'cancel_project',
+            'close_project',
+            'manage_project_members',
+            'attach_project_property',
+            'detach_project_property',
+            'view_any_project_property',
+            'view_project_property',
+            'view_any_project_member',
+            'view_project_member',
+            'view_any_project_building',
+            'view_project_building',
+            'create_project_building',
+            'update_project_building',
+            'delete_project_building',
+            'view_any_project_building_floor',
+            'view_project_building_floor',
+            'create_project_building_floor',
+            'update_project_building_floor',
+            'delete_project_building_floor',
+            'view_any_project_planned_unit',
+            'view_project_planned_unit',
+            'create_project_planned_unit',
+            'update_project_planned_unit',
+            'delete_project_planned_unit',
+            'approve_planned_unit',
+            'cancel_planned_unit',
+            'view_any_planned_unit_specification',
+            'view_planned_unit_specification',
+            'create_planned_unit_specification',
+            'update_planned_unit_specification',
+            'delete_planned_unit_specification',
         ];
 
-        foreach ($phaseOnePermissions as $permission) {
+        foreach ($customDomainPermissions as $permission) {
             Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'web']);
         }
 
@@ -36,12 +89,22 @@ class RolesAndPermissionsSeeder extends Seeder
         // required by the `role:tenant` middleware guarding tenant-only API routes.
         // No Filament/Shield permissions attached: tenants never access the panel.
         Role::firstOrCreate(['name' => 'tenant', 'guard_name' => 'web']);
-        
+
         // 1. Company Admin role
         $companyAdmin = Role::firstOrCreate(['name' => 'company_admin', 'guard_name' => 'web']);
         // Company admins can do almost everything within their company, except manage system-level roles
         $companyAdminPermissions = Permission::whereNotIn('name', [
-            'view_role', 'view_any_role', 'create_role', 'update_role', 'delete_role', 'delete_any_role', 'force_delete_role', 'force_delete_any_role', 'reorder_role', 'restore_role', 'restore_any_role'
+            'view_role',
+            'view_any_role',
+            'create_role',
+            'update_role',
+            'delete_role',
+            'delete_any_role',
+            'force_delete_role',
+            'force_delete_any_role',
+            'reorder_role',
+            'restore_role',
+            'restore_any_role'
         ])->get();
         $companyAdmin->syncPermissions($companyAdminPermissions);
 
@@ -49,11 +112,11 @@ class RolesAndPermissionsSeeder extends Seeder
         $propertyManager = Role::firstOrCreate(['name' => 'property_manager', 'guard_name' => 'web']);
         $propertyManagerPermissions = Permission::where(function ($query) {
             $query->where('name', 'like', '%property%')
-                  ->orWhere('name', 'like', '%unit%')
-                  ->orWhere('name', 'like', '%image%')
-                  ->orWhere('name', 'like', '%maintenance%')
-                  ->orWhere('name', 'like', '%rental%')
-                  ->orWhere('name', 'like', '%location%');
+                ->orWhere('name', 'like', '%unit%')
+                ->orWhere('name', 'like', '%image%')
+                ->orWhere('name', 'like', '%maintenance%')
+                ->orWhere('name', 'like', '%rental%')
+                ->orWhere('name', 'like', '%location%');
         })->get();
         $propertyManager->syncPermissions($propertyManagerPermissions);
 
@@ -61,11 +124,11 @@ class RolesAndPermissionsSeeder extends Seeder
         $financialManager = Role::firstOrCreate(['name' => 'financial_manager', 'guard_name' => 'web']);
         $financialManagerPermissions = Permission::where(function ($query) {
             $query->where('name', 'like', '%_lease')
-                  ->orWhere('name', 'like', '%_payment')
-                  ->orWhere('name', 'like', '%_expense')
-                  ->orWhere('name', 'like', '%_document')
-                  ->orWhere('name', 'like', '%_tenant')
-                  ->orWhere('name', 'like', '%_company');
+                ->orWhere('name', 'like', '%_payment')
+                ->orWhere('name', 'like', '%_expense')
+                ->orWhere('name', 'like', '%_document')
+                ->orWhere('name', 'like', '%_tenant')
+                ->orWhere('name', 'like', '%_company');
         })->get();
         $financialManager->syncPermissions($financialManagerPermissions);
     }

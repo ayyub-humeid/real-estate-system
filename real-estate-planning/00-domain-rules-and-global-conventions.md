@@ -3294,6 +3294,47 @@ Sensitive actions should be hidden **and** authorized server-side.
 
 UI hiding alone is not authorization.
 
+## Shield Generation, Custom Permissions, and Release Verification
+
+Filament Shield is the source of truth for the **standard permissions of every top-level Filament Resource**. A phase that introduces or changes a class extending `Filament\Resources\Resource` must:
+
+1. Run `php artisan shield:generate --all` in the target environment.
+2. Inspect the generated `permissions` records.
+3. Make every standard Policy check use the exact generated name — never a guessed name.
+4. Assign the generated permissions in the existing Roles page and verify both an allowed and denied user.
+
+Permission convention remains mandatory:
+
+```text
+Top-level Resource → Shield-generated project convention
+                     e.g. Project = view_project
+                          PropertyAcquisition = view_property::acquisition
+
+Relation manager / workflow-only model → custom underscore convention
+                                         e.g. attach_project_property
+                                              approve_planned_unit
+```
+
+Shield does not create custom relation-manager or workflow permissions. Each must be declared with its exact underscore name in `RolesAndPermissionsSeeder`, used unchanged by the Policy and service, and created with:
+
+```bash
+php artisan db:seed --class=RolesAndPermissionsSeeder --force
+```
+
+### Required Phase Release Checklist
+
+Every implementation report and handoff must state exactly which production commands are required:
+
+```bash
+php artisan migrate --force
+php artisan shield:generate --all              # only when a top-level Resource changed
+php artisan db:seed --class=RolesAndPermissionsSeeder --force  # when custom permissions changed
+php artisan optimize:clear
+php artisan filament:cache-components
+```
+
+`migrate --force` and idempotent permission seeders may remain in a CI/CD release step. Shield generation is required only for releases that add or change top-level resources. Do not put one-off permission commands in a Dockerfile permanently; if a temporary Docker release command is used, verify production permissions and then remove that one-off command.
+
 ---
 
 # 124. Important Business Operations Should Produce Notifications
@@ -3842,3 +3883,17 @@ The service layer's `sameCompany()` check will then validate that the selected r
 - [ ] All `findOrFail()` calls in relation manager actions use `withoutGlobalScopes()`
 - [ ] `company_id` is explicitly set in every create action (via service layer or `mutateFormDataUsing`)
 - [ ] Service layer exceptions are caught and converted to Filament Notifications
+
+---
+
+## Controlled Planning Type Catalogues and Icon Accessibility
+
+For reusable business categories such as Project Building Type and Planned Unit Type:
+
+1. Store a stable string key in the database (for example, `residential_tower` or `apartment`), not a database-specific enum.
+2. Define the approved key/label catalogue once on the domain model and reuse it in Filament forms and service validation.
+3. Use a searchable Filament `Select` so staff choose a consistent reporting value instead of creating spelling variants in a free-text input.
+4. Validate the submitted key in the service layer; a forged request must not store an unsupported type.
+5. Add new catalogue entries deliberately in a future release. Do not rename or remove a stored key without an explicit data-migration plan.
+
+For compact Filament action buttons and action groups that rely on icons, always add a concise `->tooltip()` naming the action group or purpose. Icons improve scanning, but the tooltip is required so unfamiliar users and keyboard/mouse users can understand the action before opening it.
