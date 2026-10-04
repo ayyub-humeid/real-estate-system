@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\PropertyAcquisitionResource\RelationManagers;
 
 use App\Models\AcquisitionParty;
+use App\Models\Company;
 use App\Models\Party;
 use App\Services\PropertyAcquisitionService;
 use Filament\Forms;
@@ -18,18 +19,23 @@ class AcquisitionPartiesRelationManager extends RelationManager
 {
     protected static string $relationship = 'acquisitionParties';
 
+    private function externalPartyOptions(): array
+    {
+        $company = Company::query()->findOrFail($this->getOwnerRecord()->company_id);
+
+        return Party::withoutGlobalScopes()
+            ->where('company_id', $company->id)
+            ->when($company->self_party_id, fn ($query) => $query->whereKeyNot($company->self_party_id))
+            ->pluck('name', 'id')
+            ->all();
+    }
+
     public function form(Form $form): Form
     {
         return $form->schema([
             Forms\Components\Select::make('party_id')
                 ->label('Party')
-                ->options(function () {
-                    $companyId = $this->getOwnerRecord()->company_id;
-
-                    return Party::withoutGlobalScopes()
-                        ->where('company_id', $companyId)
-                        ->pluck('name', 'id');
-                })
+                ->options(fn (): array => $this->externalPartyOptions())
                 ->searchable()
                 ->preload()
                 ->required(),
@@ -120,18 +126,22 @@ class AcquisitionPartiesRelationManager extends RelationManager
                     ->label('Add Party')
                     ->visible(fn (): bool => auth()->user()->can('create_acquisition_party'))
                     ->form([
+                        Forms\Components\Select::make('party_source')
+                            ->label('Party Source')
+                            ->options([
+                                'existing_party' => 'Existing Party',
+                                'current_company' => 'Current Company',
+                            ])
+                            ->default('existing_party')
+                            ->live()
+                            ->required(),
                         Forms\Components\Select::make('party_id')
                             ->label('Party')
-                            ->options(function () {
-                                $companyId = $this->getOwnerRecord()->company_id;
-
-                                return Party::withoutGlobalScopes()
-                                    ->where('company_id', $companyId)
-                                    ->pluck('name', 'id');
-                            })
+                            ->options(fn (): array => $this->externalPartyOptions())
                             ->searchable()
                             ->preload()
-                            ->required()
+                            ->visible(fn (Forms\Get $get): bool => $get('party_source') !== 'current_company')
+                            ->required(fn (Forms\Get $get): bool => $get('party_source') !== 'current_company')
                             ->rules([
                                 function () {
                                     return function (string $attribute, $value, \Closure $fail) {
@@ -212,14 +222,26 @@ class AcquisitionPartiesRelationManager extends RelationManager
                     ])
                     ->action(function (array $data) {
                         try {
-                            $party = Party::withoutGlobalScopes()->findOrFail($data['party_id']);
+                            $acquisition = $this->getOwnerRecord();
+                            $company = Company::query()->findOrFail($acquisition->company_id);
+                            if (($data['party_source'] ?? 'existing_party') === 'existing_party'
+                                && (int) ($data['party_id'] ?? 0) === (int) $company->self_party_id) {
+                                throw ValidationException::withMessages([
+                                    'party_id' => 'Select Current Company to add your company to this acquisition.',
+                                ]);
+                            }
+                            $party = ($data['party_source'] ?? 'existing_party') === 'current_company'
+                                ? app(PropertyAcquisitionService::class)->selfPartyForCompany(
+                                    $company
+                                )
+                                : Party::withoutGlobalScopes()->findOrFail($data['party_id']);
 
                             return app(PropertyAcquisitionService::class)->attachParty(
                                 auth()->user(),
-                                $this->getOwnerRecord(),
+                                $acquisition,
                                 $party,
                                 $data['role'],
-                                collect($data)->except(['party_id', 'role'])->all(),
+                                collect($data)->except(['party_source', 'party_id', 'role'])->all(),
                             );
                         } catch (ValidationException $e) {
                             Notification::make()

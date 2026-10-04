@@ -110,6 +110,27 @@ class PropertyAcquisitionWorkflowTest extends TestCase
         $service->transition($actor, $acquisition->refresh(), 'completed');
     }
 
+    public function test_start_due_diligence_explains_that_a_property_and_party_are_required(): void
+    {
+        $company = Company::create(['name' => 'A', 'email' => 'a@test.com']);
+        $actor = $this->actor($company, ['update_property::acquisition']);
+        $acquisition = PropertyAcquisition::withoutGlobalScopes()->create([
+            'company_id' => $company->id,
+            'type' => 'cash_purchase',
+        ]);
+
+        try {
+            app(PropertyAcquisitionService::class)->transition($actor, $acquisition, 'under_due_diligence');
+            $this->fail('Due diligence must require both a property and a party.');
+        } catch (ValidationException $exception) {
+            $this->assertSame(
+                'At least one property and one involved party are required before due diligence.',
+                $exception->errors()['status'][0],
+            );
+            $this->assertSame('draft', $acquisition->fresh()->status);
+        }
+    }
+
     public function test_completed_and_cancelled_acquisitions_cannot_be_deleted(): void
     {
         $company = Company::create(['name' => 'A', 'email' => 'a@test.com']);
@@ -176,7 +197,7 @@ class PropertyAcquisitionWorkflowTest extends TestCase
         $this->assertTrue($property->propertyAcquisitions()->whereKey($acquisition)->exists());
     }
 
-    public function test_company_ownership_uses_a_reusable_company_party(): void
+    public function test_company_uses_one_canonical_self_party_even_after_renaming(): void
     {
         $company = Company::create(['name' => 'Company Owner', 'email' => 'owner@test.com']);
         $property = $this->property($company);
@@ -185,6 +206,36 @@ class PropertyAcquisitionWorkflowTest extends TestCase
 
         $this->assertSame('company', $party->type);
         $this->assertSame($company->id, $party->company_id);
+        $this->assertSame($party->id, $company->fresh()->self_party_id);
         $this->assertSame($party->id, $service->partyForCompany($property, $company)->id);
+
+        $company->update(['name' => 'Renamed Company Owner']);
+        $this->assertSame($party->id, $service->partyForCompany($property, $company->fresh())->id);
+        $this->assertSame(1, Party::withoutGlobalScopes()->whereKey($party->id)->count());
+
+        $otherCompany = Company::create(['name' => 'Other Company', 'email' => 'other-owner@test.com']);
+        $otherParty = $service->partyForCompany($this->property($otherCompany), $otherCompany);
+        $this->assertNotSame($party->id, $otherParty->id);
+        $this->assertSame($otherCompany->id, $otherParty->company_id);
+    }
+
+    public function test_current_company_and_external_company_can_share_an_acquisition_as_partners(): void
+    {
+        $company = Company::create(['name' => 'Our Company', 'email' => 'ours@test.com']);
+        $actor = $this->actor($company, ['update_property::acquisition']);
+        $acquisition = PropertyAcquisition::withoutGlobalScopes()->create(['company_id' => $company->id, 'type' => 'partnership']);
+        $service = app(PropertyAcquisitionService::class);
+        $currentCompanyParty = $service->selfPartyForCompany($company);
+        $externalCompanyParty = Party::withoutGlobalScopes()->create([
+            'company_id' => $company->id,
+            'type' => 'company',
+            'name' => 'External Development Company',
+        ]);
+
+        $service->attachParty($actor, $acquisition, $currentCompanyParty, 'partner', ['share_percentage' => 30]);
+        $service->attachParty($actor, $acquisition, $externalCompanyParty, 'partner', ['share_percentage' => 70]);
+
+        $this->assertSame(2, $acquisition->acquisitionParties()->count());
+        $this->assertSame(100.0, (float) $acquisition->acquisitionParties()->where('role', 'partner')->sum('share_percentage'));
     }
 }

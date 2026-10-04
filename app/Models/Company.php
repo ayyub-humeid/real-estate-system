@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Models\Unit;
 use App\Models\Property;
 
@@ -45,6 +46,11 @@ class Company extends Model
     public function users(): HasMany
     {
         return $this->hasMany(User::class);
+    }
+
+    public function selfParty(): BelongsTo
+    {
+        return $this->belongsTo(Party::class, 'self_party_id');
     }
     public function properties(): HasMany
     {

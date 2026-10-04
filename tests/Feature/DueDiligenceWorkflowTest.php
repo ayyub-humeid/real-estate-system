@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Company;
+use App\Models\AcquisitionProperty;
 use App\Models\DueDiligenceCase;
 use App\Models\DueDiligenceItem;
 use App\Models\Location;
@@ -85,14 +86,119 @@ class DueDiligenceWorkflowTest extends TestCase
         $superAdmin = $this->actor($companyA, ['create_due_diligence_case'], true);
         $acquisition = PropertyAcquisition::withoutGlobalScopes()->create(['company_id' => $companyA->id, 'type' => 'cash_purchase']);
         $propertyA = $this->property($companyA);
+        $unattachedProperty = $this->property($companyA);
         $propertyB = $this->property($companyB);
+        AcquisitionProperty::withoutGlobalScopes()->create([
+            'company_id' => $companyA->id,
+            'property_acquisition_id' => $acquisition->id,
+            'property_id' => $propertyA->id,
+        ]);
         $service = app(PropertyAcquisitionService::class);
 
         $case = $service->createDueDiligenceCase($superAdmin, $acquisition, ['property_id' => $propertyA->id]);
         $this->assertSame($companyA->id, $case->company_id);
         $this->assertSame($propertyA->id, $case->property_id);
 
+        try {
+            $service->createDueDiligenceCase($superAdmin, $acquisition, ['property_id' => $unattachedProperty->id]);
+            $this->fail('A same-company property outside the acquisition must be rejected.');
+        } catch (ValidationException) {
+            $this->assertTrue(true);
+        }
+
         $this->expectException(ValidationException::class);
         $service->createDueDiligenceCase($superAdmin, $acquisition, ['property_id' => $propertyB->id]);
+    }
+
+    public function test_new_case_reopens_approved_acquisition_but_terminal_acquisitions_reject_cases(): void
+    {
+        $company = Company::create(['name' => 'A', 'email' => 'a@test.com']);
+        $actor = $this->actor($company, ['create_due_diligence_case']);
+        $service = app(PropertyAcquisitionService::class);
+
+        $approved = PropertyAcquisition::withoutGlobalScopes()->create([
+            'company_id' => $company->id,
+            'type' => 'cash_purchase',
+            'status' => 'approved',
+            'approved_by' => $actor->id,
+            'approved_at' => now(),
+        ]);
+
+        $case = $service->createDueDiligenceCase($actor, $approved, ['summary' => 'Late legal finding']);
+
+        $this->assertSame($company->id, $case->company_id);
+        $this->assertSame($approved->id, $case->property_acquisition_id);
+        $this->assertSame('under_due_diligence', $approved->fresh()->status);
+        $this->assertNull($approved->fresh()->approved_by);
+        $this->assertNull($approved->fresh()->approved_at);
+
+        foreach (['completed', 'cancelled'] as $status) {
+            $terminal = PropertyAcquisition::withoutGlobalScopes()->create([
+                'company_id' => $company->id,
+                'type' => 'cash_purchase',
+                'status' => $status,
+            ]);
+
+            try {
+                $service->createDueDiligenceCase($actor, $terminal, []);
+                $this->fail("{$status} acquisition accepted a new due-diligence case.");
+            } catch (ValidationException) {
+                $this->assertSame($status, $terminal->fresh()->status);
+            }
+        }
+    }
+
+    public function test_new_checklist_item_reopens_a_cleared_case_and_approved_acquisition(): void
+    {
+        $company = Company::create(['name' => 'A', 'email' => 'a@test.com']);
+        $actor = $this->actor($company, ['create_due_diligence_item']);
+        $acquisition = PropertyAcquisition::withoutGlobalScopes()->create([
+            'company_id' => $company->id,
+            'type' => 'cash_purchase',
+            'status' => 'approved',
+            'approved_by' => $actor->id,
+            'approved_at' => now(),
+        ]);
+        $case = DueDiligenceCase::withoutGlobalScopes()->create([
+            'company_id' => $company->id,
+            'property_acquisition_id' => $acquisition->id,
+            'status' => 'cleared',
+            'opened_at' => now()->subDay(),
+            'completed_at' => now(),
+            'completed_by' => $actor->id,
+        ]);
+
+        $item = app(PropertyAcquisitionService::class)->createDueDiligenceItem($actor, $case, [
+            'title' => 'Late compliance check',
+            'is_required' => true,
+        ]);
+
+        $this->assertSame($company->id, $item->company_id);
+        $this->assertSame('pending', $item->status);
+        $this->assertSame('open', $case->fresh()->status);
+        $this->assertNull($case->fresh()->completed_at);
+        $this->assertSame('under_due_diligence', $acquisition->fresh()->status);
+        $this->assertNull($acquisition->fresh()->approved_by);
+    }
+
+    public function test_create_case_persists_its_submitted_checklist_items(): void
+    {
+        $company = Company::create(['name' => 'A', 'email' => 'a@test.com']);
+        $actor = $this->actor($company, ['create_due_diligence_case']);
+        $acquisition = PropertyAcquisition::withoutGlobalScopes()->create([
+            'company_id' => $company->id,
+            'type' => 'cash_purchase',
+        ]);
+
+        $case = app(PropertyAcquisitionService::class)->createDueDiligenceCase($actor, $acquisition, [
+            'summary' => 'Initial checks',
+            'items' => [
+                ['title' => 'Title deed', 'is_required' => true, 'status' => 'pending'],
+                ['title' => 'Municipality clearance', 'is_required' => false, 'status' => 'passed'],
+            ],
+        ]);
+
+        $this->assertSame(2, $case->items()->count());
+        $this->assertSame($company->id, $case->items()->first()->company_id);
     }
 }
