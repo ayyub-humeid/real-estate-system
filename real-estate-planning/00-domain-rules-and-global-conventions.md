@@ -3691,6 +3691,22 @@ Tables\Actions\CreateAction::make()
 
 This rule also applies to custom workflow actions (e.g., "Clear", "Waive", "Approve"). On success, send a `->success()` notification so the user knows the action completed.
 
+## Parent Workflow Reassessment Rule
+
+Any create, update, replacement, or removal of a child record that is a prerequisite for a parent workflow must reassess the parent state in the **service/domain layer**. Do not leave a parent marked as approved merely because it was valid before new evidence or a new requirement was added.
+
+For each such operation, the phase specification and implementation must explicitly define all of the following:
+
+1. Whether the operation is allowed for every parent status.
+2. Which statuses are terminal and must reject the operation server-side.
+3. Whether a reversible approval must be invalidated and which earlier state the parent returns to.
+4. Which approval/completion metadata must be cleared when the parent is reopened.
+5. The exact authorization, transaction boundary, user feedback, and regression tests.
+
+Example: a new Due Diligence Case added after an Acquisition is `approved` reopens it to `under_due_diligence` and clears `approved_by` / `approved_at`; a `completed` or `cancelled` Acquisition rejects a new Case. The same reasoning applies to later phases for changed budgets, new compliance findings, contract amendments, or replacement ownership records.
+
+The UI may hide an invalid action, but the service must enforce the rule because requests can bypass the UI.
+
 ## Percentage / Total Validation Rule
 
 For any field where the total across related records must not exceed a business limit (e.g., `share_percentage` must not exceed 100%), the validation **must be scoped by the appropriate grouping key** — never summed globally across all records.
@@ -3768,6 +3784,16 @@ To prevent silent failures, confusing states, or inaccessible nested data, follo
     ->visible(fn () => !in_array($this->record->status, ['cancelled', 'completed']))
     ```
 3. **View Actions for Repeaters**: If a Relation Manager table contains complex items (like a `Repeater` in the form) but the table only shows an `items_count`, you **must** include a `Tables\Actions\ViewAction::make()` in the table actions so the user can actually inspect the nested data without needing to explicitly edit it.
+
+4. **Feedback for Every Mutating Operation**: Every user-initiated create, edit, attach, detach, replacement, delete, or workflow action must give an immediate, understandable result in the same screen:
+   - success: a `success()` toast that says what changed and, for state changes, the resulting status;
+   - validation/domain rejection: a `danger()` toast with the first actionable reason;
+   - authorization rejection: a `danger()` toast saying the action is not permitted;
+   - unexpected failure: preserve Laravel's error handling/logging and do not display a false success state.
+
+   Wrap custom/service-backed actions in `try/catch` as defined above. Standard Filament CRUD actions may use Filament's built-in success notifications, but they must be configured when the default message would be unclear. Refresh only the affected Livewire component after success; do not use a full-page reload to communicate completion.
+
+5. **Persistent Notifications Are Deliberate**: Immediate toast feedback is required for every mutation, but a stored/in-app business notification is only required for material events (approval, rejection, reopening, completion, cancellation, ownership replacement, etc.). Dispatch those only after the database transaction commits and only to the intended same-company recipients; do not create notification noise for ordinary edits.
 
 ---
 

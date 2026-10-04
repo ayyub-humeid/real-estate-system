@@ -15,9 +15,10 @@ READY TO CLOSE — Phase 01 targeted verification passes on MySQL and PostgreSQL
 ## Domain and Workflow
 
 - Acquisition lifecycle is `draft → under_due_diligence → approved → completed`, with cancellation permitted from the approved pre-terminal states.
-- Starting due diligence requires at least one Property and one Party. Approval requires every due-diligence case to be `cleared`.
+- Starting due diligence requires at least one Property and one Party. Approval requires every due-diligence case to be `cleared`. Adding a new case after approval reopens the Acquisition as `under_due_diligence` and clears its approval metadata; terminal completed/cancelled Acquisitions reject new cases.
 - Required pending or failed items set the case to `blocked`; authorized waiver permits subsequent clearance.
 - Ownership changes use the replacement transaction: validate an exact active total of 100%, close prior active rows, create the new rows, and retain complete history. Ownership records are not directly edited or deleted.
+- Each Company has at most one canonical `selfParty`, stored by the stable unique `companies.self_party_id` relationship. The canonical Party is reused when the Company name changes; external companies remain ordinary Party records.
 - `AcquisitionProperty.share_percentage` is per attached Property; it is not summed globally across an acquisition.
 - `AcquisitionParty.share_percentage` is constrained per `role` group. A seller and buyer can each be 100%; create and edit validation excludes the current record before summing its role group.
 
@@ -56,6 +57,7 @@ complete_property_acquisition
 - New company-owned models reuse `HasCompany` and the existing `CompanyScope`.
 - Association services reject cross-company Property/Party links.
 - Child creation derives `company_id` from its parent Acquisition or Property, never from a Super Admin user.
+- `partyForCompany()` locks the Company row, reuses its canonical Party, and creates/links it only on first use. The migration backfills only unambiguous legacy self Parties and never guesses ambiguous historical records.
 - Super Admin child selectors query explicitly with `withoutGlobalScopes()` and the parent company ID. Due Diligence and ownership selectors therefore only display records that belong to the parent context; cross-company IDs are also rejected in the service layer.
 
 ## Filament
@@ -63,6 +65,7 @@ complete_property_acquisition
 - Added Party and Property Acquisition resources.
 - Property has Ownership History and Acquisition History relation managers.
 - Acquisition has Properties, Parties, and Due Diligence relation managers.
+- Acquisition Parties offers `Current Company`, which resolves the Acquisition company's canonical self Party, alongside the existing external Party selector.
 - Workflow operations are reactive and do not force a browser reload.
 - Relation-manager actions that delegate to the service retain server-side policy checks; validation failures use domain exceptions for Filament to render.
 
@@ -79,8 +82,8 @@ The migration uses portable Laravel Schema Builder definitions. The MySQL unique
 
 | Engine | Isolated database | Clean migration | Phase 01 targeted tests |
 | --- | --- | --- | --- |
-| MySQL | `realState_test` | Passed | Passed — 18 tests, 55 assertions |
-| PostgreSQL (port 6000) | `realstate_pg_test` | Passed | Passed — 18 tests, 55 assertions |
+| MySQL | `realState_test` | Passed | Passed — 9 workflow tests, 28 assertions for the canonical self-Party addition |
+| PostgreSQL (port 6000) | `realstate_pg_test` | Passed | Passed — 9 workflow tests, 28 assertions for the canonical self-Party addition |
 
 ## Test Coverage
 
@@ -93,11 +96,14 @@ The migration uses portable Laravel Schema Builder definitions. The MySQL unique
 - Acquisition History server-side authorization and parent-company inheritance
 - Super Admin parent context and Due Diligence cross-company rejection
 - notification recipients and rollback behavior
+- canonical Company self-Party reuse, Company rename stability, and Company-to-Company separation
+- partnership allocation using Current Company (30%) and an external company Party (70%) within the same `partner` role
 
 ## Files Added or Updated
 
 - Phase 01 migration, models, policies, workflow service, notification, resources/relation managers, test database guard/configuration, and Phase 01 feature tests.
 - `AGENTS.md` / global guidance contains the reusable Shield naming, parent-company inheritance, relation-manager authorization, notification, and dual-database verification lessons discovered during Phase 01.
+- Global planning conventions now require parent-workflow reassessment whenever prerequisite children change, and immediate clear success/failure feedback for every user mutation.
 
 ## Deferred Intentionally
 
