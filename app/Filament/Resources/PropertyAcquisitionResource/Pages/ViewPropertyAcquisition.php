@@ -3,8 +3,11 @@ namespace App\Filament\Resources\PropertyAcquisitionResource\Pages;
 
 use App\Filament\Resources\PropertyAcquisitionResource; 
 use App\Services\PropertyAcquisitionService; 
+use Filament\Notifications\Notification;
 use Filament\Actions; 
 use Filament\Resources\Pages\ViewRecord; 
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Validation\ValidationException;
 
 class ViewPropertyAcquisition extends ViewRecord 
 { 
@@ -16,25 +19,23 @@ class ViewPropertyAcquisition extends ViewRecord
             Actions\Action::make('startDueDiligence')
                 ->label('Start due diligence')
                 ->visible(fn() => $this->record->status === 'draft')
+                ->authorize('update')
                 ->action(function() {
-                    app(PropertyAcquisitionService::class)->transition(auth()->user(), $this->record, 'under_due_diligence');
-                    \Filament\Notifications\Notification::make()->success()->title('Due Diligence Started')->send();
+                    $this->performTransition('under_due_diligence', 'Due Diligence Started');
                 }),
 
             Actions\Action::make('approve')
                 ->visible(fn() => $this->record->status === 'under_due_diligence')
                 ->authorize('approve')
                 ->action(function() {
-                    app(PropertyAcquisitionService::class)->transition(auth()->user(), $this->record, 'approved');
-                    \Filament\Notifications\Notification::make()->success()->title('Acquisition Approved')->send();
+                    $this->performTransition('approved', 'Acquisition Approved');
                 }),
 
             Actions\Action::make('complete')
                 ->visible(fn() => $this->record->status === 'approved')
                 ->authorize('complete')
                 ->action(function() {
-                    app(PropertyAcquisitionService::class)->transition(auth()->user(), $this->record, 'completed');
-                    \Filament\Notifications\Notification::make()->success()->title('Acquisition Completed')->send();
+                    $this->performTransition('completed', 'Acquisition Completed');
                 }),
 
             Actions\Action::make('cancel')
@@ -45,9 +46,38 @@ class ViewPropertyAcquisition extends ViewRecord
                 ])
                 ->authorize('cancel')
                 ->action(function(array $data) {
-                    app(PropertyAcquisitionService::class)->transition(auth()->user(), $this->record, 'cancelled', $data['reason']);
-                    \Filament\Notifications\Notification::make()->success()->title('Acquisition Cancelled')->send();
+                    $this->performTransition('cancelled', 'Acquisition Cancelled', $data['reason']);
                 })
         ];
-    } 
+    }
+
+    private function performTransition(string $status, string $successTitle, ?string $reason = null): void
+    {
+        try {
+            $this->record = app(PropertyAcquisitionService::class)->transition(
+                auth()->user(),
+                $this->record,
+                $status,
+                $reason,
+            );
+
+            Notification::make()
+                ->success()
+                ->title($successTitle)
+                ->body('Current status: '.str_replace('_', ' ', $this->record->status).'.')
+                ->send();
+        } catch (ValidationException $exception) {
+            Notification::make()
+                ->danger()
+                ->title('Cannot change acquisition status')
+                ->body(collect($exception->errors())->flatten()->first())
+                ->send();
+        } catch (AuthorizationException) {
+            Notification::make()
+                ->danger()
+                ->title('Unauthorized')
+                ->body('You do not have permission for this action.')
+                ->send();
+        }
+    }
 }
