@@ -52,7 +52,15 @@ class PropertyAcquisitionResource extends Resource
         return $table->columns([
             Tables\Columns\TextColumn::make('reference_number')->searchable(),
             Tables\Columns\TextColumn::make('type')->badge(),
-            Tables\Columns\TextColumn::make('status')->badge(),
+            Tables\Columns\TextColumn::make('status')
+                ->badge()
+                ->colors([
+                    'gray' => 'draft',
+                    'warning' => 'under_due_diligence',
+                    'info' => 'approved',
+                    'success' => 'completed',
+                    'danger' => 'cancelled',
+                ]),
             Tables\Columns\TextColumn::make('acquisition_properties_count')->label('Properties'),
             Tables\Columns\TextColumn::make('due_diligence_cases_count')->label('DD cases'),
         ])->actions([
