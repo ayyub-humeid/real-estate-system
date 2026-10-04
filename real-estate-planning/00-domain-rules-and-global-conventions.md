@@ -3899,3 +3899,18 @@ For reusable business categories such as Project Building Type and Planned Unit 
 For compact Filament action buttons and action groups that rely on icons, always add a concise `->tooltip()` naming the action group or purpose. Icons improve scanning, but the tooltip is required so unfamiliar users and keyboard/mouse users can understand the action before opening it.
 
 When running `shield:generate` in CI/CD, Docker, or any non-interactive environment, always supply the explicit Filament panel ID (currently `--panel=admin`) and `--no-interaction`. Without a panel ID Shield opens an interactive selector and deployment fails with `Required.`.
+
+---
+
+## Record Policy Tenant-Isolation Audit
+
+Global query scopes protect ordinary lists, but they are **not authorization**. A forged URL, a nested action payload, a queued job, or an explicit `withoutGlobalScopes()` lookup can still provide a cross-company record to a policy.
+
+For every company-owned model policy:
+
+1. Every record-based ability (`view`, `update`, `delete`, `approve`, `cancel`, `complete`, `attach`, `detach`, and similar) must verify both the exact permission and record-company access through `CompanyOwnedPolicy::canForRecord()` or an equivalent centralized check.
+2. Class-level abilities (`viewAny`, `create`) still require their exact Shield/custom permission; company inheritance and validation belongs in the service/create path.
+3. A platform Super Admin may cross company boundaries only through the existing privileged path, while still requiring the relevant permission unless an explicit global authorization rule has been approved.
+4. Each phase must include a role-based regression matrix that verifies: same-company record allowed, another-company record denied, workflow permission denied without its exact permission, and all custom permissions are present in the Roles UI after the idempotent seeder runs.
+
+Never treat a correctly filtered Filament table as proof that direct record authorization is secure.

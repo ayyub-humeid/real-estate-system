@@ -4,11 +4,12 @@ namespace App\Policies;
 
 use App\Models\User;
 use App\Models\Property;
+use App\Policies\Concerns\CompanyOwnedPolicy;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class PropertyPolicy
 {
-    use HandlesAuthorization;
+    use HandlesAuthorization, CompanyOwnedPolicy;
 
     /**
      * Determine whether the user can view any models.
@@ -23,7 +24,7 @@ class PropertyPolicy
      */
     public function view(User $user, Property $property): bool
     {
-        return $user->can('view_property');
+        return $this->canForRecord($user, 'view_property', $property);
     }
 
     /**
@@ -39,7 +40,7 @@ class PropertyPolicy
      */
     public function update(User $user, Property $property): bool
     {
-        return $user->can('update_property');
+        return $this->canForRecord($user, 'update_property', $property);
     }
 
     /**
@@ -47,7 +48,7 @@ class PropertyPolicy
      */
     public function delete(User $user, Property $property): bool
     {
-        return $user->can('delete_property');
+        return $this->canForRecord($user, 'delete_property', $property);
     }
 
     /**
@@ -63,7 +64,7 @@ class PropertyPolicy
      */
     public function forceDelete(User $user, Property $property): bool
     {
-        return $user->can('force_delete_property');
+        return $this->canForRecord($user, 'force_delete_property', $property);
     }
 
     /**
@@ -79,7 +80,7 @@ class PropertyPolicy
      */
     public function restore(User $user, Property $property): bool
     {
-        return $user->can('restore_property');
+        return $this->canForRecord($user, 'restore_property', $property);
     }
 
     /**
@@ -95,7 +96,7 @@ class PropertyPolicy
      */
     public function replicate(User $user, Property $property): bool
     {
-        return $user->can('replicate_property');
+        return $this->canForRecord($user, 'replicate_property', $property);
     }
 
     /**
