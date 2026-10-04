@@ -58,6 +58,7 @@ class Property extends Model
     public function acquisitionProperties(): HasMany { return $this->hasMany(AcquisitionProperty::class); }
     public function propertyAcquisitions(): BelongsToMany { return $this->belongsToMany(PropertyAcquisition::class, 'acquisition_properties')->withPivot(['share_percentage', 'allocated_value', 'notes'])->withTimestamps(); }
     public function documents(): MorphMany { return $this->morphMany(Document::class, 'documentable'); }
+    public function projectProperties(): HasMany { return $this->hasMany(ProjectProperty::class); }
 
     /**
      * Polymorphic: all images belonging to this property.

@@ -1,0 +1,4 @@
+<?php
+namespace App\Policies;
+use App\Models\{PlannedUnitSpecification,User}; use App\Policies\Concerns\CompanyOwnedPolicy;
+class PlannedUnitSpecificationPolicy { use CompanyOwnedPolicy; public function viewAny(User $u):bool{return $this->canForResource($u,'view_any_planned_unit_specification');} public function view(User $u,PlannedUnitSpecification $r):bool{return $this->canForRecord($u,'view_planned_unit_specification',$r);} public function create(User $u):bool{return $this->canForResource($u,'create_planned_unit_specification');} public function update(User $u,PlannedUnitSpecification $r):bool{return $this->canForRecord($u,'update_planned_unit_specification',$r);} public function delete(User $u,PlannedUnitSpecification $r):bool{return $this->canForRecord($u,'delete_planned_unit_specification',$r);} }
