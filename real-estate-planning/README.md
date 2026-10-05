@@ -254,7 +254,7 @@ Reuse existing project architecture rather than introducing unnecessary abstract
 
 ---
 
-## 10. Filament / Livewire UX Rule
+## 10. Filament / Livewire UX & Display Rule
 
 Normal CRUD and workflow actions should be reactive.
 
@@ -269,6 +269,15 @@ Action
 ```
 
 Avoid forced browser reloads or unnecessary redirects as state synchronization.
+
+### Clear Display of Relational Data
+
+When ANY complex workflow or nested relationship exists across the application (e.g., Budgets, Contracts, Property Acquisitions, Construction), having the actions work on the backend is not enough. The UI must cleanly surface all related data and results.
+
+- **Use Infolists and Tabs:** ALWAYS use categorized Tabs or Sections within a `ViewAction` (or Resource View page) to group nested relationships (e.g., children records, documents, workflow history, reviews). Do not use a simple single-column text display.
+- **Visualize State:** Always display status and severity fields using color-coded Badges to make the state immediately clear at a glance.
+- **Surface Important History:** Actions that generate an audit trail (like revisions, approvals, or document versions) must have their history clearly mapped and visible in the UI, rather than hidden in the database.
+- **Complete Mapping:** Displaying just the top-level parent record is insufficient. The UI must clearly map out its child items, workflow submissions, and all related entities in a report-like format.
 
 ---
 

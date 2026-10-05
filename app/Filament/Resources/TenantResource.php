@@ -39,11 +39,7 @@ class TenantResource extends Resource
                 'leases',
                 'leases as active_leases_count' => fn($q) => $q->where('status', 'active'),
             ])
-            // ✅ WHY: Calculate total payments in database
-            // Instead of loading all leases + all payments (heavy!)
-            // Let database do the aggregation (fast!)
-            // ->withSum('leases.payments as total_paid', 'paid_amount')
-            ->withSum('payments as total_paid', 'paid_amount');
+            ;
         ;
     }
 
@@ -387,13 +383,6 @@ class TenantResource extends Resource
                     ->badge()
                     ->color('success'),
 
-                // 🔥 WHY: total_paid from withSum() - computed in database
-                Tables\Columns\TextColumn::make('total_paid')
-                    ->label('Total Paid')
-                    ->money('USD')
-                    ->sortable()
-                    ->toggleable(),
-
                 Tables\Columns\TextColumn::make('background_check_status')
                     ->badge()
                     ->colors([
@@ -460,9 +449,7 @@ class TenantResource extends Resource
     public static function getRelations(): array
     {
         return [
-            // We'll add LeaseRelationManager later
-        TenantResource\RelationManagers\PaymentsRelationManager::class,
-        TenantResource\RelationManagers\LeasesRelationManager::class,
+            TenantResource\RelationManagers\LeasesRelationManager::class,
 
         ];
     }

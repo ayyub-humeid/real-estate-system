@@ -877,21 +877,22 @@ Avoid silent currency conversion.
 
 # 21. Payments Global Rule
 
-The canonical financial collection model is:
+`Payment` is the one canonical record of an actual cash movement. It must
+never double as a due amount, installment, commitment, or expense.
+
+`PaymentAllocation` is the one canonical allocation mechanism. Its permitted
+target depends on the financial direction:
 
 ```text
-Contract
-   ↓
-Payment Schedule
-   ↓
-Installments
+Phase 04 — outgoing project cost
+Payment → Payment Allocation → Actual Cost
 
-Payment
-   ↓
-Payment Allocations
-   ↓
-Installments
+Phase 08 — incoming customer collection
+Payment → Payment Allocation → Installment
 ```
+
+Phase 08 extends these same tables and allocation rules; it must not introduce
+a second payments or allocations table.
 
 Definitions:
 
@@ -905,11 +906,14 @@ An amount that becomes due on a specific date.
 
 ### Payment
 
-Actual money received.
+Actual money moved. Phase 04 records outgoing project-cost payments; Phase 08
+adds incoming customer receipts through the same model with an explicit
+direction/context.
 
 ### Payment Allocation
 
-The portion of an actual payment applied to a specific installment.
+The portion of an actual payment applied to one approved settlement target:
+an `ActualCost` in Phase 04 or an `Installment` in Phase 08.
 
 This enables:
 
@@ -923,7 +927,7 @@ irregular schedules
 overdue tracking
 ```
 
-Canonical calculations:
+For customer installments, canonical calculations are:
 
 ```text
 installment_paid =

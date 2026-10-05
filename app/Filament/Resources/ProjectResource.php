@@ -27,6 +27,8 @@ class ProjectResource extends Resource
             Forms\Components\TextInput::make('project_type')
                 ->placeholder('e.g., Residential, Commercial, Industrial')
                 ->required(),
+            Forms\Components\TextInput::make('currency')->required()->length(3)->extraInputAttributes(['style' => 'text-transform: uppercase;'])->default('USD')
+                ->disabled(fn (?Project $record): bool => $record && ($record->budgets()->exists() || $record->commitments()->exists() || $record->actualCosts()->exists() || $record->payments()->exists())),
             Forms\Components\DatePicker::make('start_date'),
             Forms\Components\DatePicker::make('expected_completion_date'),
             Forms\Components\Textarea::make('description')->columnSpanFull()
@@ -50,6 +52,10 @@ class ProjectResource extends Resource
             RelationManagers\ProjectMembersRelationManager::class,
             RelationManagers\ProjectBuildingsRelationManager::class,
             RelationManagers\DesignPackagesRelationManager::class,
+            RelationManagers\ProjectBudgetsRelationManager::class,
+            RelationManagers\ProjectCommitmentsRelationManager::class,
+            RelationManagers\ProjectActualCostsRelationManager::class,
+            RelationManagers\ProjectPaymentsRelationManager::class,
         ];
     }
     public static function getPages(): array

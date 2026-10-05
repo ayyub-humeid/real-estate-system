@@ -48,26 +48,9 @@ class CheckLeaseExpirations extends Command
             }
         }
 
-        // 2. Check Overdue Payments
-        $overduePayments = \App\Models\Payment::overdue()->get();
-        $this->info("Found {$overduePayments->count()} overdue payments.");
-
-        foreach ($overduePayments as $payment) {
-            // Notify Financial Managers
-            $managers = \App\Models\User::where('company_id', $payment->company_id)
-                ->role('financial_manager')
-                ->get();
-
-            foreach ($managers as $manager) {
-                $manager->notify(new \App\Notifications\PaymentOverdueNotification($payment));
-            }
-
-            // Notify Tenant
-            $tenantUser = $payment->lease->tenant->user ?? null;
-            if ($tenantUser) {
-                $tenantUser->notify(new \App\Notifications\PaymentOverdueNotification($payment));
-            }
-        }
+        // Customer-payment due/overdue schedules are introduced in Phase 08.
+        // Phase 04 Payment is a completed project cash movement, so it has no
+        // lease due-date/overdue semantics to evaluate here.
 
         $this->info('Automated checks completed successfully.');
     }

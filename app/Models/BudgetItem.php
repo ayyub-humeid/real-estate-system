@@ -1,0 +1,4 @@
+<?php
+namespace App\Models;
+use Illuminate\Database\Eloquent\Model; use Illuminate\Database\Eloquent\Relations\{BelongsTo,HasMany};
+class BudgetItem extends Model { use \App\Traits\HasCompany; protected $fillable=['company_id','budget_category_id','budget_line_id','cloned_from_id','code','name','description','planned_amount','quantity','unit','unit_cost','notes']; protected $casts=['planned_amount'=>'decimal:4','quantity'=>'decimal:4','unit_cost'=>'decimal:4']; public function category():BelongsTo{return $this->belongsTo(BudgetCategory::class,'budget_category_id');} public function line():BelongsTo{return $this->belongsTo(BudgetLine::class,'budget_line_id');} public function clonedFrom():BelongsTo{return $this->belongsTo(self::class,'cloned_from_id');} public function commitments():HasMany{return $this->hasMany(FinancialCommitment::class);} public function actualCosts():HasMany{return $this->hasMany(ActualCost::class);} }

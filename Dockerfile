@@ -65,7 +65,7 @@ RUN php artisan storage:link
 ENV PORT=80
 EXPOSE ${PORT}
 
-# TEMPORARY deployment bootstrap for the company-role and Phase 03 permissions.
+# TEMPORARY deployment bootstrap for company roles and all Shield permissions.
 # After the first successful production deploy, comment out shield:generate,
 # db:seed, and app:backfill-company-roles; keep migrate in the release flow.
-CMD npm run build && php artisan package:discover && php artisan storage:link && php artisan config:clear && php artisan migrate --force --database=pgsql_direct && DB_CONNECTION=pgsql_direct php artisan shield:generate --resource=ProjectDesignPackageResource --option=permissions --panel=admin --no-interaction && DB_CONNECTION=pgsql_direct php artisan db:seed --class=RolesAndPermissionsSeeder --force && DB_CONNECTION=pgsql_direct php artisan app:backfill-company-roles && php artisan optimize:clear && php artisan filament:cache-components && php artisan optimize && apache2-foreground
+CMD npm run build && php artisan package:discover && php artisan storage:link && php artisan config:clear && php artisan migrate --force --database=pgsql_direct && DB_CONNECTION=pgsql_direct php artisan shield:generate --all --option=permissions --panel=admin --no-interaction && DB_CONNECTION=pgsql_direct php artisan db:seed --class=RolesAndPermissionsSeeder --force && DB_CONNECTION=pgsql_direct php artisan app:backfill-company-roles && php artisan optimize:clear && php artisan filament:cache-components && php artisan optimize && apache2-foreground

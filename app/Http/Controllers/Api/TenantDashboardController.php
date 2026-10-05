@@ -46,12 +46,10 @@ class TenantDashboardController extends Controller
             ->latest()
             ->get();
 
-        // 3. جدول المدفوعات (المستحقة والمدفوعة) عبر العقود
-        $payments = Payment::withoutGlobalScopes()
-            ->whereIn('lease_id', $leases->pluck('id'))
-            ->with(['lease.unit.property'])
-            ->orderBy('due_date', 'asc')
-            ->get();
+        // Customer schedules/installments are deliberately deferred to Phase 08.
+        // Phase 04 payments are project cost-side cash movements and must never
+        // be exposed as tenant rent obligations.
+        $payments = collect();
 
         // 4. تحديد الشركة العقارية التي تدير عقاره الحالي (المدرجة في الـ Sidebar)
         $currentLease = $leases->where('status', 'active')->first() ?? $leases->first();

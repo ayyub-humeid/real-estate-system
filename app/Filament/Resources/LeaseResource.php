@@ -34,13 +34,7 @@ class LeaseResource extends Resource
                 'unit:id,unit_number,property_id',
                 'unit.property:id,name',
             ])
-            ->withCount([
-                'payments',
-                'payments as paid_payments_count' => fn($q) => $q->where('status', 'paid'),
-                'payments as pending_payments_count' => fn($q) => $q->whereIn('status', ['pending', 'overdue']),
-                'documents',
-            ])
-            ->withSum(['payments as total_paid' => fn($q) => $q->where('type', 'rent')->where('status', '!=', 'cancelled')], 'paid_amount');
+            ->withCount(['documents']);
     }
 
     /**
@@ -255,38 +249,6 @@ class LeaseResource extends Resource
                     ])
                     ->sortable(),
 
-                // 🔥 WHY: payments_count comes from withCount() - NO extra query
-                // It's a single aggregation in the main query
-                Tables\Columns\TextColumn::make('payments_count')
-                    ->label('Payments')
-                    ->badge()
-                    ->color('info')
-                    ->icon('heroicon-m-banknotes')
-                    ->toggleable(isToggledHiddenByDefault: true),
-
-                // 🔥 WHY: total_paid comes from withSum() - computed in DB, not PHP
-                // Much faster than loading all payments and summing in PHP
-                Tables\Columns\TextColumn::make('total_paid')
-                    ->label('Paid')
-                    ->money('USD')
-                    ->color('success')
-                    ->sortable(),
-                // In LeaseResource::table() columns array, after 'total_paid':
-                Tables\Columns\IconColumn::make('is_fully_paid')
-                    ->label('Settled')
-                    ->boolean()
-                    ->trueIcon('heroicon-o-check-badge')
-                    ->falseIcon('heroicon-o-clock')
-                    ->trueColor('success')
-                    ->falseColor('gray')
-                    ->state(fn($record) => $record->is_fully_paid),
-
-                Tables\Columns\TextColumn::make('outstanding_balance')
-                    ->label('Outstanding')
-                    ->state(fn($record) => $record->outstanding_balance)
-                    ->money('USD')
-                    ->color('danger'),
-
                 Tables\Columns\TextColumn::make('company.name')
                     ->label('Company')
                     ->searchable()
@@ -386,41 +348,6 @@ class LeaseResource extends Resource
                         }, 'lease-' . str_pad($record->id, 6, '0', STR_PAD_LEFT) . '.pdf');
                     }),
 
-                // 🔥 Custom action - Generate payments
-                Tables\Actions\Action::make('generate_payments')
-                    ->label('Generate Payments')
-                    ->icon('heroicon-o-banknotes')
-                    ->color('success')
-                    ->visible(fn($record) => $record->status === 'active')
-                    ->requiresConfirmation()
-                    ->action(function ($record) {
-                        $result = $record->generatePaymentSchedule();
-
-                        match ($result) {
-                            'created' => \Filament\Notifications\Notification::make()
-                                ->title('Payment schedule generated successfully')
-                                ->body('Installments have been created.' . (
-                                    (float) $record->deposit_amount > 0
-                                    ? ' A deposit payment of $' . number_format($record->deposit_amount, 2) . ' was also recorded.'
-                                    : ''
-                                ))
-                                ->success()
-                                ->send(),
-
-                            'exists' => \Filament\Notifications\Notification::make()
-                                ->title('Schedule already exists')
-                                ->body('This lease already has ' . $record->payments()->count() . ' installment(s). Delete existing payments first to regenerate.')
-                                ->warning()
-                                ->send(),
-
-                            default => \Filament\Notifications\Notification::make()
-                                ->title('Cannot generate schedule')
-                                ->body('The lease must be in "active" status to generate payments.')
-                                ->danger()
-                                ->send(),
-                        };
-                    }),
-
                 Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
@@ -435,9 +362,7 @@ class LeaseResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            RelationManagers\PaymentsRelationManager::class,
-        ];
+        return [];
     }
 
     public static function getPages(): array

@@ -4,9 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
-use App\Models\Payment;
 use App\Models\User;
-use App\Observers\PaymentObserver;
 use App\Observers\UserObserver;
 use Filament\Support\Assets\Js;
 use Filament\Support\Facades\FilamentAsset;
@@ -19,10 +17,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-
-        // Register the PaymentObserver
-        // \App\Models\Payment::observe(PaymentObserver::class);
-
     }
 
     /**
@@ -36,7 +30,6 @@ class AppServiceProvider extends ServiceProvider
             \Illuminate\Support\Facades\URL::forceScheme('https');
         }
 
-        \App\Models\Payment::observe(\App\Observers\PaymentObserver::class);
         \App\Models\User::observe(\App\Observers\UserObserver::class);
         \App\Models\MaintenanceRequest::observe(\App\Observers\MaintenanceRequestObserver::class);
         \App\Models\RentalRequest::observe(\App\Observers\RentalRequestObserver::class);

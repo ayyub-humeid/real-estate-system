@@ -79,13 +79,10 @@ class FinancialReport extends Page implements HasForms
 
     protected function getHeaderActions(): array
     {
-        return [
-            Action::make('exportPdf')
-                ->label('Download PDF Report')
-                ->icon('heroicon-o-arrow-down-tray')
-                ->color('success')
-                ->action('exportToPdf'),
-        ];
+        // A cross-project money report is intentionally withheld: projects may
+        // have different accounting currencies. Phase 04 shows monetary totals
+        // in the selected Project's financial workspace instead.
+        return [];
     }
 
     public function exportToPdf()

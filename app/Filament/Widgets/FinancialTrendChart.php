@@ -2,109 +2,32 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\Payment;
-use App\Models\Expense;
+use App\Models\{ActualCost,Payment};
 use Filament\Widgets\ChartWidget;
-use Flowframe\Trend\Trend;
-use Flowframe\Trend\TrendValue;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Livewire\Attributes\Reactive;
 
 class FinancialTrendChart extends ChartWidget
 {
-    public ?array $filters = [];
-
-    protected $listeners = ['refreshWidgets'];
-
-    public function refreshWidgets(array $filters): void
-    {
-        $this->filters = $filters;
-        $this->getData(); // Force re-calculation
-    }
-
-    protected static bool $isLazy = false;
+    protected static ?string $heading = 'Project Financial Activity (Monthly)';
+    protected static string $color = 'info';
+    protected int|string|array $columnSpan = 'full';
 
     public static function canView(): bool
     {
-        return auth()->user()->hasAnyRole(['super_admin', 'company_admin', 'property_manager']);
+        return auth()->user()->hasAnyRole(['super_admin', 'company_admin', 'financial_manager']);
     }
-
-    protected int | string | array $columnSpan = 'full';
-
-    protected static ?string $heading = 'Revenue vs Expenses (Monthly)';
-    protected static string $color = 'info';
 
     protected function getData(): array
     {
-        $propertyId = $this->filters['property_id'] ?? null;
-
-        $months = collect(range(0, 11))->map(function ($i) {
-            return now()->subMonths($i)->format('Y-m');
-        })->reverse()->values();
-
+        $months = collect(range(0, 11))->map(fn($i)=>now()->subMonths($i)->format('Y-m'))->reverse()->values();
         $driver = DB::getDriverName();
-        $paymentDateExpr = $driver === 'pgsql' 
-            ? "TO_CHAR(payment_date, 'YYYY-MM')" 
-            : ($driver === 'sqlite' ? "strftime('%Y-%m', payment_date)" : "DATE_FORMAT(payment_date, '%Y-%m')");
-
-        $expenseDateExpr = $driver === 'pgsql' 
-            ? "TO_CHAR(expense_date, 'YYYY-MM')" 
-            : ($driver === 'sqlite' ? "strftime('%Y-%m', expense_date)" : "DATE_FORMAT(expense_date, '%Y-%m')");
-
-        // Optimized: Get all monthly revenue in one query
-        $revenueQuery = Payment::select(
-                DB::raw("{$paymentDateExpr} as month"),
-                DB::raw("SUM(paid_amount) as total")
-            )
-            ->where('payment_date', '>=', now()->subMonths(11)->startOfMonth());
-        
-        if ($propertyId) {
-            $revenueQuery->whereHas('lease.unit', fn($q) => $q->where('property_id', $propertyId));
-        }
-
-        $revenueMonthly = $revenueQuery->groupBy('month')->pluck('total', 'month');
-
-        // Optimized: Get all monthly expenses in one query
-        $expensesQuery = Expense::select(
-                DB::raw("{$expenseDateExpr} as month"),
-                DB::raw("SUM(amount) as total")
-            )
-            ->where('status', 'paid')
-            ->where('expense_date', '>=', now()->subMonths(11)->startOfMonth());
-
-        if ($propertyId) {
-            $expensesQuery->where('property_id', $propertyId);
-        }
-
-        $expensesMonthly = $expensesQuery->groupBy('month')->pluck('total', 'month');
-
-        $revenueData = $months->map(fn($month) => $revenueMonthly->get($month, 0));
-        $expenseData = $months->map(fn($month) => $expensesMonthly->get($month, 0));
-
-        return [
-            'datasets' => [
-                [
-                    'label' => 'Revenue',
-                    'data' => $revenueData->toArray(),
-                    'borderColor' => '#10b981',
-                    'backgroundColor' => '#10b98133',
-                    'fill' => true,
-                ],
-                [
-                    'label' => 'Expenses',
-                    'data' => $expenseData->toArray(),
-                    'borderColor' => '#ef4444',
-                    'backgroundColor' => '#ef444433',
-                    'fill' => true,
-                ],
-            ],
-            'labels' => $months->map(fn($month) => Carbon::parse($month)->translatedFormat('M Y'))->toArray(),
-        ];
+        $paymentMonth = $driver==='pgsql' ? "TO_CHAR(payment_date, 'YYYY-MM')" : "DATE_FORMAT(payment_date, '%Y-%m')";
+        $costMonth = $driver==='pgsql' ? "TO_CHAR(incurred_at, 'YYYY-MM')" : "DATE_FORMAT(incurred_at, '%Y-%m')";
+        $payments = Payment::query()->selectRaw("{$paymentMonth} as month, COUNT(*) as total")->where('status','completed')->where('direction','outgoing')->where('payment_date','>=',now()->subMonths(11)->startOfMonth())->groupBy('month')->pluck('total','month');
+        $costs = ActualCost::query()->selectRaw("{$costMonth} as month, COUNT(*) as total")->where('status','approved')->where('incurred_at','>=',now()->subMonths(11)->startOfMonth())->groupBy('month')->pluck('total','month');
+        return ['datasets'=>[['label'=>'Completed payments','data'=>$months->map(fn($month)=>(int)$payments->get($month,0))->all(),'borderColor'=>'#10b981','backgroundColor'=>'#10b98133','fill'=>true],['label'=>'Approved actual costs','data'=>$months->map(fn($month)=>(int)$costs->get($month,0))->all(),'borderColor'=>'#3b82f6','backgroundColor'=>'#3b82f633','fill'=>true]],'labels'=>$months->map(fn($month)=>Carbon::parse($month)->translatedFormat('M Y'))->all()];
     }
 
-    protected function getType(): string
-    {
-        return 'line';
-    }
+    protected function getType(): string { return 'line'; }
 }

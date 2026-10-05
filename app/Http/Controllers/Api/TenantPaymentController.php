@@ -16,6 +16,10 @@ class TenantPaymentController extends Controller
      */
     public function index(Request $request): AnonymousResourceCollection|JsonResponse
     {
+        return response()->json([
+            'message' => 'Tenant payment schedules are not available yet. They will be introduced with the Phase 08 billing workflow.',
+        ], 410);
+
         $user = $request->user();
 
         // Ensure the user has a tenant profile
@@ -50,6 +54,10 @@ class TenantPaymentController extends Controller
      */
     public function show(Request $request, $id): PaymentResource|JsonResponse
     {
+        return response()->json([
+            'message' => 'Tenant payment schedules are not available yet. They will be introduced with the Phase 08 billing workflow.',
+        ], 410);
+
         $user = $request->user();
 
         if (!$user->isTenant()) {

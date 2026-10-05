@@ -32,7 +32,9 @@ Implement/adapt:
 Project Budget versions
 Budget Categories
 Budget Items
-Financial Commitments
+Financial Commitments + Amendments
+Actual Costs + approval/correction workflow
+Payments + Payment Allocations
 budget lifecycle/approval
 over-budget/unbudgeted handling
 currency snapshot rules
@@ -52,15 +54,20 @@ Actual
 Paid
 ```
 
-This phase primarily implements Planned + Committed.
+This phase implements the complete project-cost chain: Planned → Committed →
+Actual → Paid. It does not implement Phase 08 customer schedules or
+installments, but it establishes the single Payment and Payment Allocation
+foundation that Phase 08 will extend.
 
 ## Inspection
 
 Inspect existing project financial fields, expenses/costs, contracts, payments, reports/dashboard calculations, currency handling, Projects, Parties, Policies/Shield, tenant scope, Filament finance UI, and tests.
 
-Do not repurpose customer payments as a budget engine.
-
-Do not destroy expense/payment data.
+Do not repurpose customer payment obligations as a budget engine. The existing
+legacy `payments` rows are lease installments/obligations, not actual-payment
+records; replace that conflicting structure and its dependent legacy paths as
+part of this phase. Preserve or migrate records only when their historical
+meaning is trustworthy; never invent financial facts.
 
 ## Versioning
 
@@ -162,6 +169,18 @@ optional contract/party tenant validation
 same currency
 different currency snapshot
 historical budget equivalent not silently recalculated
+mixed-currency payment allocations never summed without project-currency snapshots
+```
+
+### Actual Costs / Payments
+```text
+approved actual-cost gate
+actual-cost immutability and corrective offset
+same-company, same-project, and same-counterparty allocation validation
+payment allocation balance guards in both original currencies
+project-currency Paid aggregate
+concurrent allocation attempts cannot over-allocate
+failed allocation rolls back every write and sends no notification
 ```
 
 ### Policies / Notifications

@@ -136,26 +136,19 @@ class ViewTenant extends ViewRecord
                                     ->size(Infolists\Components\TextEntry\TextEntrySize::Small),
                             ])->extraAttributes(['class' => 'bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-100 dark:border-green-800']),
 
-                            // Card 3: Total Paid
+                            // Card 3: Customer billing is intentionally introduced in Phase 08.
              Infolists\Components\Group::make([
                                  Infolists\Components\TextEntry::make('total_paid')
-                                    ->label('Total Payments Received')
-                                    ->state(function ($record) {
-                                        // ✅ Use query aggregation, NOT collection methods
-                                        // This runs a single SQL query instead of loading all payments
-                                        return $record->payments()
-                                            ->where('payments.status', 'paid')
-                                            ->sum('payments.paid_amount') ?? 0;
-                                    })
-                                    ->money('USD')
+                                    ->label('Customer billing')
+                                    ->state('Available in Phase 08')
                                     ->badge()
                                     ->size(Infolists\Components\TextEntry\TextEntrySize::Large)
-                                    ->color('success')
+                                    ->color('gray')
                                     ->icon('heroicon-m-banknotes'), 
 
                                 Infolists\Components\TextEntry::make('paid_label')
                                     ->label('')
-                                    ->state('All-time payments')
+                                    ->state('Schedules and installments are not yet enabled')
                                     ->color('gray')
                                     ->size(Infolists\Components\TextEntry\TextEntrySize::Small),
                             ])->extraAttributes(['class' => 'bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-100 dark:border-yellow-800']),

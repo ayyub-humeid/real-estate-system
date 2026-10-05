@@ -99,6 +99,14 @@ class RolesAndPermissionsSeeder extends Seeder
             'view_any_design_package_revision', 'view_design_package_revision', 'create_design_package_revision',
             'view_any_design_revision_finding', 'view_design_revision_finding', 'create_design_revision_finding',
             'view_any_design_package_approval', 'view_design_package_approval', 'create_design_package_approval',
+            // Phase 04 — Budget relation managers and financial workflows.
+            'view_any_budget_category', 'view_budget_category', 'create_budget_category', 'update_budget_category', 'delete_budget_category',
+            'view_any_budget_item', 'view_budget_item', 'create_budget_item', 'update_budget_item', 'delete_budget_item',
+            'view_any_financial_commitment_amendment', 'view_financial_commitment_amendment', 'create_financial_commitment_amendment', 'approve_financial_commitment_amendment',
+            'view_any_payment_allocation', 'view_payment_allocation',
+            'submit_project_budget', 'approve_project_budget', 'reject_project_budget', 'create_budget_revision', 'cancel_project_budget',
+            'create_unbudgeted_commitment', 'commit_financial_commitment', 'approve_over_budget_commitment', 'release_financial_commitment', 'cancel_financial_commitment',
+            'submit_actual_cost', 'approve_actual_cost', 'create_actual_cost_correction', 'record_payment', 'allocate_payment', 'void_payment',
         ];
 
         foreach ($customDomainPermissions as $permission) {
@@ -151,7 +159,19 @@ class RolesAndPermissionsSeeder extends Seeder
                 ->orWhere('name', 'like', '%_expense')
                 ->orWhere('name', 'like', '%_document')
                 ->orWhere('name', 'like', '%_tenant')
-                ->orWhere('name', 'like', '%_company');
+                ->orWhere('name', 'like', '%_company')
+                ->orWhere('name', 'like', '%project::budget')
+                ->orWhere('name', 'like', '%financial::commitment')
+                ->orWhere('name', 'like', '%actual::cost')
+                ->orWhereIn('name', [
+                    'view_any_budget_category', 'view_budget_category', 'create_budget_category', 'update_budget_category', 'delete_budget_category',
+                    'view_any_budget_item', 'view_budget_item', 'create_budget_item', 'update_budget_item', 'delete_budget_item',
+                    'view_any_financial_commitment_amendment', 'view_financial_commitment_amendment', 'create_financial_commitment_amendment', 'approve_financial_commitment_amendment',
+                    'view_any_payment_allocation', 'view_payment_allocation',
+                    'submit_project_budget', 'approve_project_budget', 'reject_project_budget', 'create_budget_revision', 'cancel_project_budget',
+                    'create_unbudgeted_commitment', 'commit_financial_commitment', 'approve_over_budget_commitment', 'release_financial_commitment', 'cancel_financial_commitment',
+                    'submit_actual_cost', 'approve_actual_cost', 'create_actual_cost_correction', 'record_payment', 'allocate_payment', 'void_payment',
+                ]);
         })->get();
         $financialManager->syncPermissions($financialManagerPermissions);
     }

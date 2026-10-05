@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Tenant extends Model
@@ -70,18 +69,6 @@ class Tenant extends Model
     public function leases(): HasMany
     {
         return $this->hasMany(Lease::class, 'tenant_id');
-    }
-    // ✅ 4. Tenant → Payments (THROUGH Leases)
-    public function payments(): HasManyThrough
-    {
-        return $this->hasManyThrough(
-            Payment::class,      // Final model
-            Lease::class,        // Intermediate model
-            'tenant_id',         // Foreign key on leases table
-            'lease_id',          // Foreign key on payments table
-            'id',                // Local key on tenants table
-            'id'                 // Local key on leases table
-        );
     }
     public function rentalRequest(): HasMany
     {

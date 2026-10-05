@@ -110,6 +110,8 @@ class CheckoutController extends Controller
 
     public function createPaymentSession(Request $request)
     {
+        return response()->json(['success' => false, 'message' => 'Tenant payment checkout is not available until the Phase 08 billing workflow.'], 410);
+
         $request->validate([
             'payment_id' => 'required|exists:payments,id'
         ]);
@@ -229,6 +231,8 @@ class CheckoutController extends Controller
 
     public function verifyPaymentSession(Request $request)
     {
+        return response()->json(['success' => false, 'message' => 'Tenant payment checkout is not available until the Phase 08 billing workflow.'], 410);
+
         $request->validate([
             'session_id' => 'required|string',
         ]);

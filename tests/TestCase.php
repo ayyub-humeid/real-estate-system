@@ -32,10 +32,11 @@ abstract class TestCase extends BaseTestCase
             );
         }
 
-        // `migrate:fresh` succeeds as a standalone command but fails when Laravel
-        // invokes it inside the PHPUnit lifecycle after db:wipe drops migrations.
-        // The test database is prepared explicitly before PHPUnit starts; retain
-        // RefreshDatabase's transaction isolation without re-entering that path.
+        // The test database is rebuilt explicitly before PHPUnit. Laravel's
+        // normal MySQL db:wipe path drops the migrations repository and is not
+        // safe for this application's mixed historical migration set. Keep
+        // RefreshDatabase transaction isolation without running db:wipe inside
+        // the PHPUnit lifecycle.
         RefreshDatabaseState::$migrated = true;
 
         return $app;
