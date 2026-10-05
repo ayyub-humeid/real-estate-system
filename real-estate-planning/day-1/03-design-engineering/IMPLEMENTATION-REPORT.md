@@ -22,9 +22,11 @@ The following company-owned models and tables were added:
 - `DesignRevisionFinding` / `design_revision_findings`
 - `DesignPackageApproval` / `design_package_approvals`
 
-`documents` remains the existing logical-document model. `document_versions`
-stores immutable file versions; formal submission rows point to exact version
-IDs through `design_package_submission_documents`.
+`documents` is now the logical-document model only: title, description,
+creator, and its package relationship. All physical file metadata and storage
+paths were removed from it. `document_versions` stores immutable file versions;
+formal submission rows point to exact version IDs through
+`design_package_submission_documents`.
 
 ## Workflow and history guarantees
 
@@ -105,7 +107,9 @@ The migration uses Laravel Schema Builder and explicit short foreign-key/index
 names where MySQL's 64-character identifier limit would otherwise be exceeded.
 It also corrects the pre-existing tenant migration so a clean database can
 handle either historical `tenants.user_id` index shape before creating its
-composite unique key.
+composite unique key. A follow-up migration converts the legacy Documents table
+to the logical/versioned shape and intentionally removes the confirmed dummy
+legacy attachment metadata and UI/API flow.
 
 ## Test coverage
 

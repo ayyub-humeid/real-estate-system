@@ -437,7 +437,6 @@ class LeaseResource extends Resource
     {
         return [
             RelationManagers\PaymentsRelationManager::class,
-            RelationManagers\DocumentsRelationManager::class,
         ];
     }
 

@@ -33,20 +33,6 @@ class LeaseResource extends JsonResource
             'total_paid' => $this->total_paid,
             'outstanding_balance' => $this->outstanding_balance,
             
-            // Return Documents with full URLs
-            'documents' => $this->whenLoaded('documents', function () {
-                return $this->documents->map(function ($document) {
-                    return [
-                        'id' => $document->id,
-                        'title' => $document->title,
-                        'file_name' => $document->file_name,
-                        'file_url' => $document->file_url, // Document model append returns full URL via asset()
-                        'file_type' => $document->file_type,
-                        'document_type' => $document->document_type,
-                    ];
-                });
-            }),
-
             'unit' => $this->whenLoaded('unit', function () {
                 return [
                     'id' => $this->unit->id,

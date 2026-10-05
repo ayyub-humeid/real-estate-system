@@ -65,7 +65,7 @@ RUN php artisan storage:link
 ENV PORT=80
 EXPOSE ${PORT}
 
-# Run a script on startup that sets up caching and starts Apache.
-# TEMPORARY company-role deployment bootstrap: after the first successful deploy,
-# comment out only db:seed and app:backfill-company-roles. Keep migrate in release flow.
-CMD npm run build && php artisan package:discover && php artisan storage:link && php artisan config:clear && php artisan migrate --force --database=pgsql_direct && DB_CONNECTION=pgsql_direct php artisan db:seed --class=RolesAndPermissionsSeeder --force && DB_CONNECTION=pgsql_direct php artisan app:backfill-company-roles && php artisan optimize && apache2-foreground
+# TEMPORARY deployment bootstrap for the company-role and Phase 03 permissions.
+# After the first successful production deploy, comment out shield:generate,
+# db:seed, and app:backfill-company-roles; keep migrate in the release flow.
+CMD npm run build && php artisan package:discover && php artisan storage:link && php artisan config:clear && php artisan migrate --force --database=pgsql_direct && DB_CONNECTION=pgsql_direct php artisan shield:generate --resource=ProjectDesignPackageResource --option=permissions --panel=admin --no-interaction && DB_CONNECTION=pgsql_direct php artisan db:seed --class=RolesAndPermissionsSeeder --force && DB_CONNECTION=pgsql_direct php artisan app:backfill-company-roles && php artisan optimize:clear && php artisan filament:cache-components && php artisan optimize && apache2-foreground
