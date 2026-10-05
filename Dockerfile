@@ -65,7 +65,7 @@ RUN php artisan storage:link
 ENV PORT=80
 EXPOSE ${PORT}
 
-# Run a script on startup that sets up caching and starts Apache
-# TEMPORARY Phase 02 deployment bootstrap. Remove the Shield/seed commands after
-# the first successful production deployment; migrations must remain in release flow.
-CMD npm run build && php artisan package:discover && php artisan storage:link && php artisan config:clear && php artisan migrate --force --database=pgsql_direct  && php artisan optimize && apache2-foreground
+# Run a script on startup that sets up caching and starts Apache.
+# TEMPORARY company-role deployment bootstrap: after the first successful deploy,
+# comment out only db:seed and app:backfill-company-roles. Keep migrate in release flow.
+CMD npm run build && php artisan package:discover && php artisan storage:link && php artisan config:clear && php artisan migrate --force --database=pgsql_direct && DB_CONNECTION=pgsql_direct php artisan db:seed --class=RolesAndPermissionsSeeder --force && DB_CONNECTION=pgsql_direct php artisan app:backfill-company-roles && php artisan optimize && apache2-foreground
