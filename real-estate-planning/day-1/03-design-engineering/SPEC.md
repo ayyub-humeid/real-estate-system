@@ -196,6 +196,68 @@ Do not store only a final status and lose round history.
 
 ---
 
+## Workflow Status Protection
+
+Workflow-controlled statuses in this phase must never be manually editable through normal CRUD forms, generic edit actions, direct status dropdowns, mass assignment, or generic update endpoints.
+
+Status changes must happen only through explicit domain/workflow actions, such as:
+
+- Assign Office
+- Start Work
+- Mark Scope Ready
+- Submit Package
+- Start Review
+- Complete Review
+- Request Revision
+- Mark Revision Ready
+- Resubmit
+- Approve
+- Close
+
+Before performing any transition, the system must validate:
+
+- the current status allows the requested transition;
+- the authenticated user has the required permission;
+- the record belongs to the correct Company / tenant context;
+- all required related records and business conditions are satisfied;
+- referenced parent/child records belong to the same Company;
+- cross-company relationships are rejected.
+
+Invalid transition jumps must be rejected.
+
+Examples:
+
+```text
+planned → approved ❌
+under_review → closed ❌
+revision_required → approved ❌
+closed → in_progress ❌
+```
+
+Important workflow transitions must execute through the domain/service layer.
+When a transition affects multiple records, relationships, notifications, document versions, submissions, reviews, findings, revisions, or approvals, the operation must execute atomically inside a database transaction.
+Filament actions are workflow triggers only. They must call the domain/service layer and must not contain, duplicate, or bypass the core business rules.
+The server/domain layer remains the source of truth even if the action is triggered from Filament, an API endpoint, a command, a job, or another interface.
+This rule applies to all workflow-controlled statuses in this phase, including:
+- Project Design Package
+- Design Package Assignment
+- Design Package Scope Item
+- Design Package Submission
+- Design Package Review
+- Design Review Finding
+- Design Package Revision
+Normal edit forms may display workflow status as read-only information, badge, or timeline state, but must not allow users to arbitrarily select the next status.
+Generic CRUD/update operations must not be able to bypass the workflow.
+Tests must verify at minimum:
+- valid transitions succeed;
+- invalid transitions fail;
+- unauthorized transitions fail;
+- cross-company transitions fail;
+- required related records are enforced;
+- generic update operations cannot bypass workflow actions;
+- closed/approved immutable states remain protected;
+- failed multi-record transitions roll back completely.
+
 # 8. Entity: Design Package Assignment
 
 ## Table

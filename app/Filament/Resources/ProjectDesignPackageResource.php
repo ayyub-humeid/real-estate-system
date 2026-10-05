@@ -28,7 +28,7 @@ class ProjectDesignPackageResource extends Resource
             Forms\Components\Select::make('discipline')->options(ProjectDesignPackage::DISCIPLINES),
             Forms\Components\DatePicker::make('target_submission_date'),
             Forms\Components\Textarea::make('description')->columnSpanFull(),
-            Forms\Components\Placeholder::make('status')->content(fn (?ProjectDesignPackage $record) => $record ? str_replace('_', ' ', $record->status) : 'Created through a Project'),
+            Forms\Components\Placeholder::make('status')->content(fn(?ProjectDesignPackage $record) => $record ? str_replace('_', ' ', $record->status) : 'Created through a Project'),
         ]);
     }
 
@@ -44,6 +44,10 @@ class ProjectDesignPackageResource extends Resource
 
     public static function getPages(): array
     {
-        return ['index' => Pages\ListProjectDesignPackages::route('/'), 'view' => Pages\ViewProjectDesignPackage::route('/{record}'), 'edit' => Pages\EditProjectDesignPackage::route('/{record}/edit')];
+        return [
+            'index' => Pages\ListProjectDesignPackages::route('/'),
+            'view' => Pages\ViewProjectDesignPackage::route('/{record}'),
+            'edit' => Pages\EditProjectDesignPackage::route('/{record}/edit')
+        ];
     }
 }
