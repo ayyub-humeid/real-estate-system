@@ -48,7 +48,8 @@ class ProjectResource extends Resource
         return [
             RelationManagers\ProjectPropertiesRelationManager::class,
             RelationManagers\ProjectMembersRelationManager::class,
-            RelationManagers\ProjectBuildingsRelationManager::class
+            RelationManagers\ProjectBuildingsRelationManager::class,
+            RelationManagers\DesignPackagesRelationManager::class,
         ];
     }
     public static function getPages(): array

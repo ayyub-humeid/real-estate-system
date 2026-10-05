@@ -6,8 +6,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class Document extends Model
 {
@@ -42,6 +44,10 @@ class Document extends Model
     public function uploadedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'uploaded_by');
+    }
+    public function versions(): HasMany
+    {
+        return $this->hasMany(DocumentVersion::class);
     }
 
     // Accessors
@@ -97,6 +103,13 @@ public function getFileUrlAttribute(): string
 
         // Auto-delete file when document is deleted
         static::deleting(function ($document) {
+            // A formal design submission pins exact document versions. Deleting
+            // their logical parent would silently destroy auditable history.
+            if ($document->versions()->withoutGlobalScopes()->whereHas('submissionDocuments')->exists()) {
+                throw ValidationException::withMessages([
+                    'document' => 'A document used by a formal design submission cannot be deleted.',
+                ]);
+            }
             if (Storage::exists($document->file_path)) {
                 Storage::delete($document->file_path);
             }

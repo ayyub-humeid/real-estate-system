@@ -3315,6 +3315,13 @@ Relation manager / workflow-only model → custom underscore convention
                                               approve_planned_unit
 ```
 
+Never infer a multi-word Shield permission from a two-word example. Shield
+tokenizes every word after the action. For example, the generated permissions
+for `ProjectDesignPackage` are `view_project::design::package` and
+`create_project::design::package` — not `view_project::design_package`.
+Run the generator, inspect the exact records, and copy those strings into the
+Policy and tests before releasing.
+
 Shield does not create custom relation-manager or workflow permissions. Each must be declared with its exact underscore name in `RolesAndPermissionsSeeder`, used unchanged by the Policy and service, and created with:
 
 ```bash

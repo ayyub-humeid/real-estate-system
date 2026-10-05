@@ -39,4 +39,8 @@ class Project extends Model
     {
         return $this->hasMany(ProjectBuilding::class);
     }
+    public function designPackages(): HasMany
+    {
+        return $this->hasMany(ProjectDesignPackage::class);
+    }
 }

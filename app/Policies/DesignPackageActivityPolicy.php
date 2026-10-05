@@ -1,0 +1,4 @@
+<?php
+namespace App\Policies;
+use App\Models\{DesignPackageActivity,User}; use App\Policies\Concerns\{CompanyOwnedPolicy,DesignOwnedPolicy};
+class DesignPackageActivityPolicy { use CompanyOwnedPolicy,DesignOwnedPolicy; public function viewAny(User $u):bool{return $this->designCanCreate($u,'view_any_design_package_activity');} public function view(User $u,DesignPackageActivity $r):bool{return $this->designCan($u,'view_design_package_activity',$r);} public function create(User $u):bool{return $this->designCanCreate($u,'create_design_package_activity');} public function update(User $u,DesignPackageActivity $r):bool{return $this->designCan($u,'update_design_package_activity',$r);} public function delete(User $u,DesignPackageActivity $r):bool{return $this->designCan($u,'delete_design_package_activity',$r);} }

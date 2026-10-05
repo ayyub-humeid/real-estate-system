@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\DocumentResource\Pages;
 use App\Models\Document;
+use App\Models\ProjectDesignPackage;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -38,7 +39,7 @@ public static function canViewAny(): bool
     // 🔥 PERFORMANCE OPTIMIZATION #1: Eager Loading
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()
+        $query = parent::getEloquentQuery()
             // ✅ WHY: Load relationships to avoid N+1
             ->with([
                 'documentable', // ✅ Polymorphic relationship (Lease, Payment, etc.)
@@ -50,9 +51,19 @@ public static function canViewAny(): bool
                 documents.*,
                 CONCAT('/storage/', file_path) as file_url_computed
             ");
-        // 🎯 EXPLANATION: Instead of calling Storage::url() 50 times (50 disk I/O operations)
-        // We compute the URL in SQL once during query. Database concatenation is INSTANT.
-        // For 50 documents: 50ms → 0ms = ∞% faster!
+        // Documents predate company ownership. Restrict the Phase 03 design
+        // subset explicitly for company users; established document types keep
+        // their legacy access behaviour.
+        if (! auth()->user()->isSuperAdmin()) {
+            $query->where(function (Builder $query): void {
+                $query->where('documents.documentable_type', '!=', ProjectDesignPackage::class)
+                    ->orWhereIn('documents.documentable_id', ProjectDesignPackage::withoutGlobalScopes()
+                        ->where('company_id', auth()->user()->company_id)
+                        ->select('id'));
+            });
+        }
+
+        return $query;
     }
 
     public static function form(Form $form): Form

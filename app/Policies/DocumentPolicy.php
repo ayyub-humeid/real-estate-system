@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\User;
 use App\Models\Document;
+use App\Models\ProjectDesignPackage;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class DocumentPolicy
@@ -23,7 +24,7 @@ class DocumentPolicy
      */
     public function view(User $user, Document $document): bool
     {
-        return $user->can('view_document');
+        return $user->can('view_document') && $this->canAccessDesignPackageDocument($user, $document);
     }
 
     /**
@@ -39,7 +40,7 @@ class DocumentPolicy
      */
     public function update(User $user, Document $document): bool
     {
-        return $user->can('update_document');
+        return $user->can('update_document') && $this->canAccessDesignPackageDocument($user, $document);
     }
 
     /**
@@ -47,7 +48,9 @@ class DocumentPolicy
      */
     public function delete(User $user, Document $document): bool
     {
-        return $user->can('delete_document');
+        return $user->can('delete_document')
+            && $this->canAccessDesignPackageDocument($user, $document)
+            && ! $document->versions()->withoutGlobalScopes()->whereHas('submissionDocuments')->exists();
     }
 
     /**
@@ -104,5 +107,17 @@ class DocumentPolicy
     public function reorder(User $user): bool
     {
         return $user->can('reorder_document');
+    }
+
+    private function canAccessDesignPackageDocument(User $user, Document $document): bool
+    {
+        if ($document->documentable_type !== ProjectDesignPackage::class || $user->isSuperAdmin()) {
+            return true;
+        }
+
+        return ProjectDesignPackage::withoutGlobalScopes()
+            ->whereKey($document->documentable_id)
+            ->where('company_id', $user->company_id)
+            ->exists();
     }
 }

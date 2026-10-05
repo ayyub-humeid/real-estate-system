@@ -1,0 +1,4 @@
+<?php
+namespace App\Policies;
+use App\Models\{DesignPackageScopeItem,User}; use App\Policies\Concerns\{CompanyOwnedPolicy,DesignOwnedPolicy};
+class DesignPackageScopeItemPolicy { use CompanyOwnedPolicy,DesignOwnedPolicy; public function viewAny(User $u):bool{return $this->designCanCreate($u,'view_any_design_package_scope_item');} public function view(User $u,DesignPackageScopeItem $r):bool{return $this->designCan($u,'view_design_package_scope_item',$r);} public function create(User $u):bool{return $this->designCanCreate($u,'create_design_package_scope_item');} public function update(User $u,DesignPackageScopeItem $r):bool{return !in_array($r->status,['ready','cancelled'],true)&&$this->designCan($u,'update_design_package_scope_item',$r);} public function delete(User $u,DesignPackageScopeItem $r):bool{return $r->status==='pending'&&$this->designCan($u,'delete_design_package_scope_item',$r);} }

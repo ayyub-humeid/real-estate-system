@@ -1,0 +1,4 @@
+<?php
+namespace App\Policies;
+use App\Models\{DesignReviewFinding,User}; use App\Policies\Concerns\{CompanyOwnedPolicy,DesignOwnedPolicy};
+class DesignReviewFindingPolicy { use CompanyOwnedPolicy,DesignOwnedPolicy; public function viewAny(User $u):bool{return $this->designCanCreate($u,'view_any_design_review_finding');} public function view(User $u,DesignReviewFinding $r):bool{return $this->designCan($u,'view_design_review_finding',$r);} public function create(User $u):bool{return $this->designCanCreate($u,'create_design_review_finding');} public function update(User $u,DesignReviewFinding $r):bool{return false;} public function delete(User $u,DesignReviewFinding $r):bool{return false;} public function waive(User $u,DesignReviewFinding $r):bool{return $this->designCan($u,'waive_design_finding',$r);} }

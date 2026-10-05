@@ -1,0 +1,4 @@
+<?php
+namespace App\Policies;
+use App\Models\{DesignPackageRevision,User}; use App\Policies\Concerns\{CompanyOwnedPolicy,DesignOwnedPolicy};
+class DesignPackageRevisionPolicy { use CompanyOwnedPolicy,DesignOwnedPolicy; public function viewAny(User $u):bool{return $this->designCanCreate($u,'view_any_design_package_revision');} public function view(User $u,DesignPackageRevision $r):bool{return $this->designCan($u,'view_design_package_revision',$r);} public function create(User $u):bool{return $this->designCanCreate($u,'create_design_package_revision');} public function update(User $u,DesignPackageRevision $r):bool{return false;} public function delete(User $u,DesignPackageRevision $r):bool{return false;} public function submitRevision(User $u,DesignPackageRevision $r):bool{return $this->designCan($u,'submit_design_revision',$r);} }

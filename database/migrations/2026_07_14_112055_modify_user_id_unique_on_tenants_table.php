@@ -11,8 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('tenants', function (Blueprint $table) {
-            $table->dropUnique(['user_id']);
+        // Older Laravel/MySQL combinations created this as a normal index when
+        // `foreignId()->unique()->constrained()` was chained. A clean schema
+        // must support either historical shape before adding the composite key.
+        $hasSingleUserUnique = collect(Schema::getIndexes('tenants'))
+            ->contains(fn (array $index): bool => $index['name'] === 'tenants_user_id_unique');
+
+        Schema::table('tenants', function (Blueprint $table) use ($hasSingleUserUnique) {
+            if ($hasSingleUserUnique) {
+                $table->dropUnique('tenants_user_id_unique');
+            }
             $table->unique(['user_id', 'company_id'], 'user_company_unique');
         });
     }
