@@ -36,14 +36,16 @@ class DesignPackagesRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('target_submission_date')->date()->label('Target')->placeholder('—'),
             ])
             ->headerActions([
-                Tables\Actions\Action::make('createPackage')->label('Create Design Package')->icon('heroicon-o-plus')
+                Tables\Actions\Action::make('createPackage')->label('Create Design Package')->icon('heroicon-o-plus')->tooltip('Create a new design package')
                     ->visible(fn() => auth()->user()->can('update', $this->getOwnerRecord()) && auth()->user()->can('create', ProjectDesignPackage::class))
                     ->form($this->packageForm())
                     ->action(fn(array $data) => $this->run(fn() => app(DesignEngineeringService::class)->createPackage(auth()->user(), $this->getOwnerRecord(), $data), 'Design package created')),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make()->modalWidth('4xl')->infolist($this->packageInfolist()),
-                Tables\Actions\Action::make('editPackage')->label('Edit')->icon('heroicon-o-pencil-square')
+                Tables\Actions\ViewAction::make()->label('View')->icon('heroicon-o-eye')
+                    ->tooltip('View design package details and scope items')
+                    ->modalWidth('5xl')->infolist($this->packageInfolist()),
+                Tables\Actions\Action::make('editPackage')->label('Edit')->icon('heroicon-o-pencil-square')->tooltip('Edit package details')
                     ->visible(fn(ProjectDesignPackage $record) => auth()->user()->can('update', $record))
                     ->fillForm(fn(ProjectDesignPackage $record) => $record->only(['name', 'code', 'discipline', 'description', 'target_submission_date']))->form($this->packageForm())
                     ->action(fn(ProjectDesignPackage $record, array $data) => $this->run(fn() => app(DesignEngineeringService::class)->updatePackage(auth()->user(), $record, $data), 'Design package updated')),
@@ -79,7 +81,7 @@ class DesignPackagesRelationManager extends RelationManager
                             $document = !empty($data['document_id']) ? Document::withoutGlobalScopes()->findOrFail($data['document_id']) : null;
                             unset($data['document_id']);
                             $this->run(fn() => app(DesignEngineeringService::class)->addDocumentVersion(auth()->user(), $record, $data, $document), 'Document version added'); }),
-                ])->label('Prepare')->icon('heroicon-o-wrench-screwdriver'),
+                ])->label('Prepare')->icon('heroicon-o-wrench-screwdriver')->tooltip('Prepare the package: assign office, scope, and documents'),
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\Action::make('submit')->label('Create formal submission')->icon('heroicon-o-paper-airplane')
                         ->visible(fn(ProjectDesignPackage $record) => auth()->user()->can('submit', $record))
@@ -107,7 +109,7 @@ class DesignPackagesRelationManager extends RelationManager
                         ->form(fn(ProjectDesignPackage $record) => [Forms\Components\Select::make('finding_id')->options($this->findingOptions($record))->required(), Forms\Components\Textarea::make('notes')->required()])
                         ->action(function (ProjectDesignPackage $record, array $data) {
                             $this->run(fn() => app(DesignEngineeringService::class)->waiveFinding(auth()->user(), $this->finding($record, $data['finding_id']), $data['notes']), 'Finding waived'); }),
-                ])->label('Review')->icon('heroicon-o-clipboard-document-check'),
+                ])->label('Review')->icon('heroicon-o-clipboard-document-check')->tooltip('Review submissions and manage findings'),
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\Action::make('requestRevision')->label('Request revision')->icon('heroicon-o-arrow-path')
                         ->visible(fn() => auth()->user()->can('request_design_revision'))
@@ -132,7 +134,7 @@ class DesignPackagesRelationManager extends RelationManager
                     Tables\Actions\Action::make('close')->label('Close package')->icon('heroicon-o-lock-closed')->color('success')->requiresConfirmation()
                         ->visible(fn(ProjectDesignPackage $record) => auth()->user()->can('close', $record))
                         ->action(fn(ProjectDesignPackage $record) => $this->run(fn() => app(DesignEngineeringService::class)->close(auth()->user(), $record), 'Design package closed')),
-                ])->label('Formal workflow')->icon('heroicon-o-arrow-right-circle'),
+                ])->label('Formal workflow')->icon('heroicon-o-arrow-right-circle')->tooltip('Manage revisions, approval, and closure'),
             ]);
     }
 
@@ -146,7 +148,26 @@ class DesignPackagesRelationManager extends RelationManager
     }
     private function packageInfolist(): array
     {
-        return [\Filament\Infolists\Components\TextEntry::make('name')->weight('bold'), \Filament\Infolists\Components\TextEntry::make('status')->badge(), \Filament\Infolists\Components\TextEntry::make('activeAssignment.party.name')->label('Engineering office')->placeholder('Not assigned'), \Filament\Infolists\Components\TextEntry::make('description')->columnSpanFull()->placeholder('No description')];
+        return [
+            \Filament\Infolists\Components\TextEntry::make('name')->weight('bold'),
+            \Filament\Infolists\Components\TextEntry::make('status')->badge(),
+            \Filament\Infolists\Components\TextEntry::make('activeAssignment.party.name')->label('Engineering office')->placeholder('Not assigned'),
+            \Filament\Infolists\Components\TextEntry::make('description')->columnSpanFull()->placeholder('No description'),
+            \Filament\Infolists\Components\RepeatableEntry::make('scope_items')
+                ->label('Scope Items')
+                ->state(fn (ProjectDesignPackage $record): array => $record->scopeItems()->orderBy('sort_order')->get()->map(fn (DesignPackageScopeItem $item): array => [
+                    'title' => $item->title,
+                    'code' => $item->code,
+                    'status' => $item->status,
+                    'target_date' => $item->target_date?->format('M j, Y'),
+                ])->all())
+                ->schema([
+                    \Filament\Infolists\Components\TextEntry::make('title')->weight('bold'),
+                    \Filament\Infolists\Components\TextEntry::make('code')->placeholder('—'),
+                    \Filament\Infolists\Components\TextEntry::make('status')->badge(),
+                    \Filament\Infolists\Components\TextEntry::make('target_date')->placeholder('—'),
+                ])->columns(4),
+        ];
     }
     private function scopeOptions(ProjectDesignPackage $package): array
     {
