@@ -63,6 +63,15 @@ class ProjectDesignPackage extends Model
     {
         return $this->hasOne(DesignPackageAssignment::class)->where('status', 'active')->latestOfMany('assigned_at');
     }
+    public function scopeItems(): \Illuminate\Database\Eloquent\Relations\HasManyThrough
+    {
+        return $this->hasManyThrough(
+            DesignPackageScopeItem::class,
+            DesignPackageAssignment::class,
+            'project_design_package_id',
+            'design_package_assignment_id'
+        );
+    }
     public function activities(): HasMany
     {
         return $this->hasMany(DesignPackageActivity::class);
