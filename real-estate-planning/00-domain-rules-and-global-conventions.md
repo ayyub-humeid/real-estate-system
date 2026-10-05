@@ -3914,3 +3914,17 @@ For every company-owned model policy:
 4. Each phase must include a role-based regression matrix that verifies: same-company record allowed, another-company record denied, workflow permission denied without its exact permission, and all custom permissions are present in the Roles UI after the idempotent seeder runs.
 
 Never treat a correctly filtered Filament table as proof that direct record authorization is secure.
+
+---
+
+## Company-Scoped Roles (Without Spatie Teams)
+
+Permissions are platform-defined and global. Roles belong either to the platform (`roles.company_id = null`) or exactly one Company (`roles.company_id = company.id`). The database uniqueness rule is therefore `(company_id, name, guard_name)`, allowing different companies to independently use the same role name.
+
+1. Do **not** enable Spatie Teams for this application while users have one active `company_id`. Teams would require active-team context on every role and permission lookup and would make platform roles needlessly ambiguous.
+2. Use `App\\Models\\Role` and `CompanyRoleService` for every role lookup or assignment. Never resolve a company role by name alone and never call `assignRole('name')` for a company user.
+3. New companies receive company-owned copies of the approved default roles. Existing companies can be migrated deliberately with `php artisan app:backfill-company-roles` after deployment; use `--dry-run` first.
+4. A company user can list, edit, delete, assign, and grant permissions only to roles whose `company_id` equals the user's current company. This must be enforced in the policy/service, not only by a Filament query.
+5. A Company role must never receive platform-administration permissions (Company, subscription, plan, platform-role, or Super Admin operations). Validate this on the server when permissions are synced.
+6. Platform roles remain Super Admin-only to manage and assign. Super Admin may see all roles and permissions. The Role page must make scope visible to Super Admin and keep other companies' roles invisible to company users.
+7. Company-role permission forms must hide and server-side reject all platform resources: Company, User, Plan, Subscription, and platform Role administration. Company Setting is explicitly tenant-owned and remains available. When adding a future platform-only Resource, add it to the centralized platform-resource list and its permission guard in the same change.
