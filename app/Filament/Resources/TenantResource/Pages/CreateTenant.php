@@ -4,6 +4,7 @@
 namespace App\Filament\Resources\TenantResource\Pages;
 
 use App\Filament\Resources\TenantResource;
+use App\Services\CompanyRoleService;
 use Filament\Resources\Pages\CreateRecord;
 use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Model;
@@ -40,11 +41,9 @@ class CreateTenant extends CreateRecord
                     $userData['password'] = Hash::make('password123');
                 }
 
-                // ✅ Ensure role is always tenant
-                $userData['role'] = 'tenant';
-
                 // ✅ Create User
                 $user = \App\Models\User::create($userData);
+                app(CompanyRoleService::class)->assignTenantRole($user);
 
                 // ✅ Link tenant to user and company
                 $data['user_id'] = $user->id;

@@ -123,9 +123,6 @@ class TenantResource extends Resource
                                     : 'Leave empty to keep current password'
                             ),
 
-                        Forms\Components\Hidden::make('user.role')
-                            ->default('tenant'),
-
                         Forms\Components\FileUpload::make('avatar')
                             ->label('Tenant Photo')
                             ->image()

@@ -9,6 +9,8 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Hash;
+use App\Models\Role;
+use App\Services\CompanyRoleService;
 
 class UsersRelationManager extends RelationManager
 {
@@ -35,14 +37,15 @@ class UsersRelationManager extends RelationManager
                     ->tel()
                     ->maxLength(255),
                 
-                Forms\Components\Select::make('role')
+                Forms\Components\Select::make('role_id')
                     ->required()
-                    ->options([
-                        'company_admin' => '⚡ Company Admin',
-                        'property_manager' => '📋 Property Manager',
-                        'tenant' => '👤 Tenant',
-                    ])
-                    ->default('tenant')
+                    ->options(function () {
+                        app(CompanyRoleService::class)->provisionDefaults($this->getOwnerRecord());
+
+                        return Role::forCompany($this->getOwnerRecord()->id)
+                            ->pluck('name', 'id')
+                            ->map(fn ($name) => str_replace('_', ' ', ucwords($name, '_')));
+                    })
                     ->native(false),
                 
                 Forms\Components\TextInput::make('password')
@@ -97,11 +100,7 @@ class UsersRelationManager extends RelationManager
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('role')
-                    ->options([
-                        'company_admin' => 'Company Admin',
-                        'property_manager' => 'Property Manager',
-                        'tenant' => 'Tenant',
-                    ]),
+                    ->options(fn () => Role::forCompany($this->getOwnerRecord()->id)->pluck('name', 'name')),
             ])
             ->headerActions([
                 Tables\Actions\CreateAction::make()
@@ -109,10 +108,36 @@ class UsersRelationManager extends RelationManager
                         // Automatically set company_id
                         $data['company_id'] = $this->getOwnerRecord()->id;
                         return $data;
+                    })
+                    ->using(function (array $data) {
+                        $roleId = $data['role_id'] ?? null;
+                        unset($data['role_id']);
+                        if (! $roleId) throw new \InvalidArgumentException('A company role is required.');
+
+                        $user = \App\Models\User::create($data);
+                        app(CompanyRoleService::class)->assignRole($user, Role::findOrFail($roleId));
+
+                        return $user;
                     }),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->fillForm(fn (\App\Models\User $record): array => [
+                        'name' => $record->name,
+                        'email' => $record->email,
+                        'phone' => $record->phone,
+                        'role_id' => $record->roles()->value('roles.id'),
+                    ])
+                    ->using(function (\App\Models\User $record, array $data) {
+                        $roleId = $data['role_id'] ?? null;
+                        unset($data['role_id']);
+                        if (! $roleId) throw new \InvalidArgumentException('A company role is required.');
+
+                        $record->updateQuietly($data);
+                        app(CompanyRoleService::class)->assignRole($record, Role::findOrFail($roleId));
+
+                        return $record;
+                    }),
                 Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([

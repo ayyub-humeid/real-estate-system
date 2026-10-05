@@ -5,6 +5,9 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\UserResource\Pages;
 use App\Models\User;
+use App\Models\Role;
+use App\Models\Company;
+use App\Services\CompanyRoleService;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -43,6 +46,7 @@ class UserResource extends Resource
             ->searchable()
             ->preload()
             ->nullable()
+            ->live()
             ->visible(fn () => auth()->user()->isSuperAdmin());
     }
 
@@ -68,14 +72,20 @@ class UserResource extends Resource
                             ->tel()
                             ->maxLength(255),
                         
-                        Forms\Components\Select::make('role')
+                        Forms\Components\Select::make('role_id')
                             ->required()
-                            ->options(
-                                \Spatie\Permission\Models\Role::all()
-                                    ->pluck('name', 'name')
-                                    ->map(fn ($name) => str_replace('_', ' ', ucwords($name, '_')))
-                            )
-                            ->default('tenant')
+                            ->options(function (Forms\Get $get): array {
+                                $companyId = $get('company_id');
+                                if ($companyId && ($company = Company::withoutGlobalScopes()->find($companyId))) {
+                                    app(CompanyRoleService::class)->provisionDefaults($company);
+                                    return Role::forCompany($companyId)->pluck('name', 'id')
+                                        ->map(fn ($name) => str_replace('_', ' ', ucwords($name, '_')))->all();
+                                }
+
+                                return Role::platform()->whereIn('name', ['super_admin', 'tenant'])->pluck('name', 'id')
+                                    ->map(fn ($name) => str_replace('_', ' ', ucwords($name, '_')))->all();
+                            })
+                            ->live()
                             ->native(false),
                         
                         Forms\Components\TextInput::make('password')
@@ -137,7 +147,7 @@ class UserResource extends Resource
             ->filters([
                 Tables\Filters\SelectFilter::make('role')
                     ->options(
-                        \Spatie\Permission\Models\Role::all()
+                        Role::query()
                             ->pluck('name', 'name')
                             ->map(fn ($name) => str_replace('_', ' ', ucwords($name, '_')))
                     ),

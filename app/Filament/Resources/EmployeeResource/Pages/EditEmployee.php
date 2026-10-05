@@ -3,6 +3,8 @@
 namespace App\Filament\Resources\EmployeeResource\Pages;
 
 use App\Filament\Resources\EmployeeResource;
+use App\Models\Role;
+use App\Services\CompanyRoleService;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Database\Eloquent\Model;
@@ -20,7 +22,7 @@ class EditEmployee extends EditRecord
             'name' => $this->record->user->name,
             'email' => $this->record->user->email,
             'phone' => $this->record->user->phone,
-            'role' => $this->record->user->role,
+            'role_id' => $this->record->user->roles()->value('roles.id'),
             'company_id' => $this->record->user->company_id,
         ];
 
@@ -36,8 +38,8 @@ class EditEmployee extends EditRecord
                     'name' => $data['user']['name'],
                     'email' => $data['user']['email'],
                     'phone' => $data['user']['phone'] ?? null,
-                    'role' => $data['user']['role'] ?? $record->user->role,
                 ];
+                $roleId = $data['user']['role_id'] ?? null;
 
                 if (!empty($data['user']['password'])) {
                     $userData['password'] = Hash::make($data['user']['password']);
@@ -48,7 +50,11 @@ class EditEmployee extends EditRecord
                     $data['company_id'] = $data['user']['company_id'];
                 }
 
-                $record->user->update($userData);
+                $record->user->updateQuietly($userData);
+                if (! $roleId) {
+                    throw new \InvalidArgumentException('A company role is required.');
+                }
+                app(CompanyRoleService::class)->assignRole($record->user, Role::findOrFail($roleId));
                 unset($data['user']);
             }
 

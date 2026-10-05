@@ -3,6 +3,8 @@
 namespace App\Filament\Resources\EmployeeResource\Pages;
 
 use App\Filament\Resources\EmployeeResource;
+use App\Models\Role;
+use App\Services\CompanyRoleService;
 use Filament\Resources\Pages\CreateRecord;
 use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Model;
@@ -42,6 +44,12 @@ class CreateEmployee extends CreateRecord
                 // Extract user data
                 $userData = $data['user'];
                 unset($data['user']);
+                $roleId = $userData['role_id'] ?? null;
+                unset($userData['role_id']);
+
+                if (! $roleId) {
+                    throw new \InvalidArgumentException('A company role is required.');
+                }
 
                 // Hash password
                 if (isset($userData['password'])) {
@@ -52,6 +60,7 @@ class CreateEmployee extends CreateRecord
 
                 // Create User
                 $user = \App\Models\User::create($userData);
+                app(CompanyRoleService::class)->assignRole($user, Role::findOrFail($roleId));
 
                 // Link employee to user and company
                 $data['user_id'] = $user->id;

@@ -4,7 +4,10 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\EmployeeResource\Pages;
 use App\Models\Employee;
+use App\Models\Company;
 use App\Models\User;
+use App\Models\Role;
+use App\Services\CompanyRoleService;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Infolists;
@@ -77,14 +80,21 @@ class EmployeeResource extends Resource
                                     : 'Leave empty to keep current password'
                             ),
 
-                        Forms\Components\Select::make('user.role')
+                        Forms\Components\Select::make('user.role_id')
                             ->label('System Role')
-                            ->options(
-                                \Spatie\Permission\Models\Role::whereNotIn('name', ['super_admin', 'tenant'])
-                                    ->pluck('name', 'name')
+                            ->options(function (Forms\Get $get): array {
+                                $companyId = $get('user.company_id') ?: auth()->user()->company_id;
+                                if (! $companyId) return [];
+
+                                $company = Company::withoutGlobalScopes()->find($companyId);
+                                if ($company) app(CompanyRoleService::class)->provisionDefaults($company);
+
+                                return Role::forCompany((int) $companyId)
+                                    ->pluck('name', 'id')
                                     ->map(fn ($name) => str_replace('_', ' ', ucwords($name, '_')))
-                            )
-                            ->default('property_manager')
+                                    ->all();
+                            })
+                            ->live()
                             ->required()
                             ->native(false),
 
