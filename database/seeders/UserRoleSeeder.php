@@ -59,7 +59,7 @@ class UserRoleSeeder extends Seeder
             unset($userData['role']);
             
             // Ensure the role exists first (using Spatie Role)
-            \Spatie\Permission\Models\Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'web']);
+            \App\Models\Role::platform()->firstOrCreate(['name' => $roleName, 'guard_name' => 'web']);
             
             $user = User::updateOrCreate(
                 ['email' => $userData['email']],
@@ -68,7 +68,7 @@ class UserRoleSeeder extends Seeder
 
             // Directly assign role via Spatie HasRoles (used by Shield)
             if (!$user->hasRole($roleName)) {
-                $user->assignRole($roleName);
+                app(\App\Services\CompanyRoleService::class)->assignNamedRole($user, $roleName);
             }
         }
         

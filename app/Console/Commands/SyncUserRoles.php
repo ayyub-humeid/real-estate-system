@@ -4,7 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\User;
 use Illuminate\Console\Command;
-use Spatie\Permission\Models\Role;
+use App\Services\CompanyRoleService;
 
 class SyncUserRoles extends Command
 {
@@ -35,12 +35,7 @@ class SyncUserRoles extends Command
 
         foreach ($users as $user) {
             if (! $user->hasRole($user->role)) {
-                $role = Role::firstOrCreate([
-                    'name' => $user->role,
-                    'guard_name' => 'web',
-                ]);
-
-                $user->syncRoles([$role->name]);
+                app(CompanyRoleService::class)->assignNamedRole($user, $user->role);
 
                 $this->line("  ↳ Fixed: {$user->email} → assigned role '{$role->name}'");
                 $fixed++;

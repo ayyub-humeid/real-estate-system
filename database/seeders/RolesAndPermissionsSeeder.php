@@ -3,7 +3,7 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Spatie\Permission\Models\Role;
+use App\Models\Role;
 use Spatie\Permission\Models\Permission;
 
 class RolesAndPermissionsSeeder extends Seeder
@@ -83,15 +83,15 @@ class RolesAndPermissionsSeeder extends Seeder
         }
 
         // 0. Super Admin role (Ensure it exists)
-        Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
+        Role::platform()->firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
 
         // 0b. Tenant role — used by the public /api/auth/register endpoint and
         // required by the `role:tenant` middleware guarding tenant-only API routes.
         // No Filament/Shield permissions attached: tenants never access the panel.
-        Role::firstOrCreate(['name' => 'tenant', 'guard_name' => 'web']);
+        Role::platform()->firstOrCreate(['name' => 'tenant', 'guard_name' => 'web']);
 
         // 1. Company Admin role
-        $companyAdmin = Role::firstOrCreate(['name' => 'company_admin', 'guard_name' => 'web']);
+        $companyAdmin = Role::platform()->firstOrCreate(['name' => 'company_admin', 'guard_name' => 'web']);
         // Company admins can do almost everything within their company, except manage system-level roles
         $companyAdminPermissions = Permission::whereNotIn('name', [
             'view_role',
@@ -109,7 +109,7 @@ class RolesAndPermissionsSeeder extends Seeder
         $companyAdmin->syncPermissions($companyAdminPermissions);
 
         // 2. Property Manager role
-        $propertyManager = Role::firstOrCreate(['name' => 'property_manager', 'guard_name' => 'web']);
+        $propertyManager = Role::platform()->firstOrCreate(['name' => 'property_manager', 'guard_name' => 'web']);
         $propertyManagerPermissions = Permission::where(function ($query) {
             $query->where('name', 'like', '%property%')
                 ->orWhere('name', 'like', '%unit%')
@@ -121,7 +121,7 @@ class RolesAndPermissionsSeeder extends Seeder
         $propertyManager->syncPermissions($propertyManagerPermissions);
 
         // 3. Financial Manager role
-        $financialManager = Role::firstOrCreate(['name' => 'financial_manager', 'guard_name' => 'web']);
+        $financialManager = Role::platform()->firstOrCreate(['name' => 'financial_manager', 'guard_name' => 'web']);
         $financialManagerPermissions = Permission::where(function ($query) {
             $query->where('name', 'like', '%_lease')
                 ->orWhere('name', 'like', '%_payment')

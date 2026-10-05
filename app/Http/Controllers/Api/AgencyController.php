@@ -9,6 +9,7 @@ use App\Models\Company;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\User;
+use App\Services\CompanyRoleService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -137,13 +138,15 @@ class AgencyController extends Controller
             unset($companyData['agency_email'], $companyData['agency_phone']);
 
             $company = Company::create($companyData);
+            $roles = app(CompanyRoleService::class)->provisionDefaults($company);
 
             if ($authUser) {
                 // Link existing user to the new company
                 $authUser->update([
                     'company_id' => $company->id,
+                    'role' => 'company_admin',
                 ]);
-                $authUser->syncRoles(['company_admin']); // Update role
+                $authUser->syncRoles([$roles['company_admin']]);
             } else {
                 // Create Company Admin User
                 $user = User::create([
@@ -152,10 +155,11 @@ class AgencyController extends Controller
                     'email' => $adminEmail,
                     'phone' => $adminPhone,
                     'password' => Hash::make($password),
+                    'role' => 'company_admin',
                 ]);
 
                 // Assign company admin role
-                $user->assignRole('company_admin');
+                $user->syncRoles([$roles['company_admin']]);
             }
 
             // Find professional plan or fallback to the first active plan

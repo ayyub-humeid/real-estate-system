@@ -13,7 +13,7 @@ class LeaseTestSeeder extends Seeder
     public function run(): void
     {
         // Ensure role exists to prevent PaymentObserver crashing
-        \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'financial_manager', 'guard_name' => 'web']);
+        \App\Models\Role::platform()->firstOrCreate(['name' => 'financial_manager', 'guard_name' => 'web']);
 
         $company = \App\Models\Company::firstOrCreate(
             ['email' => 'demo' . uniqid() . '@example.com'],

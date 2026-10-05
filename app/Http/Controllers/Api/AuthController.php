@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Tenant;
+use App\Services\CompanyRoleService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
@@ -29,13 +30,11 @@ class AuthController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'phone' => $request->phone,
-            'role' => 'tenant', // ط§ظپطھط±ط§ط¶ظٹط§ظ‹ ظ…ط³طھط£ط¬ط±
         ]);
 
         // ط¥ظ†ط´ط§ط، ط¨ط±ظˆظپط§ظٹظ„ ط§ظ„ظ…ط³طھط£ط¬ط± ط§ظ„ظ…ط±ط¨ظˆط· ط¨ظ‡ (ط¨ط¯ظˆظ† Global Scope ظ„ط£ظ†ظ‡ ظ…ط³طھط£ط¬ط± ط¬ط¯ظٹط¯ ط¨ظ„ط§ ط´ط±ظƒط©)
         // Assign the Spatie 'tenant' role so middleware and hasRole() checks work
-        \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'tenant', 'guard_name' => 'web']);
-        $user->assignRole('tenant');
+        app(CompanyRoleService::class)->assignTenantRole($user);
 
         Tenant::withoutGlobalScopes()->create([
             'user_id' => $user->id,
