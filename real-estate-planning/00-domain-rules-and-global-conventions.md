@@ -236,6 +236,29 @@ For Super Admin:
 - Missing company context must produce a validation/domain error, never a SQL `company_id has no default value` error.
 - Do not scatter `withoutGlobalScope()` calls throughout resources, controllers, or services. Cross-company access must use the project's centralized Super Admin tenancy mechanism.
 
+### Mandatory Super Admin Company Selector
+
+For **every top-level company-owned Resource** (a record created without an
+existing parent aggregate), the create form must show a required `Company`
+selector to a Super Admin. This applies to every current and future phase,
+not only to Properties or Projects.
+
+- Normal company users never see or submit this selector; their company is
+  derived from their authenticated company context.
+- Super Admin selectors must list valid Companies and server-side creation
+  must validate and persist the selected `company_id`.
+- A create action must never silently fall back to the Super Admin's nullable
+  `user.company_id`.
+- A missing Super Admin selection must return a clear validation error such as
+  `Select the company that will own this record.`, never a database default
+  value error.
+
+This selector rule does **not** apply to a child created within an existing
+parent screen. For example, a Budget Item created inside a Project Budget,
+a Unit created inside a Property, or a Scope Item created inside a Design
+Package must inherit the parent company's ID automatically and must not offer
+an override selector.
+
 ### Child / Related Records
 
 When creating a child record from an existing company-owned parent:
@@ -250,6 +273,24 @@ Example:
 Super Admin selects Company A
 → creates Acquisition for Company A
 → acquisition properties, parties, due diligence, ownership records, documents, etc. inherit Company A where applicable.
+
+### Relation-Manager Action Rule
+
+The rule applies equally to a standard Filament `CreateAction` and a custom
+modal action that calls a domain service. A child record must always receive
+its company from its existing parent aggregate, never from the authenticated
+user and never from a browser payload.
+
+- Standard relation-manager creates must set `company_id` in both
+  `mutateFormDataUsing()` and `mutateFormDataBeforeCreate()` using explicit
+  assignment (`$data['company_id'] = $this->getOwnerRecord()->company_id`).
+- Custom relation-manager actions must call a service/action that derives and
+  persists the child `company_id` from the parent record server-side.
+- The service/action must verify that every selected child, category, item,
+  vendor, or other related record belongs to that same parent company.
+- Every phase test suite must include at least one Super Admin child-create
+  path. A missing context must raise a validation error, never reach SQL as a
+  `company_id has no default value` error.
 
 ### Filament UX
 
@@ -3000,6 +3041,46 @@ component re-rendering
 
 Do not use full page reload as a general state synchronization technique.
 
+### Relationship labels
+
+Foreign-key IDs are internal implementation details. In Filament forms, tables, and infolists, never expose a raw relationship field such as `review_id`, `submission_id`, or `budget_item_id` to a normal user. Give the field a concise human label (for example, `Review`, `Formal submission`, or `Budget item`) and use a meaningful related-record value in its options and display columns.
+
+Relationship selectors must be scoped to the same parent aggregate, Company, and business state accepted by the server-side service. For example, a Project financial record may offer only that Project's current approved budget items. A selector must never offer a record that the service will necessarily reject. Custom relation-manager actions must convert validation and authorization failures into a clear Filament notification; a failed action must never appear to do nothing.
+
+### Status badge colors
+
+Every user-facing status must use a semantic Filament badge color rather than one uniform background. Keep the mapping simple and consistent across modules:
+
+- `gray`: draft, planned, inactive, cancelled, archived.
+- `info`: submitted, assigned, queued, in progress, under review.
+- `warning`: pending approval, revision required, blocked, attention needed.
+- `success`: approved, completed, paid, cleared, active/available when positive.
+- `danger`: rejected, failed, overdue, voided, cancelled when it represents a negative outcome.
+
+Choose the color by business meaning, not by the literal status name. A module may use a different color only when its workflow meaning genuinely differs; do not build a separate color system per resource.
+
+### Business-date validation
+
+Validate dates by their business meaning in both the Filament form and the server-side service; a DatePicker restriction alone is not security or domain validation.
+
+- **Historical event dates** — payments, actual costs, corrections, receipts, inspections, and completed workflow events — may be today or in the past, but must not be future-dated.
+- **Planned/target dates** — estimated completion, target submissions, and scheduled future work — may be future dates when the workflow permits it.
+- **Derived audit timestamps** — submitted, approved, completed, created, and updated timestamps — are system-generated and must not be manually entered.
+- Do not impose artificial ordering between separate valid financial events (for example, a payment can be an advance before an invoice). Add cross-date ordering only when the approved domain explicitly requires it.
+
+The form must prevent an invalid date where practical and state the rule in helper text. The service must reject a crafted or bypassed request with a clear validation notification.
+
+### Relation-manager usability review
+
+For every important Project or parent-record tab, review the complete user journey before closing a phase:
+
+1. Create a realistic child record.
+2. Use each permitted workflow action in its valid sequence.
+3. Open `View` and confirm it surfaces the record's important relationships and history (for example, budget categories/items, commitment amendments, actual-cost allocations, or payment allocations).
+4. Confirm a read-only user can view but cannot mutate, and a user without the permission sees neither the action nor its data.
+
+The automated suite must cover the underlying service, authorization, tenant isolation, and state transition. Manual Filament verification must cover action visibility, labels, status colors, and the View modal's relationship display. Do not declare a workflow complete merely because its database operation succeeds.
+
 ---
 
 # 114. No Forced Browser Reloads for Normal CRUD
@@ -3931,6 +4012,15 @@ Never treat a correctly filtered Filament table as proof that direct record auth
 ## Company-Scoped Roles (Without Spatie Teams)
 
 Permissions are platform-defined and global. Roles belong either to the platform (`roles.company_id = null`) or exactly one Company (`roles.company_id = company.id`). The database uniqueness rule is therefore `(company_id, name, guard_name)`, allowing different companies to independently use the same role name.
+
+When a release introduces new platform-defined permissions, the deployment
+must seed those permissions and run `app:backfill-company-roles`. The command
+adds newly introduced non-platform permissions to the three built-in,
+company-owned default roles (`company_admin`, `property_manager`, and
+`financial_manager`) without removing existing grants or modifying any
+company-created custom role. This prevents a Super Admin's platform template
+from receiving a new permission while the corresponding existing Company role
+silently remains stale.
 
 1. Do **not** enable Spatie Teams for this application while users have one active `company_id`. Teams would require active-team context on every role and permission lookup and would make platform roles needlessly ambiguous.
 2. Use `App\\Models\\Role` and `CompanyRoleService` for every role lookup or assignment. Never resolve a company role by name alone and never call `assignRole('name')` for a company user.
