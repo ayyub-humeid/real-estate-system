@@ -62,7 +62,7 @@ class DesignPackagesRelationManager extends RelationManager
                         ->action(fn(ProjectDesignPackage $record, array $data) => $this->run(fn() => app(DesignEngineeringService::class)->addScopeItem(auth()->user(), $record->activeAssignment, $data), 'Scope item added')),
                     Tables\Actions\Action::make('updateScope')->label('Update scope status')->icon('heroicon-o-check-circle')
                         ->visible(fn(ProjectDesignPackage $record) => $record->activeAssignment && auth()->user()->can('update_design_package_scope_item'))
-                        ->form(fn(ProjectDesignPackage $record) => [Forms\Components\Select::make('scope_id')->options($this->scopeOptions($record))->required(), Forms\Components\Select::make('status')->options(['in_progress' => 'Start work', 'ready' => 'Mark ready', 'cancelled' => 'Cancel'])->required()])
+                        ->form(fn(ProjectDesignPackage $record) => [Forms\Components\Select::make('scope_id')->label('Scope item')->options($this->scopeOptions($record))->required(), Forms\Components\Select::make('status')->label('New status')->options(['in_progress' => 'Start work', 'ready' => 'Mark ready', 'cancelled' => 'Cancel'])->required()])
                         ->action(function (ProjectDesignPackage $record, array $data) {
                             $this->run(fn() => app(DesignEngineeringService::class)->transitionScopeItem(auth()->user(), $this->scope($record, $data['scope_id']), $data['status']), 'Scope status updated');
                         }),
@@ -93,13 +93,13 @@ class DesignPackagesRelationManager extends RelationManager
                         ->action(fn(ProjectDesignPackage $record, array $data) => $this->run(fn() => app(DesignEngineeringService::class)->submit(auth()->user(), $record, $data['document_versions'], $data['notes'] ?? null), 'Formal submission created')),
                     Tables\Actions\Action::make('startReview')->label('Start review')->icon('heroicon-o-magnifying-glass')
                         ->visible(fn(ProjectDesignPackage $record) => auth()->user()->can('review_design_submission'))
-                        ->form(fn(ProjectDesignPackage $record) => [Forms\Components\Select::make('submission_id')->options($this->submissionOptions($record, 'submitted'))->required(), Forms\Components\Select::make('reviewer_id')->options($this->companyUsers())->searchable()->required()])
+                        ->form(fn(ProjectDesignPackage $record) => [Forms\Components\Select::make('submission_id')->label('Formal submission')->options($this->submissionOptions($record, 'submitted'))->required(), Forms\Components\Select::make('reviewer_id')->label('Reviewer')->options($this->companyUsers())->searchable()->required()])
                         ->action(function (ProjectDesignPackage $record, array $data) {
                             $this->run(fn() => app(DesignEngineeringService::class)->startReview(auth()->user(), $this->submission($record, $data['submission_id']), User::withoutGlobalScopes()->findOrFail($data['reviewer_id'])), 'Review started');
                         }),
                     Tables\Actions\Action::make('addFinding')->label('Add finding')->icon('heroicon-o-exclamation-triangle')->color('warning')
                         ->visible(fn() => auth()->user()->can('create_design_finding'))
-                        ->form(fn(ProjectDesignPackage $record) => [Forms\Components\Select::make('review_id')->options($this->reviewOptions($record, 'in_review'))->required(), Forms\Components\Select::make('severity')->options(array_combine(DesignReviewFinding::SEVERITIES, DesignReviewFinding::SEVERITIES))->required(), Forms\Components\TextInput::make('title')->required(), Forms\Components\Textarea::make('description')->required(), Forms\Components\Select::make('design_package_scope_item_id')->options($this->scopeOptions($record)), Forms\Components\Select::make('document_version_id')->options($this->documentVersionOptions($record))])
+                        ->form(fn(ProjectDesignPackage $record) => [Forms\Components\Select::make('review_id')->label('Review')->options($this->reviewOptions($record, 'in_review'))->required(), Forms\Components\Select::make('severity')->label('Severity')->options(array_combine(DesignReviewFinding::SEVERITIES, DesignReviewFinding::SEVERITIES))->required(), Forms\Components\TextInput::make('title')->required(), Forms\Components\Textarea::make('description')->required(), Forms\Components\Select::make('design_package_scope_item_id')->label('Scope item')->options($this->scopeOptions($record)), Forms\Components\Select::make('document_version_id')->label('Document version')->options($this->documentVersionOptions($record))])
                         ->action(function (ProjectDesignPackage $record, array $data) {
                             $review = DesignPackageReview::withoutGlobalScopes()->findOrFail($data['review_id']);
                             unset($data['review_id']);
@@ -107,13 +107,13 @@ class DesignPackagesRelationManager extends RelationManager
                         }),
                     Tables\Actions\Action::make('completeReview')->label('Complete review')->icon('heroicon-o-check-badge')
                         ->visible(fn() => auth()->user()->can('review_design_submission'))
-                        ->form(fn(ProjectDesignPackage $record) => [Forms\Components\Select::make('review_id')->options($this->reviewOptions($record, 'in_review'))->required(), Forms\Components\Textarea::make('summary')])
+                        ->form(fn(ProjectDesignPackage $record) => [Forms\Components\Select::make('review_id')->label('Review')->options($this->reviewOptions($record, 'in_review'))->required(), Forms\Components\Textarea::make('summary')])
                         ->action(function (ProjectDesignPackage $record, array $data) {
                             $this->run(fn() => app(DesignEngineeringService::class)->completeReview(auth()->user(), DesignPackageReview::withoutGlobalScopes()->findOrFail($data['review_id']), $data['summary'] ?? null), 'Review completed');
                         }),
                     Tables\Actions\Action::make('waiveFinding')->label('Waive finding')->icon('heroicon-o-shield-check')->color('warning')
                         ->visible(fn() => auth()->user()->can('waive_design_finding'))
-                        ->form(fn(ProjectDesignPackage $record) => [Forms\Components\Select::make('finding_id')->options($this->findingOptions($record))->required(), Forms\Components\Textarea::make('notes')->required()])
+                        ->form(fn(ProjectDesignPackage $record) => [Forms\Components\Select::make('finding_id')->label('Finding')->options($this->findingOptions($record))->required(), Forms\Components\Textarea::make('notes')->required()])
                         ->action(function (ProjectDesignPackage $record, array $data) {
                             $this->run(fn() => app(DesignEngineeringService::class)->waiveFinding(auth()->user(), $this->finding($record, $data['finding_id']), $data['notes']), 'Finding waived');
                         }),
@@ -121,25 +121,25 @@ class DesignPackagesRelationManager extends RelationManager
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\Action::make('requestRevision')->label('Request revision')->icon('heroicon-o-arrow-path')
                         ->visible(fn() => auth()->user()->can('request_design_revision'))
-                        ->form(fn(ProjectDesignPackage $record) => [Forms\Components\Select::make('submission_id')->options($this->submissionOptions($record, 'reviewed'))->required(), Forms\Components\Select::make('finding_ids')->multiple()->options($this->findingOptions($record))->required(), Forms\Components\Textarea::make('description')])
+                        ->form(fn(ProjectDesignPackage $record) => [Forms\Components\Select::make('submission_id')->label('Reviewed submission')->options($this->submissionOptions($record, 'reviewed'))->required(), Forms\Components\Select::make('finding_ids')->label('Findings to resolve')->multiple()->options($this->findingOptions($record))->required(), Forms\Components\Textarea::make('description')])
                         ->action(function (ProjectDesignPackage $record, array $data) {
                             $this->run(fn() => app(DesignEngineeringService::class)->requestRevision(auth()->user(), $this->submission($record, $data['submission_id']), $data['finding_ids'], $data['description'] ?? null), 'Revision requested');
                         }),
                     Tables\Actions\Action::make('updateRevision')->label('Start / mark revision ready')->icon('heroicon-o-arrow-uturn-right')
                         ->visible(fn() => auth()->user()->can('submit_design_revision'))
-                        ->form(fn(ProjectDesignPackage $record) => [Forms\Components\Select::make('revision_id')->options($this->revisionOptions($record))->required(), Forms\Components\Select::make('status')->options(['in_progress' => 'Start revision', 'ready' => 'Mark ready'])->required()])
+                        ->form(fn(ProjectDesignPackage $record) => [Forms\Components\Select::make('revision_id')->label('Revision')->options($this->revisionOptions($record))->required(), Forms\Components\Select::make('status')->label('New status')->options(['in_progress' => 'Start revision', 'ready' => 'Mark ready'])->required()])
                         ->action(function (ProjectDesignPackage $record, array $data) {
                             $this->run(fn() => app(DesignEngineeringService::class)->transitionRevision(auth()->user(), $this->revision($record, $data['revision_id']), $data['status']), 'Revision status updated');
                         }),
                     Tables\Actions\Action::make('resubmit')->label('Resubmit ready revision')->icon('heroicon-o-paper-airplane')
                         ->visible(fn(ProjectDesignPackage $record) => auth()->user()->can('submit', $record))
-                        ->form(fn(ProjectDesignPackage $record) => [Forms\Components\Select::make('revision_id')->options($this->revisionOptions($record, 'ready'))->required(), Forms\Components\Select::make('document_versions')->multiple()->options($this->documentVersionOptions($record))->required(), Forms\Components\Textarea::make('notes')])
+                        ->form(fn(ProjectDesignPackage $record) => [Forms\Components\Select::make('revision_id')->label('Ready revision')->options($this->revisionOptions($record, 'ready'))->required(), Forms\Components\Select::make('document_versions')->label('Document versions')->multiple()->options($this->documentVersionOptions($record))->required(), Forms\Components\Textarea::make('notes')])
                         ->action(function (ProjectDesignPackage $record, array $data) {
                             $this->run(fn() => app(DesignEngineeringService::class)->submit(auth()->user(), $record, $data['document_versions'], $data['notes'] ?? null, $this->revision($record, $data['revision_id'])), 'Resubmission created');
                         }),
                     Tables\Actions\Action::make('approve')->label('Approve exact submission')->icon('heroicon-o-check-circle')->color('success')->requiresConfirmation()
                         ->visible(fn(ProjectDesignPackage $record) => auth()->user()->can('approve', $record))
-                        ->form(fn(ProjectDesignPackage $record) => [Forms\Components\Select::make('submission_id')->options($this->submissionOptions($record, 'reviewed'))->required(), Forms\Components\Textarea::make('notes')])
+                        ->form(fn(ProjectDesignPackage $record) => [Forms\Components\Select::make('submission_id')->label('Reviewed submission')->options($this->submissionOptions($record, 'reviewed'))->required(), Forms\Components\Textarea::make('notes')])
                         ->action(function (ProjectDesignPackage $record, array $data) {
                             $this->run(fn() => app(DesignEngineeringService::class)->approve(auth()->user(), $record, $this->submission($record, $data['submission_id']), $data['notes'] ?? null), 'Design package approved');
                         }),
