@@ -7,6 +7,7 @@ use App\Notifications\ProjectWorkflowNotification;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
 
 class BudgetingService
@@ -27,6 +28,7 @@ class BudgetingService
     public function addCategory(User $actor, ProjectBudget $budget, array $attributes): BudgetCategory
     {
         $this->authorize($actor, 'update', $budget);
+        $this->authorize($actor, 'create', new BudgetCategory(['company_id' => $budget->company_id]));
         $this->assertDraft($budget);
         if (!empty($attributes['parent_id'])) {
             $parent = BudgetCategory::withoutGlobalScopes()->findOrFail($attributes['parent_id']);
@@ -40,6 +42,7 @@ class BudgetingService
     {
         $budget = $category->budget;
         $this->authorize($actor, 'update', $budget);
+        $this->authorize($actor, 'create', new BudgetItem(['company_id' => $budget->company_id]));
         $this->assertDraft($budget);
         $this->positive($attributes['planned_amount'] ?? null, 'planned_amount');
         return DB::transaction(function () use ($category, $budget, $attributes) {
@@ -48,6 +51,74 @@ class BudgetingService
             $line->update(['created_from_budget_item_id' => $item->id]);
             return $item;
         });
+    }
+
+    public function updateCategory(User $actor, ProjectBudget $budget, BudgetCategory $category, array $attributes): BudgetCategory
+    {
+        $this->assertCategoryBelongsToBudget($budget, $category);
+        $this->authorize($actor, 'update', $budget);
+        $this->authorize($actor, 'update', $category);
+        $this->assertDraft($budget);
+
+        if (! empty($attributes['parent_id'])) {
+            $parent = BudgetCategory::withoutGlobalScopes()->findOrFail($attributes['parent_id']);
+            $this->assertCategoryBelongsToBudget($budget, $parent);
+
+            if ($parent->is($category) || $this->isCategoryDescendantOf($parent, $category)) {
+                $this->invalid('parent_id', 'A category cannot be its own parent or a child of itself.');
+            }
+        }
+
+        $category->update(collect($attributes)->only(['parent_id', 'name', 'code', 'description', 'sort_order'])->all());
+
+        return $category->refresh();
+    }
+
+    public function deleteCategory(User $actor, ProjectBudget $budget, BudgetCategory $category): void
+    {
+        $this->assertCategoryBelongsToBudget($budget, $category);
+        $this->authorize($actor, 'update', $budget);
+        $this->authorize($actor, 'delete', $category);
+        $this->assertDraft($budget);
+
+        if ($category->children()->exists() || $category->items()->exists()) {
+            $this->invalid('category', 'A category can be deleted only after its child categories and budget items are removed.');
+        }
+
+        $category->delete();
+    }
+
+    public function updateItem(User $actor, ProjectBudget $budget, BudgetItem $item, array $attributes): BudgetItem
+    {
+        $this->assertItemBelongsToBudget($budget, $item);
+        $this->authorize($actor, 'update', $budget);
+        $this->authorize($actor, 'update', $item);
+        $this->assertDraft($budget);
+        $this->positive($attributes['planned_amount'] ?? null, 'planned_amount');
+
+        $item->update(collect($attributes)->only([
+            'code', 'name', 'description', 'planned_amount', 'quantity', 'unit', 'unit_cost', 'notes',
+        ])->all());
+
+        return $item->refresh();
+    }
+
+    public function deleteItem(User $actor, ProjectBudget $budget, BudgetItem $item): void
+    {
+        $this->assertItemBelongsToBudget($budget, $item);
+        $this->authorize($actor, 'update', $budget);
+        $this->authorize($actor, 'delete', $item);
+        $this->assertDraft($budget);
+
+        $line = $item->line;
+        $item->delete();
+
+        if ($line
+            && ! $line->items()->exists()
+            && ! $line->commitments()->exists()
+            && ! $line->actualCosts()->exists()) {
+            $line->delete();
+        }
     }
 
     public function submitBudget(User $actor, ProjectBudget $budget): ProjectBudget
@@ -143,6 +214,34 @@ class BudgetingService
         return $commitment;
     }
 
+    public function updateCommitment(User $actor, FinancialCommitment $commitment, array $attributes): FinancialCommitment
+    {
+        $this->authorize($actor, 'update', $commitment);
+        $this->assertProjectOpen($commitment->project);
+        if ($commitment->status !== 'draft') {
+            $this->transition('financial commitment', $commitment->status, 'draft');
+        }
+
+        $this->money($attributes, 'amount');
+        $this->money($attributes, 'budget_amount');
+        $this->currency($attributes['currency'] ?? null);
+        [$item, $line] = $this->budgetContext($commitment->project, $attributes['budget_item_id'] ?? null, true);
+
+        if (! $item && ! $actor->can('create_unbudgeted_commitment')) {
+            throw new AuthorizationException;
+        }
+
+        $party = $this->party($commitment->project, $attributes['party_id'] ?? null, true);
+        $this->source($commitment->project, $attributes['source_type'] ?? null, $attributes['source_id'] ?? null);
+
+        $commitment->update(array_merge(
+            collect($attributes)->only(['source_type', 'source_id', 'reference_number', 'description', 'amount', 'currency', 'budget_amount', 'exchange_rate_to_budget', 'notes'])->all(),
+            ['budget_item_id' => $item?->id, 'budget_line_id' => $line?->id, 'party_id' => $party?->id],
+        ));
+
+        return $commitment->refresh();
+    }
+
     public function commit(User $actor, FinancialCommitment $commitment, ?string $reason = null): FinancialCommitment
     {
         $this->authorize($actor, 'commit', $commitment);
@@ -218,11 +317,14 @@ class BudgetingService
         $this->money($attributes, 'amount');
         $this->money($attributes, 'budget_amount');
         $this->currency($attributes['currency'] ?? null);
+        $this->occurredOnOrBeforeToday($attributes['incurred_at'] ?? null, 'incurred_at', 'Actual-cost date');
         $party = $this->party($project, $attributes['party_id'] ?? null, false);
         $commitment = null;
         if (!empty($attributes['financial_commitment_id'])) {
             $commitment = FinancialCommitment::withoutGlobalScopes()->findOrFail($attributes['financial_commitment_id']);
             $this->same($project, $commitment);
+            if ($commitment->status !== 'committed')
+                $this->invalid('financial_commitment_id', 'Actual costs may be linked only to an active committed obligation.');
             if ($commitment->party_id && (int) $commitment->party_id !== (int) $party->id)
                 $this->invalid('party_id', 'The vendor must match the financial commitment.');
         }
@@ -230,6 +332,48 @@ class BudgetingService
         if ($commitment && $commitment->budget_line_id && (int) $commitment->budget_line_id !== (int) ($line?->id))
             $this->invalid('budget_item_id', 'The budget item must match the commitment line.');
         return ActualCost::create(array_merge(collect($attributes)->only(['name', 'amount', 'currency', 'budget_amount', 'exchange_rate_to_budget', 'incurred_at'])->all(), ['company_id' => $project->company_id, 'project_id' => $project->id, 'financial_commitment_id' => $commitment?->id, 'budget_item_id' => $item?->id, 'budget_line_id' => $line?->id, 'party_id' => $party->id, 'created_by' => $actor->id]));
+    }
+
+    public function updateActualCost(User $actor, ActualCost $cost, array $attributes): ActualCost
+    {
+        $this->authorize($actor, 'update', $cost);
+        $this->assertProjectOpen($cost->project);
+        if ($cost->status !== 'draft') {
+            $this->transition('actual cost', $cost->status, 'draft');
+        }
+
+        $this->money($attributes, 'amount');
+        $this->money($attributes, 'budget_amount');
+        $this->currency($attributes['currency'] ?? null);
+        $this->occurredOnOrBeforeToday($attributes['incurred_at'] ?? null, 'incurred_at', 'Actual-cost date');
+        $party = $this->party($cost->project, $attributes['party_id'] ?? null, false);
+        $commitment = null;
+
+        if (! empty($attributes['financial_commitment_id'])) {
+            $commitment = FinancialCommitment::withoutGlobalScopes()->findOrFail($attributes['financial_commitment_id']);
+            $this->same($cost->project, $commitment);
+            if ($commitment->status !== 'committed') {
+                $this->invalid('financial_commitment_id', 'Actual costs may be linked only to an active committed obligation.');
+            }
+            if ($commitment->party_id && (int) $commitment->party_id !== (int) $party->id) {
+                $this->invalid('party_id', 'The vendor must match the financial commitment.');
+            }
+        }
+
+        [$item, $line] = $commitment
+            ? [$commitment->item, $commitment->line]
+            : $this->budgetContext($cost->project, $attributes['budget_item_id'] ?? null, true);
+
+        if ($commitment && $commitment->budget_line_id && (int) $commitment->budget_line_id !== (int) ($line?->id)) {
+            $this->invalid('budget_item_id', 'The budget item must match the commitment line.');
+        }
+
+        $cost->update(array_merge(
+            collect($attributes)->only(['name', 'amount', 'currency', 'budget_amount', 'exchange_rate_to_budget', 'incurred_at'])->all(),
+            ['financial_commitment_id' => $commitment?->id, 'budget_item_id' => $item?->id, 'budget_line_id' => $line?->id, 'party_id' => $party->id],
+        ));
+
+        return $cost->refresh();
     }
 
     public function submitActualCost(User $actor, ActualCost $cost): ActualCost
@@ -259,6 +403,7 @@ class BudgetingService
         $this->money($attributes, 'budget_amount', true);
         if (blank($attributes['correction_reason'] ?? null))
             $this->invalid('correction_reason', 'A correction reason is required.');
+        $this->occurredOnOrBeforeToday($attributes['incurred_at'] ?? now()->toDateString(), 'incurred_at', 'Correction date');
         $net = (float) $original->amount + (float) $original->corrections()->where('status', 'approved')->sum('amount') + (float) $attributes['amount'];
         $allocated = (float) $original->allocations()->sum('actual_cost_amount');
         if ($net < $allocated)
@@ -273,6 +418,7 @@ class BudgetingService
         $this->money($attributes, 'amount');
         $this->money($attributes, 'project_amount');
         $this->currency($attributes['currency'] ?? null);
+        $this->occurredOnOrBeforeToday($attributes['payment_date'] ?? null, 'payment_date', 'Payment date');
         $party = $this->party($project, $attributes['party_id'] ?? null, false);
         return Payment::create(array_merge(collect($attributes)->only(['amount', 'currency', 'project_amount', 'exchange_rate_to_project', 'payment_date', 'reference_number', 'payment_method'])->all(), ['company_id' => $project->company_id, 'project_id' => $project->id, 'party_id' => $party->id, 'direction' => 'outgoing', 'status' => 'completed', 'completed_at' => now(), 'recorded_by' => $actor->id]));
     }
@@ -315,6 +461,44 @@ class BudgetingService
                 $this->invalid('actual_cost_amount', 'Allocation exceeds the approved actual-cost balance.');
             return PaymentAllocation::create(['company_id' => $lockedPayment->company_id, 'project_id' => $lockedPayment->project_id, 'payment_id' => $lockedPayment->id, 'allocatable_type' => ActualCost::class, 'allocatable_id' => $lockedCost->id, 'payment_amount' => $attributes['payment_amount'], 'actual_cost_amount' => $attributes['actual_cost_amount'], 'project_amount' => $attributes['project_amount'], 'exchange_rate_to_project' => $attributes['exchange_rate_to_project'] ?? null]);
         });
+    }
+
+    private function assertCategoryBelongsToBudget(ProjectBudget $budget, BudgetCategory $category): void
+    {
+        if ((int) $category->project_budget_id !== (int) $budget->id
+            || (int) $category->company_id !== (int) $budget->company_id) {
+            $this->invalid('category', 'The selected category must belong to this budget version.');
+        }
+    }
+
+    private function assertItemBelongsToBudget(ProjectBudget $budget, BudgetItem $item): void
+    {
+        $item->loadMissing('category');
+
+        if (! $item->category) {
+            $this->invalid('budget_item', 'The selected budget item no longer has a category.');
+        }
+
+        $this->assertCategoryBelongsToBudget($budget, $item->category);
+    }
+
+    private function isCategoryDescendantOf(BudgetCategory $candidate, BudgetCategory $ancestor): bool
+    {
+        $current = $candidate;
+
+        while ($current->parent_id) {
+            if ((int) $current->parent_id === (int) $ancestor->id) {
+                return true;
+            }
+
+            $current = BudgetCategory::withoutGlobalScopes()->find($current->parent_id);
+
+            if (! $current) {
+                return false;
+            }
+        }
+
+        return false;
     }
 
     private function budgetContext(Project $project, mixed $itemId, bool $mustBeCurrent = false): array
@@ -376,6 +560,18 @@ class BudgetingService
     {
         if (!preg_match('/^[A-Z]{3}$/', (string) $currency))
             $this->invalid('currency', 'Currency must be a three-letter ISO code.');
+    }
+    private function occurredOnOrBeforeToday(mixed $value, string $field, string $label): void
+    {
+        if (blank($value))
+            $this->invalid($field, "{$label} is required.");
+        try {
+            $date = Carbon::parse($value)->startOfDay();
+        } catch (\Throwable) {
+            $this->invalid($field, "{$label} must be a valid date.");
+        }
+        if ($date->gt(now()->startOfDay()))
+            $this->invalid($field, "{$label} cannot be in the future.");
     }
     private function same(object $a, object $b): void
     {

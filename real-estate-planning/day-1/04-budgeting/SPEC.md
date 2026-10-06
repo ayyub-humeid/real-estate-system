@@ -524,6 +524,12 @@ cancelled:
 
 Do not infer paid status from `fulfilled`.
 
+A draft commitment may be edited normally, including its vendor, budget item,
+reference, description, and amount. Once committed, those base fields are
+immutable: value changes use a Commitment Amendment, and release/cancellation
+use their explicit workflow actions. The Filament Edit action must therefore
+be visible only while the commitment is `draft`.
+
 ---
 
 # 15. Budget Calculations
@@ -725,6 +731,10 @@ actual_costs
 | correction_reason | text | nullable | required for a correction/offset |
 | timestamps | timestamps | required |
 
+`incurred_at` records an event that already happened. It may be today or in the
+past, but must never be future-dated. This rule is enforced in both the form
+and the service. A correction uses the same rule.
+
 ## Actual Cost Workflow and Immutability
 
 Only a draft may be edited normally. Submission and approval are explicit
@@ -738,9 +748,9 @@ that would reduce a root cost below already allocated cash is blocked until a
 corresponding payment reversal/refund is recorded.
 
 When an Actual Cost references a Financial Commitment, the service must enforce
-the same company and project, and inherit/validate the commitment's stable
-budget line. If the commitment has a counterparty, the Actual Cost must use
-that same party.
+the same company and project, require the commitment to be in `committed`
+status, and inherit/validate the commitment's stable budget line. If the
+commitment has a counterparty, the Actual Cost must use that same party.
 
 ---
 
@@ -775,6 +785,11 @@ payment_allocations
 | completed_at | timestamp | nullable |
 | recorded_by | FK users | nullable |
 | timestamps | timestamps | required |
+
+`payment_date` records cash that has already moved. It may be today or in the
+past, but must never be future-dated. A payment may predate its allocated
+Actual Cost because advance payments are valid; do not add an artificial
+payment-date-versus-invoice-date ordering rule.
 
 ## Fields for `payment_allocations`
 
@@ -991,6 +1006,13 @@ Top-level resources (Convention 1 Shield permissions):
 Nested Relation Managers (Convention 2 custom permissions, reusing policies):
 - `Project` -> Budgets, Commitments, Actual Costs, Payments
 - `ProjectBudget` -> Categories / Items
+
+For a Project-owned budget child created from either workspace, `company_id`
+must be inherited from the Project/Budget parent inside the service/action.
+This remains mandatory for Super Admin because the `HasCompany` creating hook
+does not inject a company for that role. The Project Budget Planning workspace
+must expose category/item management with grouped icon actions and tooltips;
+it must not require a separate company selection or a full-page redirect.
 
 Recommended Project Budget area:
 

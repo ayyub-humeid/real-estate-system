@@ -62,13 +62,20 @@ re-pointed during a revision.
   amendments, allocations, lifecycle actions, corrections, and voids.
 - Financial-manager template roles now receive Phase 04 permissions while
   platform-only permissions remain excluded from company roles.
+- Super Admin budget/category/item operations now inherit `company_id` from
+  the selected Project/Budget parent server-side; they never depend on the
+  Super Admin user's nullable company context.
 
 ## Filament UX
 
-- Project View now has **Budgets**, **Financial Commitments**, **Actual Costs**,
+- Project View now has **Budget Planning**, **Financial Commitments**, **Actual Costs**,
   and **Payments** workspaces.
-- A budget version opens a dedicated hidden-resource workspace with separate
-  category and item management tabs.
+- Budget categories and planned cost items can be created, edited, and safely
+  deleted directly in the Project Budget Planning workspace. Grouped icon
+  actions include tooltips and follow the Planning Structure interaction style.
+- The hidden budget resource remains available as a secondary detail view;
+  Project users no longer need to leave the Project page for normal budget
+  structure work.
 - Lifecycle actions are reactive and service-backed: submit/approve/return/
   cancel/revise budgets; commit/amend/approve-amendment/release/cancel
   commitments; submit/approve/correct actual costs; record/allocate/void
@@ -90,7 +97,8 @@ lease-balance test was removed for the same reason.
 ### MySQL — `realState_test`
 
 - `migrate:fresh --env=testing`: passed from a clean database.
-- `BudgetingWorkflowTest`: **9 passed, 27 assertions**.
+- `BudgetingWorkflowTest`: **10 passed, 31 assertions**, including Super Admin
+  child company inheritance.
 - Full suite validated in three isolated groups to avoid a local lingering
   PHPUnit process competing for the shared MySQL test schema:
   **63 passed, 307 assertions**.
@@ -98,19 +106,17 @@ lease-balance test was removed for the same reason.
 ### PostgreSQL — `realstate_pg_test` (port 6000)
 
 - clean `migrate:fresh` passed using explicit PostgreSQL test configuration;
-- `BudgetingWorkflowTest`: **9 passed, 27 assertions**;
+- `BudgetingWorkflowTest`: **10 passed, 31 assertions**, including Super Admin
+  child company inheritance;
 - `phpunit.pgsql.xml` pins the database to `realstate_pg_test` on port 6000.
 
 ## Deployment reminder
 
-Before deploying Phase 04, run Shield generation for the four top-level
-resources and seed role templates in the target environment:
+Before deploying Phase 04, generate Shield permissions and seed role templates
+in the target environment:
 
 ```bash
-php artisan shield:generate --resource=ProjectBudgetResource --option=permissions --panel=admin --no-interaction
-php artisan shield:generate --resource=FinancialCommitmentResource --option=permissions --panel=admin --no-interaction
-php artisan shield:generate --resource=ActualCostResource --option=permissions --panel=admin --no-interaction
-php artisan shield:generate --resource=PaymentResource --option=permissions --panel=admin --no-interaction
+php artisan shield:generate --all --option=permissions --panel=admin --no-interaction
 php artisan db:seed --class=RolesAndPermissionsSeeder --force
 php artisan app:backfill-company-roles
 ```

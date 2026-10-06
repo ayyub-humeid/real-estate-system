@@ -7,6 +7,7 @@ use App\Services\BudgetingService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
+use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
 
@@ -16,7 +17,7 @@ class BudgetingWorkflowTest extends TestCase
 
     private function permissions(): array
     {
-        return ['create_project::budget','update_project::budget','submit_project_budget','approve_project_budget','reject_project_budget','create_budget_revision','create_budget_category','update_budget_category','create_budget_item','update_budget_item','create_financial::commitment','commit_financial_commitment','create_unbudgeted_commitment','approve_over_budget_commitment','release_financial_commitment','cancel_financial_commitment','create_financial_commitment_amendment','approve_financial_commitment_amendment','create_actual::cost','submit_actual_cost','approve_actual_cost','create_actual_cost_correction','create_payment','record_payment','allocate_payment'];
+        return ['create_project::budget','update_project::budget','submit_project_budget','approve_project_budget','reject_project_budget','create_budget_revision','create_budget_category','update_budget_category','create_budget_item','update_budget_item','create_financial::commitment','update_financial::commitment','commit_financial_commitment','create_unbudgeted_commitment','approve_over_budget_commitment','release_financial_commitment','cancel_financial_commitment','create_financial_commitment_amendment','approve_financial_commitment_amendment','create_actual::cost','update_actual::cost','submit_actual_cost','approve_actual_cost','create_actual_cost_correction','create_payment','record_payment','allocate_payment'];
     }
     private function actor(Company $company, ?array $permissions=null): User { $user=User::factory()->create(['company_id'=>$company->id]); foreach($permissions ?? $this->permissions() as $p)$user->givePermissionTo(Permission::findOrCreate($p,'web')); return $user; }
     private function project(Company $company): Project { return Project::withoutGlobalScopes()->create(['company_id'=>$company->id,'name'=>'Palm Heights','project_type'=>'residential','currency'=>'USD']); }
@@ -72,6 +73,101 @@ class BudgetingWorkflowTest extends TestCase
         $this->expectException(AuthorizationException::class);$service->createBudget($this->actor($company,[]),$project,[]);
     }
 
+    public function test_financial_commitment_requires_an_item_from_its_current_approved_project_budget(): void
+    {
+        $company = Company::create(['name' => 'A', 'email' => 'a@test.test']);
+        $actor = $this->actor($company);
+        $project = $this->project($company);
+        $vendor = $this->party($company);
+        $service = app(BudgetingService::class);
+
+        $draftBudget = $service->createBudget($actor, $project, ['name' => 'Draft']);
+        $draftCategory = $service->addCategory($actor, $draftBudget, ['name' => 'Construction']);
+        $draftItem = $service->addItem($actor, $draftCategory, ['name' => 'Concrete', 'planned_amount' => 1000]);
+
+        try {
+            $service->createCommitment($actor, $project, ['budget_item_id' => $draftItem->id, 'party_id' => $vendor->id, 'description' => 'Draft budget commitment', 'amount' => 100, 'currency' => 'USD', 'budget_amount' => 100]);
+            $this->fail('A draft-budget item was accepted for a commitment.');
+        } catch (ValidationException) {
+            $this->assertDatabaseCount('financial_commitments', 0);
+        }
+
+        $otherProject = $this->project($company);
+        [, $otherItem] = $this->approvedItem($service, $actor, $otherProject);
+
+        try {
+            $service->createCommitment($actor, $project, ['budget_item_id' => $otherItem->id, 'party_id' => $vendor->id, 'description' => 'Other project commitment', 'amount' => 100, 'currency' => 'USD', 'budget_amount' => 100]);
+            $this->fail('Another project’s budget item was accepted for a commitment.');
+        } catch (ValidationException) {
+            $this->assertDatabaseCount('financial_commitments', 0);
+        }
+    }
+
+    public function test_only_a_draft_commitment_can_be_edited(): void
+    {
+        $company = Company::create(['name' => 'A', 'email' => 'a@test.test']);
+        $actor = $this->actor($company);
+        $project = $this->project($company);
+        $vendor = $this->party($company);
+        $service = app(BudgetingService::class);
+        [, $item] = $this->approvedItem($service, $actor, $project);
+
+        $commitment = $service->createCommitment($actor, $project, ['budget_item_id' => $item->id, 'party_id' => $vendor->id, 'description' => 'Original', 'reference_number' => 'PO-001', 'amount' => 100, 'currency' => 'USD', 'budget_amount' => 100]);
+        $updated = $service->updateCommitment($actor, $commitment, ['budget_item_id' => $item->id, 'party_id' => $vendor->id, 'description' => 'Updated', 'reference_number' => 'PO-002', 'amount' => 120, 'currency' => 'USD', 'budget_amount' => 120]);
+
+        $this->assertSame('Updated', $updated->description);
+        $this->assertSame('PO-002', $updated->reference_number);
+        $this->assertSame(120.0, (float) $updated->amount);
+
+        $service->commit($actor, $updated);
+        $this->expectException(AuthorizationException::class);
+        $service->updateCommitment($actor, $updated->fresh(), ['budget_item_id' => $item->id, 'party_id' => $vendor->id, 'description' => 'Blocked', 'amount' => 120, 'currency' => 'USD', 'budget_amount' => 120]);
+    }
+
+    public function test_actual_cost_rejects_a_draft_or_released_financial_commitment(): void
+    {
+        $company = Company::create(['name' => 'A', 'email' => 'a@test.test']);
+        $actor = $this->actor($company);
+        $project = $this->project($company);
+        $vendor = $this->party($company);
+        $service = app(BudgetingService::class);
+        [, $item] = $this->approvedItem($service, $actor, $project);
+        $commitment = $service->createCommitment($actor, $project, ['budget_item_id' => $item->id, 'party_id' => $vendor->id, 'description' => 'Concrete supply', 'amount' => 100, 'currency' => 'USD', 'budget_amount' => 100]);
+
+        foreach (['draft', 'released'] as $status) {
+            if ($status === 'released') {
+                $service->commit($actor, $commitment);
+                $service->releaseCommitment($actor, $commitment->fresh(), 'Supplier released the scope');
+            }
+
+            try {
+                $service->createActualCost($actor, $project, ['financial_commitment_id' => $commitment->id, 'party_id' => $vendor->id, 'name' => 'Invoice', 'amount' => 100, 'currency' => 'USD', 'budget_amount' => 100, 'incurred_at' => '2026-10-06']);
+                $this->fail("A {$status} commitment accepted an actual cost.");
+            } catch (ValidationException) {
+                $this->assertDatabaseCount('actual_costs', 0);
+            }
+        }
+    }
+
+    public function test_only_a_draft_actual_cost_can_be_edited(): void
+    {
+        $company = Company::create(['name' => 'A', 'email' => 'a@test.test']);
+        $actor = $this->actor($company);
+        $project = $this->project($company);
+        $vendor = $this->party($company);
+        $service = app(BudgetingService::class);
+        [, $item] = $this->approvedItem($service, $actor, $project);
+        $cost = $service->createActualCost($actor, $project, ['budget_item_id' => $item->id, 'party_id' => $vendor->id, 'name' => 'Original invoice', 'amount' => 100, 'currency' => 'USD', 'budget_amount' => 100, 'incurred_at' => '2026-10-06']);
+
+        $updated = $service->updateActualCost($actor, $cost, ['budget_item_id' => $item->id, 'party_id' => $vendor->id, 'name' => 'Corrected invoice', 'amount' => 120, 'currency' => 'USD', 'budget_amount' => 120, 'incurred_at' => '2026-10-06']);
+        $this->assertSame('Corrected invoice', $updated->name);
+        $this->assertSame(120.0, (float) $updated->amount);
+
+        $service->submitActualCost($actor, $updated);
+        $this->expectException(AuthorizationException::class);
+        $service->updateActualCost($actor, $updated->fresh(), ['budget_item_id' => $item->id, 'party_id' => $vendor->id, 'name' => 'Blocked', 'amount' => 120, 'currency' => 'USD', 'budget_amount' => 120, 'incurred_at' => '2026-10-06']);
+    }
+
     public function test_correction_is_new_draft_and_does_not_mutate_approved_cost(): void
     {
         $company=Company::create(['name'=>'A','email'=>'a@test.test']);$actor=$this->actor($company);$project=$this->project($company);$vendor=$this->party($company);$service=app(BudgetingService::class);[,$item]=$this->approvedItem($service,$actor,$project);
@@ -107,5 +203,65 @@ class BudgetingWorkflowTest extends TestCase
     {
         $company=Company::create(['name'=>'A','email'=>'a@test.test']);$actor=$this->actor($company);$project=$this->project($company);$service=app(BudgetingService::class);$service->createBudget($actor,$project,['name'=>'Initial']);
         $project->currency='ILS';$this->expectException(ValidationException::class);$project->save();
+    }
+
+    public function test_actual_cost_payment_and_correction_dates_cannot_be_future_dated(): void
+    {
+        $company = Company::create(['name' => 'A', 'email' => 'a@test.test']);
+        $actor = $this->actor($company);
+        $project = $this->project($company);
+        $vendor = $this->party($company);
+        $service = app(BudgetingService::class);
+        [, $item] = $this->approvedItem($service, $actor, $project);
+        $futureDate = today()->addDay()->toDateString();
+
+        try {
+            $service->createActualCost($actor, $project, ['budget_item_id' => $item->id, 'party_id' => $vendor->id, 'name' => 'Future invoice', 'amount' => 100, 'currency' => 'USD', 'budget_amount' => 100, 'incurred_at' => $futureDate]);
+            $this->fail('A future actual-cost date was accepted.');
+        } catch (ValidationException) {
+            $this->assertDatabaseCount('actual_costs', 0);
+        }
+
+        try {
+            $service->recordPayment($actor, $project, ['party_id' => $vendor->id, 'amount' => 100, 'currency' => 'USD', 'project_amount' => 100, 'payment_date' => $futureDate]);
+            $this->fail('A future payment date was accepted.');
+        } catch (ValidationException) {
+            $this->assertDatabaseCount('payments', 0);
+        }
+
+        $cost = $service->createActualCost($actor, $project, ['budget_item_id' => $item->id, 'party_id' => $vendor->id, 'name' => 'Invoice', 'amount' => 100, 'currency' => 'USD', 'budget_amount' => 100, 'incurred_at' => today()->toDateString()]);
+        $service->submitActualCost($actor, $cost);
+        $service->approveActualCost($actor, $cost->fresh());
+
+        try {
+            $service->correctActualCost($actor, $cost->fresh(), ['amount' => -10, 'budget_amount' => -10, 'correction_reason' => 'Correction', 'incurred_at' => $futureDate]);
+            $this->fail('A future correction date was accepted.');
+        } catch (ValidationException) {
+            $this->assertDatabaseCount('actual_costs', 1);
+        }
+    }
+
+    public function test_super_admin_budget_children_inherit_the_parent_company_without_a_user_company_context(): void
+    {
+        $company = Company::create(['name' => 'Target Company', 'email' => 'target@test.test']);
+        $superAdmin = User::factory()->create(['company_id' => null]);
+        $superAdmin->syncRoles([Role::findOrCreate('super_admin', 'web')]);
+
+        foreach ($this->permissions() as $permission) {
+            $superAdmin->givePermissionTo(Permission::findOrCreate($permission, 'web'));
+        }
+
+        $this->actingAs($superAdmin);
+
+        $project = $this->project($company);
+        $service = app(BudgetingService::class);
+        $budget = $service->createBudget($superAdmin, $project, ['name' => 'Super Admin budget']);
+        $category = $service->addCategory($superAdmin, $budget, ['name' => 'Infrastructure']);
+        $item = $service->addItem($superAdmin, $category, ['name' => 'Roadworks', 'planned_amount' => 5000]);
+
+        $this->assertSame($company->id, $budget->company_id);
+        $this->assertSame($company->id, $category->company_id);
+        $this->assertSame($company->id, $item->company_id);
+        $this->assertSame($company->id, $item->line->company_id);
     }
 }
