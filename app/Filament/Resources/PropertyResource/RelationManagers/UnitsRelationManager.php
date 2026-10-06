@@ -93,7 +93,12 @@ class UnitsRelationManager extends RelationManager
                     ]),
             ])
             ->headerActions([
-                Tables\Actions\CreateAction::make(),
+                Tables\Actions\CreateAction::make()
+                    ->mutateFormDataUsing(function (array $data): array {
+                        $data['company_id'] = $this->getOwnerRecord()->company_id;
+
+                        return $data;
+                    }),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
@@ -107,5 +112,12 @@ class UnitsRelationManager extends RelationManager
             ->emptyStateHeading('No units yet')
             ->emptyStateDescription('Add units to this property.')
             ->emptyStateIcon('heroicon-o-home');
+    }
+
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        $data['company_id'] = $this->getOwnerRecord()->company_id;
+
+        return $data;
     }
 }

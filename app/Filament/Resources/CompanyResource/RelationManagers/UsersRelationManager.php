@@ -149,4 +149,11 @@ class UsersRelationManager extends RelationManager
             ->emptyStateDescription('Add your first user to this company.')
             ->emptyStateIcon('heroicon-o-users');
     }
+
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        $data['company_id'] = $this->getOwnerRecord()->id;
+
+        return $data;
+    }
 }

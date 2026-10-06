@@ -37,6 +37,11 @@ class ScopeItemsRelationManager extends RelationManager
                         Forms\Components\TextInput::make('sort_order')->numeric()->default(0),
                         Forms\Components\Textarea::make('description')->columnSpanFull(),
                     ])
+                    ->mutateFormDataUsing(function (array $data): array {
+                        $data['company_id'] = $this->getOwnerRecord()->company_id;
+
+                        return $data;
+                    })
                     ->using(function (array $data, ProjectDesignPackage $ownerRecord): DesignPackageScopeItem {
                         $assignment = $ownerRecord->activeAssignment;
                         abort_unless($assignment, 422, 'Assign an engineering office before adding scope items.');
@@ -53,5 +58,12 @@ class ScopeItemsRelationManager extends RelationManager
                         ->transitionScopeItem(auth()->user(), $record, $data['status'])),
                 Tables\Actions\ViewAction::make()->tooltip('View scope item details'),
             ]);
+    }
+
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        $data['company_id'] = $this->getOwnerRecord()->company_id;
+
+        return $data;
     }
 }

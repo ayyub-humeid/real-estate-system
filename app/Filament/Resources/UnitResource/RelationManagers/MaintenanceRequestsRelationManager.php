@@ -73,8 +73,6 @@ class MaintenanceRequestsRelationManager extends RelationManager
 
                         Forms\Components\Hidden::make('reported_by_id')
                             ->default(fn () => auth()->id()),
-                        Forms\Components\Hidden::make('company_id')
-                            ->default(fn () => auth()->user()->company_id),
                     ])
             ]);
     }
@@ -116,7 +114,12 @@ class MaintenanceRequestsRelationManager extends RelationManager
                 Tables\Filters\SelectFilter::make('priority'),
             ])
             ->headerActions([
-                Tables\Actions\CreateAction::make(),
+                Tables\Actions\CreateAction::make()
+                    ->mutateFormDataUsing(function (array $data): array {
+                        $data['company_id'] = $this->getOwnerRecord()->company_id;
+
+                        return $data;
+                    }),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
@@ -128,5 +131,12 @@ class MaintenanceRequestsRelationManager extends RelationManager
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        $data['company_id'] = $this->getOwnerRecord()->company_id;
+
+        return $data;
     }
 }
