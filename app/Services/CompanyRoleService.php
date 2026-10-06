@@ -14,7 +14,7 @@ class CompanyRoleService
     public const DEFAULT_COMPANY_ROLES = ['company_admin', 'property_manager', 'financial_manager'];
 
     /** Platform administration is never delegated through a company-owned role. */
-    private const PLATFORM_PERMISSION_TERMS = ['subscription', 'plan', 'role', 'super_admin', 'user'];
+    private const PLATFORM_PERMISSION_TERMS = ['subscription', 'plan', 'role', 'super', 'admin', 'user'];
 
     public function provisionDefaults(Company $company): Collection
     {
@@ -37,6 +37,38 @@ class CompanyRoleService
 
             return [$name => $role];
         });
+    }
+
+    /**
+     * Release-time synchronization for the built-in company role templates.
+     *
+     * This only adds permissions that were introduced after a company default
+     * role was first provisioned. It never removes a company permission and it
+     * never touches company-created custom roles.
+     */
+    public function syncNewDefaultPermissions(Company $company): int
+    {
+        $added = 0;
+        $roles = $this->provisionDefaults($company);
+
+        foreach (self::DEFAULT_COMPANY_ROLES as $name) {
+            $template = Role::platform()->where('name', $name)->where('guard_name', 'web')->firstOrFail();
+            $role = $roles->get($name);
+            $existingPermissionIds = $role->permissions()->pluck('permissions.id');
+
+            $missing = $template->permissions
+                ->reject(fn (Permission $permission): bool => $this->isPlatformPermission($permission->name))
+                ->reject(fn (Permission $permission): bool => $existingPermissionIds->contains($permission->id));
+
+            if ($missing->isEmpty()) {
+                continue;
+            }
+
+            $role->givePermissionTo($missing);
+            $added += $missing->count();
+        }
+
+        return $added;
     }
 
     public function roleForUser(User $user, string $name): Role
@@ -156,8 +188,10 @@ class CompanyRoleService
             return true;
         }
 
+        $tokens = preg_split('/[_:]+/', strtolower($permission));
+
         return collect(self::PLATFORM_PERMISSION_TERMS)->contains(
-            fn(string $term) => str_contains($permission, $term)
+            fn (string $term): bool => in_array($term, $tokens, true)
         );
     }
 }

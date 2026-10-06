@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Company;
 use App\Models\User;
 use App\Services\CompanyRoleService;
 use Illuminate\Console\Command;
@@ -15,6 +16,13 @@ class BackfillCompanyRoles extends Command
     public function handle(CompanyRoleService $roles): int
     {
         $migrated = 0;
+        $permissionsAdded = 0;
+
+        if (! $this->option('dry-run')) {
+            Company::query()->orderBy('id')->each(function (Company $company) use ($roles, &$permissionsAdded): void {
+                $permissionsAdded += $roles->syncNewDefaultPermissions($company);
+            });
+        }
 
         User::query()->whereNotNull('company_id')->whereIn('role', CompanyRoleService::DEFAULT_COMPANY_ROLES)
             ->orderBy('id')->each(function (User $user) use ($roles, &$migrated): void {
@@ -29,6 +37,10 @@ class BackfillCompanyRoles extends Command
             });
 
         $this->info(($this->option('dry-run') ? 'Would migrate' : 'Migrated')." {$migrated} user(s).");
+
+        if (! $this->option('dry-run')) {
+            $this->info("Added {$permissionsAdded} newly introduced default permission(s) to company roles.");
+        }
 
         return self::SUCCESS;
     }

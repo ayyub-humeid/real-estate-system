@@ -27,6 +27,11 @@ READY TO CLOSE — Phase 02 targeted verification passes on MySQL and PostgreSQL
 
 ## Authorization
 
+- Company-owned default roles are synchronized during the release backfill
+  when new non-platform permissions are introduced. Permission classification
+  uses exact tokens, so `create_project_planned_unit` is tenant-assignable and
+  is never misclassified as the platform `plan` permission.
+
 - `Project` is the Phase 02 top-level Shield resource (`view_project`, `create_project`, etc.).
 - Custom relation/workflow permissions were added to the existing role seeder: project property/member/building/floor/planned-unit/specification access plus approve/cancel/close, attach/detach, member management, and planned-unit approval/cancellation.
 - Service methods authorize every mutation and enforce company context even if a request bypasses Filament.

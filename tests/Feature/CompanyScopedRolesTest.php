@@ -81,6 +81,33 @@ class CompanyScopedRolesTest extends TestCase
         $this->assertNotSame($roleA->id, $roleB->id);
     }
 
+    public function test_release_sync_adds_new_template_permissions_to_existing_default_company_roles_only(): void
+    {
+        $company = $this->company('A');
+        $template = Role::platform()->firstOrCreate(['name' => 'company_admin', 'guard_name' => 'web']);
+        $newPermission = Permission::findOrCreate('create_project_planned_unit', 'web');
+        $template->givePermissionTo($newPermission);
+
+        $companyAdmin = Role::create([
+            'company_id' => $company->id,
+            'name' => 'company_admin',
+            'guard_name' => 'web',
+        ]);
+        $companyAdmin->givePermissionTo(Permission::findOrCreate('view_project', 'web'));
+
+        $customRole = Role::create([
+            'company_id' => $company->id,
+            'name' => 'custom_planner',
+            'guard_name' => 'web',
+        ]);
+
+        $added = app(CompanyRoleService::class)->syncNewDefaultPermissions($company);
+
+        $this->assertGreaterThanOrEqual(1, $added);
+        $this->assertTrue($companyAdmin->fresh()->hasPermissionTo($newPermission));
+        $this->assertFalse($customRole->fresh()->hasPermissionTo($newPermission));
+    }
+
     public function test_exact_role_assignment_uses_the_selected_role_id_and_rejects_another_company_role(): void
     {
         $companyA = $this->company('A');
