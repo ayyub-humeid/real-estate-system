@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Validation\ValidationException;
 
@@ -19,7 +20,8 @@ class Project extends Model
     protected static function booted(): void
     {
         static::updating(function (self $project): void {
-            if (! $project->isDirty('currency')) return;
+            if (!$project->isDirty('currency'))
+                return;
 
             $hasFinancialHistory = $project->budgets()->exists()
                 || $project->commitments()->exists()
@@ -62,8 +64,28 @@ class Project extends Model
     {
         return $this->hasMany(ProjectDesignPackage::class);
     }
-    public function budgets(): HasMany { return $this->hasMany(ProjectBudget::class); }
-    public function commitments(): HasMany { return $this->hasMany(FinancialCommitment::class); }
-    public function actualCosts(): HasMany { return $this->hasMany(ActualCost::class); }
-    public function payments(): HasMany { return $this->hasMany(Payment::class); }
+    public function budgets(): HasMany
+    {
+        return $this->hasMany(ProjectBudget::class);
+    }
+    public function commitments(): HasMany
+    {
+        return $this->hasMany(FinancialCommitment::class);
+    }
+    public function actualCosts(): HasMany
+    {
+        return $this->hasMany(ActualCost::class);
+    }
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
+    public function constructions(): HasMany
+    {
+        return $this->hasMany(ProjectConstruction::class);
+    }
+    public function activeConstruction(): HasOne
+    {
+        return $this->hasOne(ProjectConstruction::class)->whereIn('status', ['planned', 'in_progress']);
+    }
 }
