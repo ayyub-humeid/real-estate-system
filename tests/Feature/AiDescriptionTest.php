@@ -57,7 +57,7 @@ class AiDescriptionTest extends TestCase
             'company_id'  => $this->company->id,
             'unit_number' => 'B-12',
             'rent_price'  => 900,
-            'status'      => 'available',
+            'status'      => 'ready',
             'type'        => 'Apartment',
             'bedrooms'    => 3,
             'bathrooms'   => 2,
