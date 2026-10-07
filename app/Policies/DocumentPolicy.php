@@ -5,6 +5,7 @@ namespace App\Policies;
 use App\Models\User;
 use App\Models\Document;
 use App\Models\ProjectDesignPackage;
+use App\Models\Unit;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class DocumentPolicy
@@ -24,7 +25,7 @@ class DocumentPolicy
      */
     public function view(User $user, Document $document): bool
     {
-        return $user->can('view_document') && $this->canAccessDesignPackageDocument($user, $document);
+        return $user->can('view_document') && $this->canAccessDocument($user, $document);
     }
 
     /**
@@ -40,7 +41,7 @@ class DocumentPolicy
      */
     public function update(User $user, Document $document): bool
     {
-        return $user->can('update_document') && $this->canAccessDesignPackageDocument($user, $document);
+        return $user->can('update_document') && $this->canAccessDocument($user, $document);
     }
 
     /**
@@ -49,7 +50,7 @@ class DocumentPolicy
     public function delete(User $user, Document $document): bool
     {
         return $user->can('delete_document')
-            && $this->canAccessDesignPackageDocument($user, $document)
+            && $this->canAccessDocument($user, $document)
             && ! $document->versions()->withoutGlobalScopes()->whereHas('submissionDocuments')->exists();
     }
 
@@ -109,15 +110,16 @@ class DocumentPolicy
         return $user->can('reorder_document');
     }
 
-    private function canAccessDesignPackageDocument(User $user, Document $document): bool
+    private function canAccessDocument(User $user, Document $document): bool
     {
-        if ($document->documentable_type !== ProjectDesignPackage::class || $user->isSuperAdmin()) {
+        if ($user->isSuperAdmin()) {
             return true;
         }
-
-        return ProjectDesignPackage::withoutGlobalScopes()
-            ->whereKey($document->documentable_id)
-            ->where('company_id', $user->company_id)
-            ->exists();
+        $record = match ($document->documentable_type) {
+            ProjectDesignPackage::class => ProjectDesignPackage::withoutGlobalScopes()->find($document->documentable_id),
+            Unit::class => Unit::withoutGlobalScopes()->find($document->documentable_id),
+            default => null,
+        };
+        return $record && (int) $record->company_id === (int) $user->company_id;
     }
 }

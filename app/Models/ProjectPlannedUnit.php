@@ -31,4 +31,8 @@ class ProjectPlannedUnit extends Model
     {
         return $this->hasMany(PlannedUnitSpecification::class);
     }
+    public function actualUnit(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Unit::class, 'planned_unit_id');
+    }
 }

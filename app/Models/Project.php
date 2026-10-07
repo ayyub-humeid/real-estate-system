@@ -88,4 +88,8 @@ class Project extends Model
     {
         return $this->hasOne(ProjectConstruction::class)->whereIn('status', ['planned', 'in_progress']);
     }
+    public function units(): HasMany
+    {
+        return $this->hasMany(Unit::class);
+    }
 }

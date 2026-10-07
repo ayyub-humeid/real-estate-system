@@ -23,15 +23,15 @@ class UnitPolicy
      */
     public function view(User $user, Unit $unit): bool
     {
-        return $user->can('view_unit');
+        return $this->belongs($user, $unit) && $user->can('view_unit');
     }
 
     /**
      * Determine whether the user can create models.
      */
-    public function create(User $user): bool
+    public function create(User $user, ?Unit $unit = null): bool
     {
-        return $user->can('create_unit');
+        return $user->can('create_unit') && (! $unit || $this->belongs($user, $unit));
     }
 
     /**
@@ -39,7 +39,7 @@ class UnitPolicy
      */
     public function update(User $user, Unit $unit): bool
     {
-        return $user->can('update_unit');
+        return $this->belongs($user, $unit) && $user->can('update_unit');
     }
 
     /**
@@ -47,7 +47,7 @@ class UnitPolicy
      */
     public function delete(User $user, Unit $unit): bool
     {
-        return $user->can('delete_unit');
+        return $this->belongs($user, $unit) && $user->can('delete_unit') && $unit->status === 'draft' && ! $unit->documents()->exists() && ! $unit->ownerships()->exists() && ! $unit->statusHistories()->exists() && ! $unit->leases()->exists() && ! $unit->maintenanceRequests()->exists() && ! $unit->ratings()->exists();
     }
 
     /**
@@ -105,4 +105,10 @@ class UnitPolicy
     {
         return $user->can('reorder_unit');
     }
+
+    public function changeStatus(User $user, Unit $unit): bool { return $this->belongs($user, $unit) && $user->can('change_unit_status'); }
+    public function reactivate(User $user, Unit $unit): bool { return $this->belongs($user, $unit) && $user->can('reactivate_unit'); }
+    public function changeOwnership(User $user, Unit $unit): bool { return $this->belongs($user, $unit) && $user->can('change_unit_ownership'); }
+    public function manageDocuments(User $user, Unit $unit): bool { return $this->belongs($user, $unit) && $user->can('manage_unit_documents'); }
+    private function belongs(User $user, Unit $unit): bool { return $user->isSuperAdmin() || (int) $user->company_id === (int) $unit->company_id; }
 }

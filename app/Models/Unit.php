@@ -46,6 +46,14 @@ class Unit extends Model
         'unit_number',
         'rent_price',
         'status',
+        'project_id',
+        'planned_unit_id',
+        'actual_area',
+        'area_unit',
+        'location_label',
+        'ready_at',
+        'inactive_at',
+        'inactive_reason',
         'type',
         'description',
         'is_featured',
@@ -56,13 +64,9 @@ class Unit extends Model
 
     protected $casts = [
         'rent_price' => 'decimal:2',
-    ];
-
-    const STATUSES = [
-        'available' => 'Available',
-        'occupied' => 'Occupied',
-        'maintenance' => 'Maintenance',
-        'reserved' => 'Reserved',
+        'actual_area' => 'decimal:2',
+        'ready_at' => 'datetime',
+        'inactive_at' => 'datetime',
     ];
 
     // --- Relationships ---
@@ -85,6 +89,31 @@ class Unit extends Model
     public function leases(): HasMany
     {
         return $this->hasMany(Lease::class);
+    }
+
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class);
+    }
+
+    public function plannedUnit(): BelongsTo
+    {
+        return $this->belongsTo(ProjectPlannedUnit::class, 'planned_unit_id');
+    }
+
+    public function statusHistories(): HasMany
+    {
+        return $this->hasMany(UnitStatusHistory::class)->orderByDesc('changed_at');
+    }
+
+    public function ownerships(): HasMany
+    {
+        return $this->hasMany(UnitOwnership::class);
+    }
+
+    public function activeOwnerships(): HasMany
+    {
+        return $this->ownerships()->whereNull('end_date');
     }
 
     public function features(): HasMany
@@ -128,30 +157,25 @@ class Unit extends Model
         return $this->property ? $this->property->location : null;
     }
 
-    public function isAvailable(): bool
+    public function isOperationallyReady(): bool
     {
-        return $this->status === 'available';
+        return $this->status === \App\Enums\UnitStatus::Ready->value;
     }
 
     // --- Scopes ---
 
-    public function scopeAvailable($query)
+    public function scopeOperationallyReady($query)
     {
-        return $query->where('status', 'available');
+        return $query->where('status', \App\Enums\UnitStatus::Ready->value);
     }
     public function scopeFeatured($query)
     {
         return $query->whereRaw('is_featured = true');
     }
 
-    public function scopeOccupied($query)
-    {
-        return $query->where('status', 'occupied');
-    }
-
     public function scopeMaintenance($query)
     {
-        return $query->where('status', 'maintenance');
+        return $query->where('status', \App\Enums\UnitStatus::Maintenance->value);
     }
 
     public function scopeByType($query, $type)
@@ -223,6 +247,11 @@ class Unit extends Model
     public function currentLease(): HasOne
     {
         return $this->hasOne(Lease::class)->where('status', 'active')->latest();
+    }
+
+    public function getTenancyStateAttribute(): string
+    {
+        return $this->relationLoaded('currentLease') ? ($this->currentLease ? 'occupied' : 'vacant') : ($this->currentLease()->exists() ? 'occupied' : 'vacant');
     }
 
     public function documents(): MorphMany
