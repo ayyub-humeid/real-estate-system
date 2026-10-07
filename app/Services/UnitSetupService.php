@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Enums\UnitStatus;
+use App\Enums\{UnitStatus, UnitType};
 use App\Models\{Document, DocumentVersion, Party, Project, ProjectPlannedUnit, Property, Unit, UnitOwnership, UnitStatusHistory, User};
 use App\Notifications\ProjectWorkflowNotification;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -66,7 +66,11 @@ class UnitSetupService
             $this->sameCompany($locked, $property);
             if (!$project->activeProjectProperties()->where('property_id', $property->id)->exists())
                 $this->invalid('property_id', 'The property must be actively attached to this project.');
-            $data = $this->validatedData($property, $attributes + ['project_id' => $project->id, 'planned_unit_id' => $locked->id]);
+            $data = $this->validatedData($property, $attributes + [
+                'project_id' => $project->id,
+                'planned_unit_id' => $locked->id,
+                'type' => $attributes['type'] ?? $locked->unit_type,
+            ]);
             $unit = Unit::withoutGlobalScopes()->create($data + ['company_id' => $locked->company_id, 'project_id' => $project->id, 'planned_unit_id' => $locked->id, 'status' => UnitStatus::Draft->value]);
             $locked->update(['status' => 'converted']);
             DB::afterCommit(fn() => $this->notify($actor, $project, 'Actual Unit created', "Actual Unit {$unit->unit_number} was created from plan {$locked->code}."));
@@ -151,7 +155,9 @@ class UnitSetupService
             if ((int) $projectId !== (int) $plannedProjectId)
                 $this->invalid('planned_unit_id', 'The planned Unit must belong to the selected Project.');
         }
-        return collect($attributes)->only(['property_id', 'project_id', 'planned_unit_id', 'unit_number', 'type', 'rent_price', 'bedrooms', 'bathrooms', 'sqft', 'actual_area', 'area_unit', 'location_label', 'description', 'is_featured'])->all();
+        if (array_key_exists('type', $attributes) && filled($attributes['type']) && ! UnitType::isValid($attributes['type']))
+            $this->invalid('type', 'Select a valid Unit type.');
+        return collect($attributes)->only(['property_id', 'project_id', 'planned_unit_id', 'unit_number', 'type', 'bedrooms', 'bathrooms', 'sqft', 'actual_area', 'area_unit', 'location_label', 'description', 'is_featured'])->all();
     }
     private function authorize(User $actor, string $ability, object $record): void
     {

@@ -173,7 +173,7 @@ class ProjectBuildingsRelationManager extends RelationManager
 
     private function plannedUnitForm(): array
     {
-        return [Forms\Components\TextInput::make('code')->required(), Forms\Components\Select::make('unit_type')->label('Unit type')->options(ProjectPlannedUnit::TYPES)->searchable()->required()->placeholder('Select a unit type'), Forms\Components\TextInput::make('planned_area')->numeric()->suffix('m²'), Forms\Components\TextInput::make('sort_order')->numeric()->default(0), Forms\Components\Textarea::make('description')->columnSpanFull()];
+        return [Forms\Components\TextInput::make('code')->required(), Forms\Components\Select::make('unit_type')->label('Unit type')->options(\App\Enums\UnitType::options())->searchable()->required()->placeholder('Select a unit type'), Forms\Components\TextInput::make('planned_area')->numeric()->suffix('m²'), Forms\Components\TextInput::make('sort_order')->numeric()->default(0), Forms\Components\Textarea::make('description')->columnSpanFull()];
     }
 
     private function specificationForm(): array

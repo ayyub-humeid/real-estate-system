@@ -33,6 +33,7 @@ Status: Completed
 ### Tables / Columns Added or Altered
 
 - `units`: Project and planned-unit links, actual area/unit, physical location, readiness/inactive metadata, and the single `status` lifecycle field.
+- `units.rent_price`: altered to nullable; retained only for legacy commercial integrations and excluded from Actual Unit setup.
 - `unit_features.feature_key` for canonical reusable features.
 - `unit_status_histories` and `unit_ownerships` for auditable history.
 

@@ -120,11 +120,14 @@ property_id, unit_number, rent_price, status, type, bedrooms, bathrooms,
 sqft, description, is_featured, agency_id, timestamps
 ```
 
-`sqft` remains for legacy/API compatibility. New forms use `actual_area` plus
-`area_unit`. Migration must backfill a trustworthy `sqft > 0` value into
+`sqft` remains for legacy/API compatibility. `rent_price` also remains only as
+a nullable legacy/commercial reference because existing Lease, API, and Stripe
+code still reads it; Actual Unit setup must never require or invent it. New
+physical-setup forms use `actual_area` plus `area_unit`. Migration must backfill a trustworthy `sqft > 0` value into
 `actual_area` with `area_unit = sqft`; it must not invent an area where none is
-known. The later commercial phase may decide whether `rent_price` moves to a
-pricing domain; Phase 06 must not change its meaning.
+known. The later commercial phase may replace `rent_price` with a dedicated
+pricing domain; until then it remains nullable and is not a Phase 06 workflow
+field.
 
 ### 4.2 Physical status only — cutover from the legacy mixed status
 
@@ -299,6 +302,13 @@ description      ← planned description
 project_id       ← parent Project
 planned_unit_id  ← selected planned unit
 ```
+
+`App\Enums\UnitType` is the one shared catalogue for both `project_planned_units.unit_type`
+and physical `units.type`. The conversion pre-fills the actual type from the
+plan, while the user may choose another valid catalogue value if execution
+differs. Free-text types and per-screen type lists are prohibited. Legacy
+labels are normalised by an explicit data migration (`shop` becomes `retail`;
+unrecognised non-null labels become `other`).
 
 5. The user verifies/edits actual physical values and saves a Unit in `draft`.
 6. The service atomically links the unit and changes only the Planned Unit

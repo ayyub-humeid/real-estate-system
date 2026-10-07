@@ -213,7 +213,7 @@ class DatabaseSeeder extends Seeder
                         'unit_number' => 'A-' . $p . '0' . $u,
                         'rent_price'  => rand(1500, 3500),
                         'status'      => 'ready',
-                        'type'        => 'Apartment',
+                        'type'        => 'apartment',
                         'description' => $unitDescriptions[array_rand($unitDescriptions)],
                         'bedrooms'    => rand(1, 3),
                         'bathrooms'   => rand(1, 2),

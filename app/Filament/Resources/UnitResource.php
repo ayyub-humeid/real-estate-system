@@ -6,6 +6,7 @@ use App\Filament\Resources\UnitResource\Pages;
 use App\Filament\Resources\UnitResource\RelationManagers;
 use App\Models\Unit;
 use App\Enums\UnitStatus;
+use App\Enums\UnitType;
 use App\Models\Project;
 use App\Models\ProjectPlannedUnit;
 use App\Models\Party;
@@ -76,14 +77,7 @@ class UnitResource extends Resource
 
                     Forms\Components\Select::make('type')
                         ->label('Type')
-                        ->options([
-                            'apartment' => 'Apartment',
-                            'studio'    => 'Studio',
-                            'villa'     => 'Villa',
-                            'office'    => 'Office',
-                            'shop'      => 'Shop',
-                            'warehouse' => 'Warehouse',
-                        ])
+                        ->options(UnitType::options())
                         ->native(false)
                         ->prefixIcon('heroicon-m-tag'),
 
@@ -104,13 +98,6 @@ class UnitResource extends Resource
                         ->disabled()
                         ->dehydrated(false)
                         ->helperText('Use the controlled Change status action after setup is saved.'),
-
-                    Forms\Components\TextInput::make('rent_price')
-                        ->label('Rent Price')
-                        ->required()
-                        ->numeric()
-                        ->prefix('$')
-                        ->minValue(0),
 
                     Forms\Components\TextInput::make('bedrooms')
                         ->label('Bedrooms')
@@ -258,9 +245,10 @@ class UnitResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('rent_price')
-                    ->label('Rent')
+                    ->label('Legacy rent')
                     ->money('USD')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
@@ -296,14 +284,7 @@ class UnitResource extends Resource
                     ->native(false),
 
                 Tables\Filters\SelectFilter::make('type')
-                    ->options([
-                        'apartment' => 'Apartment',
-                        'studio' => 'Studio',
-                        'villa' => 'Villa',
-                        'office' => 'Office',
-                        'shop' => 'Shop',
-                        'warehouse' => 'Warehouse',
-                    ])
+                    ->options(UnitType::options())
                     ->native(false),
             ])
             ->actions([

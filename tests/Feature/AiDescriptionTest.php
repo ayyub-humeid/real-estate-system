@@ -58,7 +58,7 @@ class AiDescriptionTest extends TestCase
             'unit_number' => 'B-12',
             'rent_price'  => 900,
             'status'      => 'ready',
-            'type'        => 'Apartment',
+            'type'        => 'apartment',
             'bedrooms'    => 3,
             'bathrooms'   => 2,
             'sqft'        => 140,

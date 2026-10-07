@@ -32,7 +32,7 @@ class UnitSetupWorkflowTest extends TestCase
         $company = Company::create(['name' => 'A', 'email' => 'a@example.test']);
         $actor = $this->actor($company, $this->permissions());
         $service = app(UnitSetupService::class);
-        $unit = $service->create($actor, ['property_id' => $this->property($company)->id, 'unit_number' => 'A-1', 'type' => 'apartment', 'rent_price' => 0, 'actual_area' => 100, 'area_unit' => 'm2']);
+        $unit = $service->create($actor, ['property_id' => $this->property($company)->id, 'unit_number' => 'A-1', 'type' => 'apartment', 'actual_area' => 100, 'area_unit' => 'm2']);
         $this->assertSame('draft', $unit->status);
         $unit = $service->transitionStatus($actor, $unit, 'ready');
         $this->assertSame('ready', $unit->status);
@@ -52,8 +52,9 @@ class UnitSetupWorkflowTest extends TestCase
         $floor = ProjectBuildingFloor::withoutGlobalScopes()->create(['company_id' => $company->id, 'project_building_id' => $building->id, 'floor_number' => 1]);
         $planned = ProjectPlannedUnit::withoutGlobalScopes()->create(['company_id' => $company->id, 'project_building_floor_id' => $floor->id, 'code' => 'A-101', 'unit_type' => 'apartment', 'planned_area' => 100, 'status' => 'approved']);
         $service = app(UnitSetupService::class);
-        $unit = $service->convertPlannedUnit($actor, $planned, ['property_id' => $property->id, 'unit_number' => 'A-101', 'type' => 'apartment', 'rent_price' => 0, 'actual_area' => 102, 'area_unit' => 'm2']);
+        $unit = $service->convertPlannedUnit($actor, $planned, ['property_id' => $property->id, 'unit_number' => 'A-101', 'actual_area' => 102, 'area_unit' => 'm2']);
         $this->assertSame($planned->id, $unit->planned_unit_id);
+        $this->assertSame('apartment', $unit->type);
         $this->assertSame('converted', $planned->fresh()->status);
         try { $service->convertPlannedUnit($actor, $planned->fresh(), ['property_id' => $property->id, 'unit_number' => 'Duplicate', 'type' => 'apartment', 'actual_area' => 100, 'area_unit' => 'm2']); $this->fail('Duplicate conversion accepted.'); } catch (ValidationException) { $this->assertTrue(true); }
         try { $service->create($actor, ['property_id' => $this->property($other)->id, 'unit_number' => 'B-1', 'type' => 'apartment']); $this->fail('Cross-company unit accepted.'); } catch (AuthorizationException) { $this->assertTrue(true); }
@@ -75,5 +76,18 @@ class UnitSetupWorkflowTest extends TestCase
         Lease::withoutGlobalScopes()->create(['company_id' => $company->id, 'property_id' => $property->id, 'unit_id' => $unit->id, 'tenant_id' => $tenant->id, 'start_date' => now(), 'rent_amount' => 100, 'payment_frequency' => 'monthly', 'payment_day' => 1, 'status' => 'active']);
         $this->assertSame('occupied', $unit->fresh()->tenancy_state);
         $this->assertSame('ready', $unit->fresh()->status);
+    }
+
+    public function test_actual_units_reject_legacy_or_unknown_types(): void
+    {
+        $company = Company::create(['name' => 'A', 'email' => 'a@example.test']);
+        $actor = $this->actor($company, $this->permissions());
+
+        $this->expectException(ValidationException::class);
+        app(UnitSetupService::class)->create($actor, [
+            'property_id' => $this->property($company)->id,
+            'unit_number' => 'A-legacy',
+            'type' => 'shop',
+        ]);
     }
 }

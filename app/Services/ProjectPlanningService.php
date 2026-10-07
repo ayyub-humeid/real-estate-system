@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\UnitType;
 use App\Models\{PlannedUnitSpecification, Project, ProjectBuilding, ProjectBuildingFloor, ProjectMember, ProjectPlannedUnit, ProjectProperty, Property, User};
 use App\Notifications\ProjectWorkflowNotification;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -163,7 +164,7 @@ class ProjectPlanningService
         $this->assertProjectMutable($floor->building->project);
         $this->authorize($actor, 'update', $floor->building->project);
         $this->authorize($actor, 'create', new ProjectPlannedUnit(['company_id' => $floor->company_id]));
-        $this->assertKnownType($attributes, 'unit_type', ProjectPlannedUnit::TYPES, true);
+        $this->assertKnownType($attributes, 'unit_type', UnitType::options(), true);
         return ProjectPlannedUnit::create(array_merge($attributes, ['company_id' => $floor->company_id, 'project_building_floor_id' => $floor->id, 'status' => $attributes['status'] ?? 'planned']));
     }
 
@@ -172,7 +173,7 @@ class ProjectPlanningService
         $this->assertProjectMutable($unit->floor->building->project);
         $this->authorize($actor, 'update', $unit);
         $this->assertPlannedUnitEditable($unit);
-        $this->assertKnownType($attributes, 'unit_type', ProjectPlannedUnit::TYPES);
+        $this->assertKnownType($attributes, 'unit_type', UnitType::options());
         $unit->update(collect($attributes)->only(['code', 'unit_type', 'planned_area', 'description', 'sort_order'])->all());
 
         return $unit->refresh();

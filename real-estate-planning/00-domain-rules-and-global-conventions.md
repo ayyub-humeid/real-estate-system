@@ -4001,7 +4001,7 @@ The service layer's `sameCompany()` check will then validate that the selected r
 For reusable business categories such as Project Building Type and Planned Unit Type:
 
 1. Store a stable string key in the database (for example, `residential_tower` or `apartment`), not a database-specific enum.
-2. Define the approved key/label catalogue once on the domain model and reuse it in Filament forms and service validation.
+2. Define the approved key/label catalogue once in a shared domain enum/value object and reuse it in every planning and actual-domain Filament form, filter, migration, and service validation. If a Planned and Actual entity describe the same business category (for example Unit type), they must use that exact one catalogue — never local duplicate arrays.
 3. Use a searchable Filament `Select` so staff choose a consistent reporting value instead of creating spelling variants in a free-text input.
 4. Validate the submitted key in the service layer; a forged request must not store an unsupported type.
 5. Add new catalogue entries deliberately in a future release. Do not rename or remove a stored key without an explicit data-migration plan.
@@ -4044,6 +4044,17 @@ tests never require cloud credentials.
 Use `storage_url($path)` or `Storage::url($path)` without selecting a disk for
 publicly accessible files. Private documents require an authorized download or
 temporary URL path; never expose them merely by assuming `/storage/...` works.
+
+---
+
+## Phase Ownership of Form Fields
+
+A form must require only data owned by its current domain phase. A historical
+or future-domain column may remain temporarily for existing integrations, but
+it must be nullable and omitted from a new workflow when staff should not be
+asked to invent a value. Record the temporary dependency and the later domain
+that will replace it; do not let a legacy `NOT NULL` column break a valid new
+workflow.
 
 ---
 

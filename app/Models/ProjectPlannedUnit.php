@@ -7,20 +7,6 @@ class ProjectPlannedUnit extends Model
 {
     use \App\Traits\HasCompany;
     public const STATUSES = ['planned', 'approved', 'converted', 'cancelled'];
-    public const TYPES = [
-        'apartment' => 'Apartment',
-        'studio' => 'Studio',
-        'duplex' => 'Duplex',
-        'penthouse' => 'Penthouse',
-        'villa' => 'Villa',
-        'townhouse' => 'Townhouse',
-        'office' => 'Office',
-        'retail' => 'Retail',
-        'warehouse' => 'Warehouse',
-        'parking' => 'Parking Space',
-        'storage' => 'Storage',
-        'other' => 'Other',
-    ];
     protected $fillable = ['company_id', 'project_building_floor_id', 'code', 'unit_type', 'planned_area', 'status', 'description', 'sort_order'];
     protected $casts = ['planned_area' => 'decimal:2'];
     public function floor(): BelongsTo

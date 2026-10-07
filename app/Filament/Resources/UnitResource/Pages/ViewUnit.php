@@ -82,10 +82,12 @@ class ViewUnit extends ViewRecord
                             Infolists\Components\Section::make('Financials & Status')
                                 ->schema([
                                     Infolists\Components\TextEntry::make('rent_price')
+                                        ->label('Legacy rent reference')
                                         ->money('USD')
                                         ->size(Infolists\Components\TextEntry\TextEntrySize::Large)
                                         ->color('success')
-                                        ->weight('bold'),
+                                        ->weight('bold')
+                                        ->visible(fn ($record): bool => $record->rent_price !== null),
 
                                     Infolists\Components\TextEntry::make('status')
                                         ->badge()

@@ -1,5 +1,6 @@
 <?php
 namespace App\Filament\Resources\ProjectResource\RelationManagers;
+use App\Enums\UnitType;
 use App\Models\{ProjectPlannedUnit, Property, Unit};
 use App\Services\UnitSetupService;
 use Filament\Forms;
@@ -29,7 +30,13 @@ class ProjectUnitsRelationManager extends RelationManager
                         ->icon('heroicon-o-arrow-down-tray')->tooltip('Create a draft actual Unit from an approved planned Unit')
                         ->visible(fn() => auth()->user()->can('create_actual_unit_from_planned_unit'))
                         ->form([
-                            Forms\Components\Select::make('planned_unit_id')->label('Approved planned Unit')->options(fn() => ProjectPlannedUnit::query()->whereHas('floor.building', fn($q) => $q->where('project_id', $this->getOwnerRecord()->id))->where('status', 'approved')->orderBy('code')->pluck('code', 'id'))->required()->live(),
+                            Forms\Components\Select::make('planned_unit_id')->label('Approved planned Unit')->options(fn() => ProjectPlannedUnit::query()->whereHas('floor.building', fn($q) => $q->where('project_id', $this->getOwnerRecord()->id))->where('status', 'approved')->orderBy('code')->pluck('code', 'id'))->required()->live()
+                                ->afterStateUpdated(function ($state, Forms\Set $set): void {
+                                    $planned = ProjectPlannedUnit::query()->find($state);
+                                    if ($planned) {
+                                        $set('type', $planned->unit_type);
+                                    }
+                                }),
                             Forms\Components\Select::make('property_id')->label('Property')
                                 ->options(fn() => Property::query()
                                     ->whereIn('id', $this->getOwnerRecord()
@@ -41,7 +48,7 @@ class ProjectUnitsRelationManager extends RelationManager
                             Forms\Components\TextInput::make('unit_number')
                                 ->required(),
                             Forms\Components\Select::make('type')
-                                ->options(ProjectPlannedUnit::TYPES)->required(),
+                                ->options(UnitType::options())->required(),
                             Forms\Components\TextInput::make('actual_area')
                                 ->numeric()->minValue(0)->required(),
                             Forms\Components\Select::make('area_unit')

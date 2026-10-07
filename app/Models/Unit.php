@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\UnitType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -25,6 +26,14 @@ class Unit extends Model
                 if ($property) {
                     $model->company_id = $property->company_id;
                 }
+            }
+        });
+
+        static::saving(function (self $model): void {
+            if (filled($model->type) && ! UnitType::isValid($model->type)) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'type' => 'Select a valid Unit type.',
+                ]);
             }
         });
 

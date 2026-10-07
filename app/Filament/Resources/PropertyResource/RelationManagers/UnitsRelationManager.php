@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\PropertyResource\RelationManagers;
 
+use App\Enums\UnitType;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -22,23 +23,11 @@ class UnitsRelationManager extends RelationManager
                 ->maxLength(50)
                 ->prefixIcon('heroicon-m-hashtag'),
 
-            Forms\Components\TextInput::make('type')
+            Forms\Components\Select::make('type')
                 ->label('Type')
-                ->datalist([
-                    'Apartment',
-                    'Studio',
-                    'Villa',
-                    'Office',
-                    'Shop',
-                    'Warehouse',
-                ])
-                ->autocomplete(false),
-
-            Forms\Components\TextInput::make('rent_price')
-                ->required()
-                ->numeric()
-                ->prefix('$')
-                ->minValue(0),
+                ->options(UnitType::options())
+                ->searchable()
+                ->native(false),
 
             Forms\Components\Select::make('status')
                 ->label('Physical status')
@@ -69,8 +58,10 @@ class UnitsRelationManager extends RelationManager
                     ->formatStateUsing(fn (?string $state) => $state ? ucfirst($state) : '—'),
 
                 Tables\Columns\TextColumn::make('rent_price')
+                    ->label('Legacy rent')
                     ->money('USD')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('status')
                     ->badge()

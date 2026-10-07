@@ -62,7 +62,6 @@ class UnitSetupFilamentWorkflowTest extends TestCase
                 'property_id' => $property->id,
                 'unit_number' => 'UI-101',
                 'type' => 'apartment',
-                'rent_price' => 0,
                 'actual_area' => 95,
                 'area_unit' => 'm2',
             ])
@@ -74,6 +73,7 @@ class UnitSetupFilamentWorkflowTest extends TestCase
             'property_id' => $property->id,
             'unit_number' => 'UI-101',
             'status' => 'draft',
+            'rent_price' => null,
         ]);
     }
 
@@ -89,7 +89,6 @@ class UnitSetupFilamentWorkflowTest extends TestCase
                 'property_id' => $property->id,
                 'unit_number' => 'FLOW-101',
                 'type' => 'apartment',
-                'rent_price' => 0,
                 'actual_area' => 100,
                 'area_unit' => 'm2',
             ])
