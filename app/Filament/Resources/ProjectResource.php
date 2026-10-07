@@ -51,6 +51,7 @@ class ProjectResource extends Resource
             RelationManagers\ProjectPropertiesRelationManager::class,
             RelationManagers\ProjectMembersRelationManager::class,
             RelationManagers\ProjectBuildingsRelationManager::class,
+            RelationManagers\ProjectUnitsRelationManager::class,
             RelationManagers\DesignPackagesRelationManager::class,
             RelationManagers\ProjectBudgetsRelationManager::class,
             RelationManagers\ProjectCommitmentsRelationManager::class,

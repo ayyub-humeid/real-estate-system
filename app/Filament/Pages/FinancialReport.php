@@ -105,7 +105,7 @@ class FinancialReport extends Page implements HasForms
 
         $unitsQuery = Unit::when($propertyId, fn($q) => $q->where('property_id', $propertyId));
         $totalUnits = (clone $unitsQuery)->count();
-        $occupiedUnits = (clone $unitsQuery)->where('status', 'occupied')->count();
+        $occupiedUnits = (clone $unitsQuery)->whereHas('currentLease')->count();
         $occupancy = $totalUnits > 0 ? ($occupiedUnits / $totalUnits) * 100 : 0;
 
         $property = $propertyId ? Property::find($propertyId) : null;

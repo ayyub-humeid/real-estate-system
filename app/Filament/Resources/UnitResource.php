@@ -5,7 +5,12 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\UnitResource\Pages;
 use App\Filament\Resources\UnitResource\RelationManagers;
 use App\Models\Unit;
+use App\Enums\UnitStatus;
+use App\Models\Project;
+use App\Models\ProjectPlannedUnit;
+use App\Models\Party;
 use App\Services\PropertyDescriptionService;
+use App\Services\UnitSetupService;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -82,17 +87,23 @@ class UnitResource extends Resource
                         ->native(false)
                         ->prefixIcon('heroicon-m-tag'),
 
+                    Forms\Components\Select::make('project_id')
+                        ->label('Project')
+                        ->options(fn () => Project::query()->orderBy('name')->pluck('name', 'id'))
+                        ->searchable()->live()->native(false),
+
+                    Forms\Components\Select::make('planned_unit_id')
+                        ->label('Planned Unit source')
+                        ->options(fn (Forms\Get $get) => $get('project_id') ? ProjectPlannedUnit::query()->whereHas('floor.building', fn ($q) => $q->where('project_id', $get('project_id')))->where('status', 'approved')->orderBy('code')->pluck('code', 'id') : [])
+                        ->searchable()->native(false),
+
                     Forms\Components\Select::make('status')
-                        ->label('Status')
-                        ->options([
-                            'available' => 'Available',
-                            'occupied' => 'Occupied',
-                            'maintenance' => 'Maintenance',
-                            'reserved' => 'Reserved',
-                        ])
-                        ->required()
-                        ->default('available')
-                        ->native(false),
+                        ->label('Physical status')
+                        ->options(UnitStatus::options())
+                        ->default('draft')
+                        ->disabled()
+                        ->dehydrated(false)
+                        ->helperText('Use the controlled Change status action after setup is saved.'),
 
                     Forms\Components\TextInput::make('rent_price')
                         ->label('Rent Price')
@@ -118,6 +129,10 @@ class UnitResource extends Resource
                         ->numeric()
                         ->minValue(0)
                         ->suffix('sqft'),
+
+                    Forms\Components\TextInput::make('actual_area')->numeric()->minValue(0)->suffix(fn (Forms\Get $get) => $get('area_unit') ?: 'm2'),
+                    Forms\Components\Select::make('area_unit')->options(['m2' => 'm²', 'sqft' => 'sq ft'])->native(false),
+                    Forms\Components\TextInput::make('location_label')->maxLength(255),
                     Forms\Components\Toggle::make('is_featured')
 
                         ->label('Is Featured?')
@@ -250,10 +265,10 @@ class UnitResource extends Resource
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
                     ->colors([
-                        'success' => 'available',
-                        'danger' => 'occupied',
+                        'gray' => 'draft',
+                        'success' => 'ready',
                         'warning' => 'maintenance',
-                        'info' => 'reserved',
+                        'danger' => 'inactive',
                     ])
                     ->formatStateUsing(fn(string $state): string => ucfirst($state)),
 
@@ -277,12 +292,7 @@ class UnitResource extends Resource
                     ->native(false),
 
                 Tables\Filters\SelectFilter::make('status')
-                    ->options([
-                        'available' => 'Available',
-                        'occupied' => 'Occupied',
-                        'maintenance' => 'Maintenance',
-                        'reserved' => 'Reserved',
-                    ])
+                    ->options(UnitStatus::options())
                     ->native(false),
 
                 Tables\Filters\SelectFilter::make('type')
@@ -299,6 +309,10 @@ class UnitResource extends Resource
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
+                Action::make('changeStatus')->label('Change status')->icon('heroicon-o-arrow-path')->tooltip('Change physical operational status')
+                    ->visible(fn (Unit $record) => auth()->user()->can('changeStatus', $record) || auth()->user()->can('reactivate', $record))
+                    ->form(fn (Unit $record) => [Forms\Components\Select::make('status')->options(UnitStatus::options())->required(), Forms\Components\Textarea::make('reason')->required(fn (Forms\Get $get) => in_array($get('status'), ['inactive', 'draft'], true))])
+                    ->action(function (Unit $record, array $data): void { try { app(UnitSetupService::class)->transitionStatus(auth()->user(), $record, $data['status'], $data['reason'] ?? null); Notification::make()->success()->title('Unit status updated')->send(); } catch (\Illuminate\Validation\ValidationException $e) { Notification::make()->danger()->title('Cannot change status')->body(collect($e->errors())->flatten()->first())->send(); } }),
 
                 // ── AI Description Generator ─────────────────────────────
                 Action::make('generateAiDescription')
@@ -375,6 +389,9 @@ class UnitResource extends Resource
     {
         return [
             RelationManagers\FeaturesRelationManager::class,
+            RelationManagers\OwnershipsRelationManager::class,
+            RelationManagers\DocumentsRelationManager::class,
+            RelationManagers\StatusHistoriesRelationManager::class,
             RelationManagers\MaintenanceRequestsRelationManager::class,
             RelationManagers\ImagesRelationManager::class,
         ];

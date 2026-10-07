@@ -94,7 +94,7 @@ class AgencyResource extends JsonResource
                         'baths' => (int) ($unit->bathrooms ?? 0),
                         'sqft' => $unit->sqft ?? '0',
                         'image' => $imagePath,
-                        'status' => strtoupper('UNIT ' . ($unit->status ?? 'AVAILABLE')),
+                        'status' => strtoupper('UNIT ' . ($unit->status ?? 'DRAFT')),
                     ];
                 });
             }),

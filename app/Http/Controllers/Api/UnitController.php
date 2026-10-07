@@ -15,13 +15,15 @@ class UnitController extends Controller
         $sort = $request->input('sort', 'newest_to_oldest');
 
         $query = Unit::query()
-            ->available()
+            ->operationallyReady()
+            ->whereDoesntHave('currentLease')
             ->filter($filters)
             ->with([
                 'property:id,name,address,description,location_id,company_id',
                 'property.location',
                 'primaryImage',
-                'features'
+                'features',
+                'currentLease',
             ])
             ->withAvg('ratings', 'rating')
             ->withCount('ratings');
@@ -42,8 +44,9 @@ class UnitController extends Controller
     public function featured()
     {
         $units = Unit::with(['property:id,name,address,description,location_id,company_id', 'property.location', 'property.company:id,name,email'])
-            ->with('primaryImage')
-            ->available()
+            ->with(['primaryImage', 'currentLease'])
+            ->operationallyReady()
+            ->whereDoesntHave('currentLease')
             ->featured()
             ->latest()
             ->limit(5)
@@ -63,6 +66,7 @@ class UnitController extends Controller
             'property.company:id,name,email',
             'images',
             'features',
+            'currentLease',
         ]);
 
 

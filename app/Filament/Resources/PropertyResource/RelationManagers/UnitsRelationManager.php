@@ -41,15 +41,14 @@ class UnitsRelationManager extends RelationManager
                 ->minValue(0),
 
             Forms\Components\Select::make('status')
-                ->required()
-                ->options([
-                    'available'   => '✅ Available',
-                    'occupied'    => '🔴 Occupied',
-                    'maintenance' => '🔧 Maintenance',
-                    'reserved'    => '🟡 Reserved',
-                ])
-                ->default('available')
-                ->native(false),
+                ->label('Physical status')
+                ->options(\App\Enums\UnitStatus::options())
+                ->default('draft')
+                ->disabled()
+                ->dehydrated(false)
+                ->helperText('Use the Unit Change status action after setup is saved.'),
+            Forms\Components\TextInput::make('actual_area')->numeric()->minValue(0),
+            Forms\Components\Select::make('area_unit')->options(['m2' => 'm²', 'sqft' => 'sq ft']),
         ]);
     }
 
@@ -76,20 +75,20 @@ class UnitsRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
                     ->colors([
-                        'success' => 'available',
-                        'danger'  => 'occupied',
+                        'gray' => 'draft',
+                        'success' => 'ready',
                         'warning' => 'maintenance',
-                        'info'    => 'reserved',
+                        'danger' => 'inactive',
                     ])
                     ->formatStateUsing(fn (string $state): string => ucfirst($state)),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
                     ->options([
-                        'available'   => 'Available',
-                        'occupied'    => 'Occupied',
+                        'draft' => 'Draft',
+                        'ready' => 'Ready',
                         'maintenance' => 'Maintenance',
-                        'reserved'    => 'Reserved',
+                        'inactive' => 'Inactive',
                     ]),
             ])
             ->headerActions([

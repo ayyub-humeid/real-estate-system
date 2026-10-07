@@ -9,6 +9,8 @@ use Filament\Actions\Action;
 use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
+use App\Models\Unit;
+use App\Services\UnitSetupService;
 
 class EditUnit extends EditRecord
 {
@@ -80,5 +82,10 @@ class EditUnit extends EditRecord
 
             Actions\DeleteAction::make(),
         ];
+    }
+
+    protected function handleRecordUpdate(\Illuminate\Database\Eloquent\Model $record, array $data): \Illuminate\Database\Eloquent\Model
+    {
+        return app(UnitSetupService::class)->update(auth()->user(), $record, $data);
     }
 }

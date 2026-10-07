@@ -2,7 +2,7 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\Unit;
+use App\Models\{Lease, Unit};
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Livewire\Attributes\Reactive;
@@ -34,17 +34,10 @@ class OccupancyStats extends BaseWidget
             $query->where('property_id', $propertyId);
         }
 
-        $stats = $query->selectRaw("
-            COUNT(*) as total,
-            SUM(CASE WHEN status = 'occupied' THEN 1 ELSE 0 END) as occupied,
-            SUM(CASE WHEN status = 'available' THEN 1 ELSE 0 END) as vacant,
-            SUM(CASE WHEN status = 'maintenance' THEN 1 ELSE 0 END) as maintenance
-        ")->first();
-
-        $totalUnits = (int) $stats->total;
-        $occupiedUnits = (int) $stats->occupied;
-        $vacantUnits = (int) $stats->vacant;
-        $maintenanceUnits = (int) $stats->maintenance;
+        $totalUnits = (clone $query)->count();
+        $occupiedUnits = (clone $query)->whereHas('currentLease')->count();
+        $vacantUnits = (clone $query)->where('status', 'ready')->whereDoesntHave('currentLease')->count();
+        $maintenanceUnits = (clone $query)->where('status', 'maintenance')->count();
 
         $occupancyRate = $totalUnits > 0 ? ($occupiedUnits / $totalUnits) * 100 : 0;
 

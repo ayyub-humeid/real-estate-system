@@ -18,6 +18,11 @@ class FeaturesRelationManager extends RelationManager
     {
         return $form
             ->schema([
+                Forms\Components\Select::make('feature_key')
+                    ->label('Common feature')
+                    ->options(collect(\App\Services\UnitSetupService::FEATURE_CATALOGUE)->mapWithKeys(fn($v, $k) => [$k => $v[0]]))
+                    ->live()
+                    ->afterStateUpdated(fn(Forms\Set $set, $state) => $state ? $set('name', \App\Services\UnitSetupService::FEATURE_CATALOGUE[$state][0]) : null),
                 Forms\Components\TextInput::make('name')
                     ->label('Feature Name')
                     ->required()

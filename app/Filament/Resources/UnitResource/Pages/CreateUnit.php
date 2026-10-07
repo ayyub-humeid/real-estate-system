@@ -6,6 +6,8 @@ use App\Filament\Resources\UnitResource;
 use Filament\Actions;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
+use App\Models\Unit;
+use App\Services\UnitSetupService;
 
 class CreateUnit extends CreateRecord
 {
@@ -27,5 +29,10 @@ class CreateUnit extends CreateRecord
         }
 
         parent::mount();
+    }
+
+    protected function handleRecordCreation(array $data): Unit
+    {
+        return app(UnitSetupService::class)->create(auth()->user(), $data);
     }
 }

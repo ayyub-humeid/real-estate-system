@@ -44,7 +44,6 @@ class Lease extends Model
     public function terminate(string $reason, ?Carbon $date = null): bool
     {
         $this->update(['status'=>'terminated','termination_date'=>$date ?? now(),'termination_reason'=>$reason]);
-        $this->unit?->update(['status'=>'available']);
         return true;
     }
 

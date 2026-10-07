@@ -90,10 +90,10 @@ class ViewUnit extends ViewRecord
                                     Infolists\Components\TextEntry::make('status')
                                         ->badge()
                                         ->colors([
-                                            'success' => 'available',
-                                            'danger' => 'occupied',
+                                            'gray' => 'draft',
+                                            'success' => 'ready',
                                             'warning' => 'maintenance',
-                                            'info' => 'reserved',
+                                            'danger' => 'inactive',
                                         ]),
                                 ])->columns(1),
 

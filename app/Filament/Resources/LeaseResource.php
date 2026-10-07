@@ -79,7 +79,8 @@ class LeaseResource extends Resource
                                 'unit_number',
                                 function (Builder $query, Forms\Get $get) {
                                     return $query
-                                        ->where('status', 'available')
+                                        ->where('status', 'ready')
+                                        ->whereDoesntHave('currentLease')
                                         ->when($get('property_id'), fn($q, $id) => $q->where('property_id', $id))
                                         ->when(old('unit_id'), fn($q, $id) => $q->orWhere('id', $id))
                                         ->with('property:id,name');

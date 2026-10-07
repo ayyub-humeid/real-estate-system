@@ -71,8 +71,8 @@ class CheckoutController extends Controller
 
         $unit = \App\Models\Unit::with('property')->findOrFail($request->unit_id);
 
-        // Guard: unit must be available
-        if (!$unit->isAvailable()) {
+        // A physical Unit state is not a commercial reservation/listing state.
+        if (!$unit->isOperationallyReady() || $unit->currentLease()->exists()) {
             return response()->json([
                 'success' => false,
                 'message' => 'This unit is no longer available for lease.',
