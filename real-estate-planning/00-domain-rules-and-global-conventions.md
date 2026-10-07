@@ -4012,6 +4012,41 @@ When running `shield:generate` in CI/CD, Docker, or any non-interactive environm
 
 ---
 
+## Controlled Lifecycle Status Standard
+
+For a business lifecycle whose values may evolve, store the value in one
+portable string column (for example `status`); do not create a second
+compatibility-status column and do not rely on database enums or check
+constraints for the allowed-value list. Define the canonical values in a
+backed PHP enum, validate forged input through the domain service, and keep the
+permitted transition map in that service. Generic CRUD forms must not mutate a
+workflow status directly; use authorized transition actions and append-only
+history where the domain needs auditability.
+
+When replacing an old database enum/check, use a migration that removes the
+engine-specific PostgreSQL constraint only when needed, then changes the common
+column through Laravel Schema Builder to a normal string. Verify the final
+schema and all transitions against both MySQL and PostgreSQL. This keeps the
+database portable while the PHP enum/service remains the single source of
+allowed values and lifecycle rules.
+
+---
+
+## File Storage Disk Standard
+
+Application uploads must store only a relative path and use the configured
+default filesystem disk. Do not hard-code `public`, `local`, or `s3` in an
+individual Filament action, controller, service, or model. Production's
+default disk is S3/R2 (`FILESYSTEM_DISK=s3`), and Filament must resolve to the
+same default. A test environment may deliberately use `local` so automated
+tests never require cloud credentials.
+
+Use `storage_url($path)` or `Storage::url($path)` without selecting a disk for
+publicly accessible files. Private documents require an authorized download or
+temporary URL path; never expose them merely by assuming `/storage/...` works.
+
+---
+
 ## Record Policy Tenant-Isolation Audit
 
 Global query scopes protect ordinary lists, but they are **not authorization**. A forged URL, a nested action payload, a queued job, or an explicit `withoutGlobalScopes()` lookup can still provide a cross-company record to a policy.
