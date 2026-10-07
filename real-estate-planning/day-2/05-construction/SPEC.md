@@ -843,7 +843,7 @@ are mandatory targets.
 ### Required constraints/indexes
 
 ```text
-project_constructions: unique(project_id), index(company_id, status)
+project_constructions: unique(project_id, execution_number), index(project_id, status), index(company_id, status)
 construction_work_packages: index(project_construction_id, status), index(budget_line_id), index(responsible_party_id)
 construction_work_package_tasks: index(construction_work_package_id, status), index(assigned_party_id)
 construction_progress_updates: index(task_id, id), index(task_id, reported_at)

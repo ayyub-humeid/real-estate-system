@@ -116,7 +116,6 @@ workflow transitions are used instead.
 - clean `migrate:fresh --database=pgsql`: passed;
 - `ConstructionWorkflowTest`: **6 passed, 23 assertions**;
 - complete suite through `phpunit.pgsql.xml`: **76 passed, 352 assertions**.
-- complete suite through `phpunit.pgsql.xml`: **74 passed, 346 assertions**.
 
 ## Deployment reminder
 
