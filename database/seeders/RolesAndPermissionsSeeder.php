@@ -107,6 +107,16 @@ class RolesAndPermissionsSeeder extends Seeder
             'submit_project_budget', 'approve_project_budget', 'reject_project_budget', 'create_budget_revision', 'cancel_project_budget',
             'create_unbudgeted_commitment', 'commit_financial_commitment', 'approve_over_budget_commitment', 'release_financial_commitment', 'cancel_financial_commitment',
             'submit_actual_cost', 'approve_actual_cost', 'create_actual_cost_correction', 'record_payment', 'allocate_payment', 'void_payment',
+            // Phase 05 — Construction relation managers and controlled workflow.
+            'view_any_construction_work_package', 'view_construction_work_package', 'create_construction_work_package', 'update_construction_work_package', 'delete_construction_work_package',
+            'view_any_construction_work_package_task', 'view_construction_work_package_task', 'create_construction_work_package_task', 'update_construction_work_package_task', 'delete_construction_work_package_task',
+            'view_any_construction_progress_update', 'view_construction_progress_update', 'create_construction_progress_update', 'correct_construction_progress_update',
+            'view_any_construction_inspection', 'view_construction_inspection', 'create_construction_inspection',
+            'view_any_construction_issue', 'view_construction_issue', 'create_construction_issue', 'update_construction_issue', 'start_construction_issue', 'resolve_construction_issue', 'close_construction_issue',
+            'view_any_construction_delay', 'view_construction_delay', 'create_construction_delay',
+            'start_project_construction', 'complete_project_construction', 'cancel_project_construction',
+            'start_construction_work_package', 'complete_construction_work_package', 'cancel_construction_work_package',
+            'start_construction_work_package_task', 'complete_construction_work_package_task', 'cancel_construction_work_package_task',
         ];
 
         foreach ($customDomainPermissions as $permission) {

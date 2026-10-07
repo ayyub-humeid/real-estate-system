@@ -1,0 +1,4 @@
+<?php
+namespace App\Policies;
+use App\Models\{ConstructionProgressUpdate,User}; use App\Policies\Concerns\CompanyOwnedPolicy;
+class ConstructionProgressUpdatePolicy { use CompanyOwnedPolicy; public function viewAny(User $u):bool{return $this->canForResource($u,'view_any_construction_progress_update');} public function view(User $u,ConstructionProgressUpdate $r):bool{return $this->canForRecord($u,'view_construction_progress_update',$r);} public function create(User $u):bool{return $this->canForResource($u,'create_construction_progress_update');} public function correctProgress(User $u,ConstructionProgressUpdate $r):bool{return $this->canForRecord($u,'correct_construction_progress_update',$r);} public function update(User $u,ConstructionProgressUpdate $r):bool{return false;} public function delete(User $u,ConstructionProgressUpdate $r):bool{return false;} }
