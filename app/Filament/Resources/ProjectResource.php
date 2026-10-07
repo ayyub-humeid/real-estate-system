@@ -54,6 +54,7 @@ class ProjectResource extends Resource
             RelationManagers\DesignPackagesRelationManager::class,
             RelationManagers\ProjectBudgetsRelationManager::class,
             RelationManagers\ProjectCommitmentsRelationManager::class,
+            RelationManagers\ProjectConstructionRelationManager::class,
             RelationManagers\ProjectActualCostsRelationManager::class,
             RelationManagers\ProjectPaymentsRelationManager::class,
         ];
