@@ -23,8 +23,8 @@ class LeaseSeeder extends Seeder
     $q->where('company_id', $company->id)
 )->first();
         
-        // Get an available unit
-        $unit = Unit::where('status', 'available')->first();
+        // Pick a physically ready unit. Tenancy is represented by the Lease.
+        $unit = Unit::where('status', 'ready')->first();
         
         if ($company && $tenant && $unit) {
             $lease = Lease::create([
@@ -39,9 +39,6 @@ class LeaseSeeder extends Seeder
                 'payment_day' => 1,
                 'status' => 'active',
             ]);
-
-            // Update unit status
-            $unit->update(['status' => 'occupied']);
 
             // Generate payment schedule
             $lease->generatePaymentSchedule();

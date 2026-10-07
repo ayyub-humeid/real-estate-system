@@ -199,7 +199,7 @@ class DatabaseSeeder extends Seeder
                     'imageable_type' => Property::class,
                     'imageable_id'   => $prop->id,
                     'path'           => $propertyImages[array_rand($propertyImages)],
-                    'disk'           => config('filesystems.default', 'public'),
+                    'disk'           => config('filesystems.default', 's3'),
                     'is_primary'     => true,
                     'order'          => 1,
                 ]);
@@ -212,7 +212,7 @@ class DatabaseSeeder extends Seeder
                         'property_id' => $prop->id,
                         'unit_number' => 'A-' . $p . '0' . $u,
                         'rent_price'  => rand(1500, 3500),
-                        'status'      => ($u % 2 == 0) ? 'occupied' : 'available',
+                        'status'      => 'ready',
                         'type'        => 'Apartment',
                         'description' => $unitDescriptions[array_rand($unitDescriptions)],
                         'bedrooms'    => rand(1, 3),
@@ -230,7 +230,7 @@ class DatabaseSeeder extends Seeder
                                 'imageable_type' => Unit::class,
                                 'imageable_id'   => $unit->id,
                                 'path'           => $imgUrl,
-                                'disk'           => config('filesystems.default', 'public'),
+                                'disk'           => config('filesystems.default', 's3'),
                                 'is_primary'     => ($index === 0),
                                 'order'          => $index + 1,
                             ]);
@@ -241,7 +241,7 @@ class DatabaseSeeder extends Seeder
                             'imageable_type' => Unit::class,
                             'imageable_id'   => $unit->id,
                             'path'           => $unitImages[array_rand($unitImages)],
-                            'disk'           => config('filesystems.default', 'public'),
+                            'disk'           => config('filesystems.default', 's3'),
                             'is_primary'     => true,
                             'order'          => 1,
                         ]);
@@ -259,7 +259,7 @@ class DatabaseSeeder extends Seeder
         $companies = Company::all();
 
         foreach ($companies as $company) {
-            $occupiedUnits = Unit::where('company_id', $company->id)->where('status', 'occupied')->get();
+            $occupiedUnits = Unit::where('company_id', $company->id)->where('status', 'ready')->take(3)->get();
             
             foreach ($occupiedUnits as $idx => $unit) {
                 // Create Tenant User

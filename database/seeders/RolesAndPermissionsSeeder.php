@@ -117,6 +117,9 @@ class RolesAndPermissionsSeeder extends Seeder
             'start_project_construction', 'complete_project_construction', 'cancel_project_construction',
             'start_construction_work_package', 'complete_construction_work_package', 'cancel_construction_work_package',
             'start_construction_work_package_task', 'complete_construction_work_package_task', 'cancel_construction_work_package_task',
+            // Phase 06 — Unit setup workflow/history children.
+            'create_actual_unit_from_planned_unit', 'change_unit_status', 'reactivate_unit', 'change_unit_ownership',
+            'view_unit_ownership', 'view_any_unit_ownership', 'view_unit_status_history', 'view_any_unit_status_history', 'manage_unit_documents',
         ];
 
         foreach ($customDomainPermissions as $permission) {

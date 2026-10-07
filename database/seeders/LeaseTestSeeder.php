@@ -56,7 +56,7 @@ class LeaseTestSeeder extends Seeder
             [
                 'company_id' => $company->id,
                 'type' => 'apartment',
-                'status' => 'available',
+                'status' => 'ready',
                 'rent_price' => 1000,
             ]
         );
