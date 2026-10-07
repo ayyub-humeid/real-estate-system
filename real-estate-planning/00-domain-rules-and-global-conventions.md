@@ -3041,6 +3041,24 @@ component re-rendering
 
 Do not use full page reload as a general state synchronization technique.
 
+### Reactive callback contract
+
+When a Filament field uses `->live()` with `afterStateUpdated()`, use Filament's
+supported named injections. The newly selected value must be declared as
+`$state` (and state mutation through `Forms\Set $set`), for example:
+
+```php
+->afterStateUpdated(function ($state, Forms\Set $set): void {
+    $record = Model::find($state);
+    // Populate dependent fields only after verifying the selected parent.
+})
+```
+
+Do not invent a parameter name such as `$id`: Filament resolves callback
+parameters by name and will throw a `BindingResolutionException` when it cannot
+resolve one. Every new reactive selector must be manually tested by opening its
+modal, selecting a record, confirming dependent fields populate, then saving.
+
 ### Relationship labels
 
 Foreign-key IDs are internal implementation details. In Filament forms, tables, and infolists, never expose a raw relationship field such as `review_id`, `submission_id`, or `budget_item_id` to a normal user. Give the field a concise human label (for example, `Review`, `Formal submission`, or `Budget item`) and use a meaningful related-record value in its options and display columns.
