@@ -120,6 +120,8 @@ class RolesAndPermissionsSeeder extends Seeder
             // Phase 06 — Unit setup workflow/history children.
             'create_actual_unit_from_planned_unit', 'change_unit_status', 'reactivate_unit', 'change_unit_ownership',
             'view_unit_ownership', 'view_any_unit_ownership', 'view_unit_status_history', 'view_any_unit_status_history', 'manage_unit_documents',
+            // Phase 07.2 — Listing lifecycle and pricing workflows.
+            'publish_listing', 'pause_listing', 'archive_listing', 'change_listing_price',
         ];
 
         foreach ($customDomainPermissions as $permission) {
