@@ -50,6 +50,145 @@ class RoleResource extends ShieldRoleResource
             ->toArray();
     }
 
+    /**
+     * Presentation-only taxonomy for workflow and relation-manager permissions.
+     * The exact permission names stay unchanged and are still what Policies/services authorize.
+     */
+    private const CUSTOM_PERMISSION_GROUPS = [
+        'Property Acquisition' => [
+            'Acquisition workflow' => ['exact:approve_property_acquisition', 'exact:cancel_property_acquisition', 'exact:complete_property_acquisition'],
+            'Acquisition properties' => ['acquisition_property'],
+            'Acquisition parties' => ['acquisition_party'],
+            'Property ownership' => ['property_ownership', 'exact:change_property_ownership'],
+            'Due diligence cases' => ['due_diligence_case'],
+            'Due diligence items' => ['due_diligence_item'],
+        ],
+        'Project Planning' => [
+            'Project workflow' => ['exact:approve_project', 'exact:cancel_project', 'exact:close_project'],
+            'Project properties' => ['project_property'],
+            'Project members' => ['project_member', 'exact:manage_project_members'],
+            'Building floors' => ['project_building_floor'],
+            'Buildings' => ['project_building'],
+            'Planned unit specifications' => ['planned_unit_specification'],
+            'Planned units' => ['planned_unit'],
+        ],
+        'Design & Engineering' => [
+            'Package workflow' => ['exact:assign_design_package', 'exact:replace_design_assignment', 'exact:submit_design_package', 'exact:review_design_submission', 'exact:request_design_revision', 'exact:submit_design_revision', 'exact:approve_design_package', 'exact:close_design_package'],
+            'Design findings' => ['exact:create_design_finding', 'exact:waive_design_finding'],
+            'Document versions' => ['document_version'],
+            'Assignments' => ['design_package_assignment'],
+            'Scope items' => ['design_package_scope_item'],
+            'Activities' => ['design_package_activity'],
+            'Submission documents' => ['design_package_submission_document'],
+            'Submissions' => ['design_package_submission'],
+            'Reviews' => ['design_package_review'],
+            'Review findings' => ['design_review_finding'],
+            'Revisions' => ['design_package_revision'],
+            'Revision findings' => ['design_revision_finding'],
+            'Approvals' => ['design_package_approval'],
+        ],
+        'Budgeting & Financial Control' => [
+            'Budget categories' => ['budget_category'],
+            'Budget items' => ['budget_item'],
+            'Budget workflow' => ['exact:submit_project_budget', 'exact:approve_project_budget', 'exact:reject_project_budget', 'exact:create_budget_revision', 'exact:cancel_project_budget'],
+            'Commitment amendments' => ['financial_commitment_amendment'],
+            'Commitment workflow' => ['exact:create_unbudgeted_commitment', 'exact:commit_financial_commitment', 'exact:approve_over_budget_commitment', 'exact:release_financial_commitment', 'exact:cancel_financial_commitment'],
+            'Actual costs' => ['actual_cost'],
+            'Payment allocations' => ['payment_allocation'],
+            'Payment workflow' => ['exact:record_payment', 'exact:allocate_payment', 'exact:void_payment'],
+        ],
+        'Construction' => [
+            'Construction lifecycle' => ['exact:start_project_construction', 'exact:complete_project_construction', 'exact:cancel_project_construction'],
+            'Work package tasks' => ['construction_work_package_task'],
+            'Work packages' => ['construction_work_package'],
+            'Progress updates' => ['construction_progress_update'],
+            'Inspections' => ['construction_inspection'],
+            'Issues' => ['construction_issue'],
+            'Delays' => ['construction_delay'],
+        ],
+        'Unit Setup' => [
+            'Create from approved plan' => ['exact:create_actual_unit_from_planned_unit'],
+            'Unit status' => ['exact:change_unit_status', 'exact:reactivate_unit'],
+            'Unit ownership' => ['unit_ownership', 'exact:change_unit_ownership'],
+            'Unit history and documents' => ['unit_status_history', 'exact:manage_unit_documents'],
+        ],
+        'Listings Management' => [
+            'Listing lifecycle' => ['exact:publish_listing', 'exact:pause_listing', 'exact:archive_listing'],
+            'Listing pricing' => ['exact:change_listing_price'],
+        ],
+    ];
+
+    /** @return array{0: array<string, array<string, array<string, string>>>, 1: array<string, string>} */
+    private static function groupCustomPermissionOptions(array $options): array
+    {
+        $remaining = collect($options);
+        $domains = [];
+
+        foreach (self::CUSTOM_PERMISSION_GROUPS as $domain => $groups) {
+            $domainGroups = [];
+
+            foreach ($groups as $group => $patterns) {
+                $matched = $remaining->filter(fn (string $label, string $permission): bool => collect($patterns)
+                    ->contains(fn (string $pattern): bool => static::permissionMatchesPattern($permission, $pattern)));
+
+                if ($matched->isEmpty()) {
+                    continue;
+                }
+
+                $domainGroups[$group] = $matched->all();
+                $remaining = $remaining->except($matched->keys());
+            }
+
+            if ($domainGroups !== []) {
+                $domains[$domain] = $domainGroups;
+            }
+        }
+
+        return [$domains, $remaining->all()];
+    }
+
+    private static function permissionMatchesPattern(string $permission, string $pattern): bool
+    {
+        return str_starts_with($pattern, 'exact:')
+            ? $permission === substr($pattern, 6)
+            : str_contains($permission, $pattern);
+    }
+
+    public static function getTabFormComponentForCustomPermissions(): Component
+    {
+        $options = static::getCustomPermissionOptions() ?? [];
+        [$domains, $other] = static::groupCustomPermissionOptions($options);
+
+        if ($other !== []) {
+            $domains['Other Custom Permissions'] = ['Uncategorized' => $other];
+        }
+
+        return Forms\Components\Tabs\Tab::make('custom')
+            ->label(__('filament-shield::filament-shield.custom'))
+            ->visible(fn (): bool => $domains !== [])
+            ->badge(count($options))
+            ->schema([
+                Forms\Components\Grid::make(2)
+                    ->schema(collect($domains)
+                        ->map(fn (array $groups, string $domain): Forms\Components\Section => Forms\Components\Section::make($domain)
+                            ->description(collect($groups)->map(fn (array $permissions) => count($permissions))->sum().' permissions')
+                            ->collapsible()
+                            ->columns(2)
+                            ->schema(collect($groups)
+                                ->map(fn (array $permissions, string $group): Forms\Components\Section => Forms\Components\Section::make($group)
+                                    ->compact()
+                                    ->schema([
+                                        static::getCheckboxListFormComponent(
+                                            name: 'custom_'.str($domain.'_'.$group)->slug('_'),
+                                            options: $permissions,
+                                        ),
+                                    ]))
+                                ->values()
+                                ->all()))
+                        ->values()
+                        ->all()),
+            ]);
+    }
     /** Keep platform permissions out of a company role form as well as rejecting forged input in the service. */
     public static function getCheckboxListFormComponent(string $name, array $options, bool $searchable = true, array|int|string|null $columns = null, array|int|string|null $columnSpan = null): Component
     {

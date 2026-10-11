@@ -3099,6 +3099,16 @@ For every important Project or parent-record tab, review the complete user journ
 
 The automated suite must cover the underlying service, authorization, tenant isolation, and state transition. Manual Filament verification must cover action visibility, labels, status colors, and the View modal's relationship display. Do not declare a workflow complete merely because its database operation succeeds.
 
+### Resource form and workflow regression tests
+
+Service tests alone are not enough when a Filament Resource has custom forms, View-page header actions, relation-manager actions, or reactive fields. For every new or materially changed Resource, add at least one automated Livewire/Filament regression test that uses the **same form field names and action names as the Resource**:
+
+1. Fill and submit a valid create or edit form through the actual Resource page.
+2. Mount the actual View page (or relation manager) and invoke at least one representative allowed workflow action.
+3. Assert the resulting persisted state and UI validation/action errors as appropriate.
+4. Cover a conditional/reactive branch when the Resource has one (for example sale versus rent, status-specific actions, or a dependent selector).
+
+This catches presentation wiring defects such as renamed action parameters, missing form fields, invalid callback signatures, and actions that work at service level but fail in the browser. Run these UI-regression tests on both MySQL and PostgreSQL together with the service, authorization, tenancy, and transition tests.
 ---
 
 # 114. No Forced Browser Reloads for Normal CRUD
@@ -3431,6 +3441,14 @@ Shield does not create custom relation-manager or workflow permissions. Each mus
 php artisan db:seed --class=RolesAndPermissionsSeeder --force
 ```
 
+### Custom Permission UX Organization
+
+Custom relation-manager and workflow permissions must remain easy to assign as the application grows. The Roles page must group existing custom permissions by business domain and, where a domain has several workflows or child records, by a second-level workflow/entity section (for example: Project Planning → Buildings → Floors/Planned Units, or Budgeting → Budget Items → Commitments → Payments). Do not present one unstructured list.
+
+1. Grouping is UI-only: never rename a permission, duplicate a database record, or change a Policy/service permission check merely to improve the Roles page.
+2. Every new custom permission must be assigned to its domain group in the centralized Roles-page mapping in the same change that adds it to `RolesAndPermissionsSeeder`.
+3. Keep an explicit `Other Custom Permissions` fallback group. It must surface uncategorized permissions rather than silently hiding them; then categorize them before release.
+4. Preserve existing role assignments when changing group layout. The form must submit the original permission names and retain the server-side platform/company permission filters.
 ### Required Phase Release Checklist
 
 Every implementation report and handoff must state exactly which production commands are required:
@@ -4093,3 +4111,8 @@ silently remains stale.
 5. A Company role must never receive platform-administration permissions (Company, subscription, plan, platform-role, or Super Admin operations). Validate this on the server when permissions are synced.
 6. Platform roles remain Super Admin-only to manage and assign. Super Admin may see all roles and permissions. The Role page must make scope visible to Super Admin and keep other companies' roles invisible to company users.
 7. Company-role permission forms must hide and server-side reject all platform resources: Company, User, Plan, Subscription, and platform Role administration. Company Setting is explicitly tenant-owned and remains available. When adding a future platform-only Resource, add it to the centralized platform-resource list and its permission guard in the same change.
+---
+
+## Deterministic History Ordering
+
+For append-only history such as price, status, audit, revision, or payment-history rows, never sort only by `created_at`. Two legitimate writes may share the same timestamp precision on either MySQL or PostgreSQL. Define the canonical newest-first order as `created_at DESC, id DESC` (or another stable monotonic secondary key), add matching indexes where the history is queried often, and write regression tests that perform two changes within one request/second.
