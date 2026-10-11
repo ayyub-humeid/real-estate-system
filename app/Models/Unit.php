@@ -263,6 +263,11 @@ class Unit extends Model
         return $this->relationLoaded('currentLease') ? ($this->currentLease ? 'occupied' : 'vacant') : ($this->currentLease()->exists() ? 'occupied' : 'vacant');
     }
 
+    public function listings(): MorphMany
+    {
+        return $this->morphMany(Listing::class, 'listable');
+    }
+
     public function documents(): MorphMany
     {
         return $this->morphMany(Document::class, 'documentable');

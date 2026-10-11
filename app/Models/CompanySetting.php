@@ -29,12 +29,14 @@ class CompanySetting extends Model
         'receipt_header_color',
         'payment_grace_period_days',
         'late_payment_fee_percentage',
+        'allow_maintenance_unit_marketing',
     ];
 
     protected $casts = [
         'show_company_stamp' => 'boolean',
         'payment_grace_period_days' => 'integer',
         'late_payment_fee_percentage' => 'decimal:2',
+        'allow_maintenance_unit_marketing' => 'boolean',
     ];
 
     // ✅ Helper: Get logo URL

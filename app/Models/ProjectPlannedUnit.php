@@ -3,6 +3,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 class ProjectPlannedUnit extends Model
 {
     use \App\Traits\HasCompany;
@@ -16,6 +17,10 @@ class ProjectPlannedUnit extends Model
     public function specifications(): HasMany
     {
         return $this->hasMany(PlannedUnitSpecification::class);
+    }
+    public function listings(): MorphMany
+    {
+        return $this->morphMany(Listing::class, 'listable');
     }
     public function actualUnit(): \Illuminate\Database\Eloquent\Relations\HasOne
     {

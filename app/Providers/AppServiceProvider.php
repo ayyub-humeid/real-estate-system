@@ -9,6 +9,7 @@ use App\Observers\UserObserver;
 use Filament\Support\Assets\Js;
 use Filament\Support\Facades\FilamentAsset;
 use Illuminate\Support\Facades\Vite;
+use Illuminate\Database\Eloquent\Relations\Relation;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -25,6 +26,10 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Schema::defaultStringLength(191);
+        Relation::morphMap([
+            'planned_unit' => \App\Models\ProjectPlannedUnit::class,
+            'unit' => \App\Models\Unit::class,
+        ]);
 
         if (config('app.env') === 'production') {
             \Illuminate\Support\Facades\URL::forceScheme('https');

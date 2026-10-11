@@ -140,6 +140,11 @@ class CompanySettingResource extends Resource
                             ->minValue(0)
                             ->suffix('%')
                             ->helperText('Percentage fee for late payments'),
+
+                        Forms\Components\Toggle::make('allow_maintenance_unit_marketing')
+                            ->label('Allow marketing during maintenance')
+                            ->helperText('Published Listings for maintenance Units are blocked unless enabled.')
+                            ->default(false),
                     ])
                     ->columns(2)
                     ->collapsible(),
