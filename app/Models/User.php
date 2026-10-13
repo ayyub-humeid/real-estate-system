@@ -28,6 +28,7 @@ class User extends Authenticatable implements FilamentUser
         'password',
         'role',
         'phone',
+        'locale',
     ];
 
     protected $hidden = [
@@ -117,6 +118,9 @@ class User extends Authenticatable implements FilamentUser
 // {
 //     return $this->hasManyThrough(Payment::class, Lease::class, 'tenant_id', 'lease_id');
 // }
+    public function ownedLeads(): HasMany { return $this->hasMany(Lead::class, 'assigned_to'); }
+    public function ownedOpportunities(): HasMany { return $this->hasMany(Opportunity::class, 'assigned_to'); }
+
     public function tenants(): HasMany
     {
         return $this->hasMany(Tenant::class);

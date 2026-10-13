@@ -122,6 +122,13 @@ class RolesAndPermissionsSeeder extends Seeder
             'view_unit_ownership', 'view_any_unit_ownership', 'view_unit_status_history', 'view_any_unit_status_history', 'manage_unit_documents',
             // Phase 07.2 — Listing lifecycle and pricing workflows.
             'publish_listing', 'pause_listing', 'archive_listing', 'change_listing_price',
+            // Phase 07.3 — CRM relation-manager and workflow permissions.
+            'assign_lead', 'assign_opportunity', 'move_opportunity_stage', 'close_won_opportunity', 'close_lost_opportunity',
+            'view_any_lead_inquiry', 'view_lead_inquiry', 'create_lead_inquiry', 'update_lead_inquiry',
+            'view_any_crm_pipeline_stage', 'view_crm_pipeline_stage', 'create_crm_pipeline_stage', 'update_crm_pipeline_stage', 'delete_crm_pipeline_stage',
+            'view_any_crm_stage_requirement', 'view_crm_stage_requirement', 'create_crm_stage_requirement', 'update_crm_stage_requirement', 'delete_crm_stage_requirement',
+            'view_any_opportunity_requirement_completion', 'view_opportunity_requirement_completion',
+            'view_any_opportunity_stage_history', 'view_opportunity_stage_history',
         ];
 
         foreach ($customDomainPermissions as $permission) {

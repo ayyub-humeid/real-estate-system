@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\CrmAssignmentMode;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -30,9 +31,12 @@ class CompanySetting extends Model
         'payment_grace_period_days',
         'late_payment_fee_percentage',
         'allow_maintenance_unit_marketing',
+        'crm_assignment_mode',
+        'crm_round_robin_last_user_id',
     ];
 
     protected $casts = [
+        'crm_assignment_mode' => CrmAssignmentMode::class,
         'show_company_stamp' => 'boolean',
         'payment_grace_period_days' => 'integer',
         'late_payment_fee_percentage' => 'decimal:2',

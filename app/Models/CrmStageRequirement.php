@@ -1,0 +1,6 @@
+<?php
+namespace App\Models;
+use App\Enums\CrmRequirementType;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\{BelongsTo,HasMany};
+class CrmStageRequirement extends Model { use \App\Traits\HasCompany; protected $fillable=['company_id','pipeline_stage_id','key','label','requirement_type','config_json','is_required','position','is_active']; protected $casts=['requirement_type'=>CrmRequirementType::class,'config_json'=>'array','is_required'=>'boolean','is_active'=>'boolean','position'=>'integer']; public function stage(): BelongsTo{return $this->belongsTo(CrmPipelineStage::class,'pipeline_stage_id');} public function completions(): HasMany{return $this->hasMany(OpportunityRequirementCompletion::class,'stage_requirement_id');} public function getDisplayLabelAttribute(): string { $defaults=['contact_information'=>['Customer contact information','بيانات تواصل العميل'],'contact_result'=>['Contact result recorded','تم تسجيل نتيجة التواصل'],'budget_confirmed'=>['Customer budget confirmed','تم تأكيد ميزانية العميل'],'closure_notes'=>['Closure information recorded','تم تسجيل معلومات الإغلاق'],'lost_reason'=>['Lost reason recorded','تم تسجيل سبب الخسارة']]; return isset($defaults[$this->key]) && in_array($this->label,$defaults[$this->key],true) ? __('crm.defaults.requirements.'.$this->key) : $this->label; } }

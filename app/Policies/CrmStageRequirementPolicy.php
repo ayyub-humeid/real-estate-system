@@ -1,0 +1,4 @@
+<?php
+namespace App\Policies;
+use App\Models\{CrmStageRequirement,User}; use App\Policies\Concerns\CompanyOwnedPolicy;
+class CrmStageRequirementPolicy { use CompanyOwnedPolicy; public function viewAny(User $u):bool{return $u->can('view_any_crm_stage_requirement');} public function view(User $u,CrmStageRequirement $r):bool{return $this->canForRecord($u,'view_crm_stage_requirement',$r);} public function create(User $u):bool{return $u->can('create_crm_stage_requirement');} public function update(User $u,CrmStageRequirement $r):bool{return $this->canForRecord($u,'update_crm_stage_requirement',$r);} public function delete(User $u,CrmStageRequirement $r):bool{return $this->canForRecord($u,'delete_crm_stage_requirement',$r)&&!$r->completions()->exists();} }

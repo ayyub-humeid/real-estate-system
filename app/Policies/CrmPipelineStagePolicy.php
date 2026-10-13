@@ -1,0 +1,4 @@
+<?php
+namespace App\Policies;
+use App\Models\{CrmPipelineStage,User}; use App\Policies\Concerns\CompanyOwnedPolicy;
+class CrmPipelineStagePolicy { use CompanyOwnedPolicy; public function viewAny(User $u):bool{return $u->can('view_any_crm_pipeline_stage');} public function view(User $u,CrmPipelineStage $r):bool{return $this->canForRecord($u,'view_crm_pipeline_stage',$r);} public function create(User $u):bool{return $u->can('create_crm_pipeline_stage');} public function update(User $u,CrmPipelineStage $r):bool{return $this->canForRecord($u,'update_crm_pipeline_stage',$r);} public function delete(User $u,CrmPipelineStage $r):bool{return $this->canForRecord($u,'delete_crm_pipeline_stage',$r)&&!$r->opportunities()->exists();} }

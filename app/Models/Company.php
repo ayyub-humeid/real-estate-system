@@ -52,6 +52,19 @@ class Company extends Model
     {
         return $this->belongsTo(Party::class, 'self_party_id');
     }
+    public function leads(): HasMany
+    {
+        return $this->hasMany(Lead::class);
+    }
+    public function crmPipelines(): HasMany
+    {
+        return $this->hasMany(CrmPipeline::class);
+    }
+    public function opportunities(): HasMany
+    {
+        return $this->hasMany(Opportunity::class);
+    }
+
     public function listings(): HasMany
     {
         return $this->hasMany(Listing::class);
