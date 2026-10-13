@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\CompanySettingResource\Pages;
 use App\Models\CompanySetting;
+use App\Enums\CrmAssignmentMode;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -122,6 +123,16 @@ class CompanySettingResource extends Resource
                             ->default('#059669'),
                     ])
                     ->columns(2)
+                    ->collapsible(),
+
+                Forms\Components\Section::make(__('crm.navigation.crm'))
+                    ->schema([
+                        Forms\Components\Select::make('crm_assignment_mode')
+                            ->label(__('crm.fields.assignment_mode'))
+                            ->options(CrmAssignmentMode::options())
+                            ->default(CrmAssignmentMode::Manual->value)
+                            ->required(),
+                    ])
                     ->collapsible(),
 
                 Forms\Components\Section::make('Payment Policies')

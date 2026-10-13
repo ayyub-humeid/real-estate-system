@@ -7,7 +7,10 @@ use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Pages;
+use Filament\Navigation\MenuItem;
 use App\Filament\Pages\Dashboard;
+use App\Filament\Pages\CrmKanban;
+use App\Filament\Pages\LanguagePreferences;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
@@ -37,10 +40,18 @@ class AdminPanelProvider extends PanelProvider
             ->brandLogo(fn () => view('filament.admin-brand'))
             ->favicon('/favicon.png?v=3')
             ->databaseNotifications()
+            ->userMenuItems([
+                MenuItem::make()
+                    ->label(__('settings.language'))
+                    ->icon('heroicon-o-language')
+                    ->url(fn (): string => LanguagePreferences::getUrl()),
+            ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
                 Dashboard::class,
+                CrmKanban::class,
+                LanguagePreferences::class,
             ])
             ->plugins([
                 \BezhanSalleh\FilamentShield\FilamentShieldPlugin::make()
@@ -63,8 +74,13 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
+                \App\Http\Middleware\SetUserLocale::class,
                 \App\Http\Middleware\CheckSubscription::class,
             ])
+            ->renderHook(
+                'panels::head.end',
+                fn() => view('filament.arabic-font'),
+            )
             ->renderHook(
                 'panels::body.end',
                 fn() => view('filament.payment-notification-listener'),

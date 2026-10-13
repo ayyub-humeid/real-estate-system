@@ -112,6 +112,15 @@ class RoleResource extends ShieldRoleResource
             'Unit ownership' => ['unit_ownership', 'exact:change_unit_ownership'],
             'Unit history and documents' => ['unit_status_history', 'exact:manage_unit_documents'],
         ],
+        'CRM' => [
+            'Lead workflow' => ['exact:assign_lead'],
+            'Opportunity workflow' => ['exact:assign_opportunity', 'exact:move_opportunity_stage', 'exact:close_won_opportunity', 'exact:close_lost_opportunity'],
+            'Lead inquiries' => ['lead_inquiry'],
+            'Pipeline stages' => ['crm_pipeline_stage'],
+            'Stage requirements' => ['crm_stage_requirement'],
+            'Requirement completions' => ['opportunity_requirement_completion'],
+            'Stage history' => ['opportunity_stage_history'],
+        ],
         'Listings Management' => [
             'Listing lifecycle' => ['exact:publish_listing', 'exact:pause_listing', 'exact:archive_listing'],
             'Listing pricing' => ['exact:change_listing_price'],
