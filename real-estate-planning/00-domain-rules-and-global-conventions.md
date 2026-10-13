@@ -3915,6 +3915,12 @@ To ensure the application behaves identically across diverse environments (e.g.,
    php artisan test --configuration phpunit.pgsql.xml
    ```
 
+### Portable Database Identifier Names
+
+MySQL limits identifiers (including generated index and unique-constraint names) to 64 characters. PostgreSQL permits longer names, so a migration that relies on Laravel's automatic name can pass on PostgreSQL and fail on MySQL.
+
+For every composite index or unique constraint whose generated name could be long, always provide an explicit, concise, descriptive name (for example `crm_stage_req_company_stage_active_idx`). Verify the migration from a clean MySQL and PostgreSQL test database before considering it portable.
+
 ---
 
 ## Filament Relation Manager Create Actions & Authorization
@@ -4116,3 +4122,185 @@ silently remains stale.
 ## Deterministic History Ordering
 
 For append-only history such as price, status, audit, revision, or payment-history rows, never sort only by `created_at`. Two legitimate writes may share the same timestamp precision on either MySQL or PostgreSQL. Define the canonical newest-first order as `created_at DESC, id DESC` (or another stable monotonic secondary key), add matching indexes where the history is queried often, and write regression tests that perform two changes within one request/second.
+
+---
+
+## Relation Management Must Work From View Pages
+
+For every Filament Resource with relation managers, audit the **View** page as
+well as the Edit page. A user must not have to enter Edit merely to discover or
+operate a permitted child workflow.
+
+1. A Resource View page must explicitly return the same applicable relation
+   managers from `getRelationManagers()`; do not assume a Resource-level
+   `getRelations()` registration renders them on the View page.
+2. For a relationship that users are allowed to manage from View, the relation
+   manager must explicitly return `false` from `isReadOnly()`. Its normal
+   policy checks, service authorization, state rules, and notifications remain
+   mandatory.
+3. An immutable history/audit relation may remain read-only, but it must still
+   appear on View and the intentional restriction must be documented.
+4. Each phase with relation managers must include a browser-shaped Livewire
+   regression test that opens the View page and asserts the relevant relation
+   tab/title is rendered. Test the permitted create/edit/workflow action where
+   practical.
+
+## Form Validation Before Database Constraints
+
+Database foreign keys and unique indexes are final integrity guards, not user
+feedback. For every user-editable unique or grouped constraint:
+
+1. add immediate field validation in the Filament form, scoped to the correct
+   parent/company grouping and excluding the record being edited;
+2. repeat the rule in the service/action, inside the transaction and after the
+   aggregate lock when concurrent writes are possible;
+3. return a translated `ValidationException` keyed to the actionable field;
+4. retain the database constraint for forged requests and race-condition
+   protection; never remove it merely because application validation exists;
+5. write a regression test proving the domain service returns validation before
+   a raw `SQLSTATE` error.
+
+Browser-shaped tests complement service tests: they must instantiate the real
+Filament page/relation manager, assert required inputs and translated labels,
+submit representative valid data, and exercise at least one rejected workflow
+or validation path. These tests verify the forms and workflow a staff member
+actually sees; they do not replace MySQL/PostgreSQL service and feature tests.
+
+---
+
+## Filament Closure Injection Standard
+
+Filament evaluates table, form, action, and infolist closures through its own
+named injection system. Use the exact supported parameter name for the value
+being consumed; do not invent a semantic name and type-hint it as an enum or
+model. Otherwise Filament delegates resolution to Laravel's container, which
+tries to construct that type and raises a `BindingResolutionException`.
+
+For a table column's current value, use `$state`:
+
+```php
+Tables\Columns\TextColumn::make('status')
+    ->badge()
+    ->color(fn ($state) => $state === LeadStatus::Active
+        || $state === LeadStatus::Active->value
+        ? 'success'
+        : 'gray');
+```
+
+Apply the same discipline to documented Filament injections such as `$record`,
+`$get`, `$set`, `$operation`, `$livewire`, and `$data`. Type-hint a parameter
+only when Filament explicitly supplies that parameter by name and type in the
+relevant API. Each new resource table should have a browser-shaped Livewire
+test that loads its list page with enum-backed and relationship-backed values.
+
+When a Filament form is filled from an Eloquent model, a backed-enum cast may
+return the enum instance; a newly entered form value may instead be its scalar
+string. Service code that consumes a Select/Repeater enum value must accept
+both shapes explicitly (for example, preserve `CrmRequirementType` when it is
+already an instance, otherwise call `tryFrom()` on its string). Never cast a
+possible enum object directly to string.
+
+---
+
+## User Language Preference
+
+User-facing admin interfaces support English (`en`) and Arabic (`ar`). Store a
+user's selected locale on the User record, expose the selection from the
+authenticated user menu rather than an environment-only setting, and apply it
+through authenticated-request middleware before rendering Filament. All new
+user-facing labels must use translation keys in both locales; Arabic pages
+that need directional layout must render RTL deliberately.
+
+For every localized Filament Resource, also override `getModelLabel()`,
+`getPluralModelLabel()`, and (when applicable) `getNavigationGroup()`. Filament
+uses these labels for page titles, breadcrumbs, and default Create/Edit/View
+action text; translating field labels alone still leaves a class-name fallback
+such as `Crm Pipeline`. Use an Arabic-capable font (Cairo) only under RTL while
+retaining the normal Latin font for English.
+
+For a dense workflow board such as Kanban, do not rely only on dynamically
+assembled Tailwind colour class names: production builds may omit them. Use
+static classes or explicit CSS variables for stage colours. Keep the layout
+responsive and spacious (a single column on narrow screens, then two/three
+columns only when there is room); stages may wrap into later rows rather than
+forcing unreadably narrow cards or a permanent horizontal-scroll board.
+
+For any localized enum/state, implement Filament's `HasLabel` and return a
+translation key from `getLabel()`. Audit every CRM table, infolist, relation
+manager, filter, select, notification, and board card: a stored enum value
+such as `website`, `manual`, `active`, `sale`, or `rent` must never be rendered
+as user-facing text. Custom company-entered values (for example a deliberately
+named Stage) are business data, not fixed UI copy; do not machine-translate or
+silently overwrite them. Use a display accessor only for recognized system
+defaults and preserve custom values exactly.
+
+Every relation manager and workflow table must define a translated empty-state
+heading, description, and (where useful) icon explicitly. Never allow a
+Filament model-name fallback such as `No crm pipeline stages` to reach users.
+Audit empty states together with labels, action titles, placeholders, enum
+values, validation messages, and notifications in both English and Arabic.
+Relation-manager actions require the same audit: explicitly translate dynamic
+labels such as `Create opportunity` / `Create inquiry`, because a child model
+without its own top-level Resource may otherwise fall back to an untranslated
+class-derived name.
+
+When a company creates or promotes its first **default** configuration
+aggregate (for example a CRM Pipeline), it must be usable immediately. Provision
+the approved default children atomically only when the aggregate has no child
+records; make provisioning idempotent, lock the parent, and never overwrite a
+company's configured children. Add regression coverage for both direct default
+creation and automatic promotion/provisioning paths.
+
+### Configurable Workflow Requirements: Business UX
+
+When a company configures a workflow requirement, do not expose evaluator or
+database implementation details such as JSON configuration, relation names,
+operators, internal keys, or numeric positions. Present a business form:
+
+```text
+Clear staff-facing label
+Requirement type
+Friendly field / record choice required by that type
+Mandatory / Active
+```
+
+The server must generate a stable, unique internal slug key for newly created
+requirements and assign position from the submitted display order. The browser
+must never be trusted to supply either value. Normalize the friendly form input
+to a whitelisted internal evaluator configuration in the service, and reject
+unsupported fields / relations / values with translated field validation.
+
+For blocked workflow transitions, return a translated, actionable message that
+states the source and destination stages, the missing staff-facing requirement,
+and the exact next place to complete it. A manual checklist must direct staff to
+the parent record's completion tab. An automatic condition must direct staff to
+the real data entry point (for example Lead → Inquiries → Contact result).
+Where practical, include a notification action opening the affected parent
+record. Add both service-level and browser-shaped regression coverage.
+
+Do not reveal a mandatory condition only after a user attempts a workflow
+transition. The parent record's View page must proactively show the current
+stage's active required conditions, their current complete/pending state, and
+the translated next step. The protected service remains authoritative; this UI
+is a clear pre-flight checklist, not a client-side authorization bypass.
+
+Where requirements belong to a multi-stage workflow, keep the focused current
+Stage checklist and also provide a separate all-stage overview. Every overview
+row must identify its Stage, requirement, state, and next step. Adding a
+condition to one Stage must never make another Stage's configured conditions
+appear to have disappeared. Cover this with a browser-shaped View-page test.
+
+When an action completes or displays a workflow requirement, its visible label
+and modal heading must include the related Stage (for example, `Qualified —
+Manager approval`). Requirement names are not globally unique business context.
+
+Workflow-blocker notifications must route staff to the relevant record, not
+always to a generic parent View: a related inquiry condition opens the Lead's
+Inquiries, a Lead-field condition opens the Lead, an Opportunity field opens
+Opportunity Edit, and a checklist opens the Opportunity completion screen.
+
+Before a terminal workflow transition such as Won/Lost, collect that outcome's
+standard required data in the same transition modal (for example closing notes
+or loss reason). Do not make staff discover a terminal-data requirement only
+through a failed notification and a round trip to a generic Edit page. Test the
+modal opening and its submitted protected workflow in browser-shaped tests.
