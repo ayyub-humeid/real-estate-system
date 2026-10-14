@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\CrmPipelineResource\RelationManagers;
 
-use App\Enums\{CrmRequirementType, CrmStageType};
+use App\Enums\{CrmActivityOutcome, CrmActivityType, CrmRequirementType, CrmStageType};
 use App\Models\CrmPipelineStage;
 use App\Services\CrmPipelineStageService;
 use Filament\Forms;
@@ -41,9 +41,9 @@ class StagesRelationManager extends RelationManager
                     table: 'crm_pipeline_stages',
                     column: 'code',
                     ignoreRecord: true,
-                    modifyRuleUsing: fn (Unique $rule) => $rule->where('pipeline_id', $this->getOwnerRecord()->id),
+                    modifyRuleUsing: fn(Unique $rule) => $rule->where('pipeline_id', $this->getOwnerRecord()->id),
                 )
-                ->disabled(fn (?CrmPipelineStage $record) => $record?->opportunities()->exists()),
+                ->disabled(fn(?CrmPipelineStage $record) => $record?->opportunities()->exists()),
             Forms\Components\TextInput::make('label')
                 ->label(__('crm.fields.label'))
                 ->required()
@@ -52,7 +52,7 @@ class StagesRelationManager extends RelationManager
                 ->label(__('crm.fields.stage_type'))
                 ->options(CrmStageType::options())
                 ->required()
-                ->disabled(fn (?CrmPipelineStage $record) => $record?->opportunities()->exists()),
+                ->disabled(fn(?CrmPipelineStage $record) => $record?->opportunities()->exists()),
             Forms\Components\TextInput::make('position')
                 ->label(__('crm.fields.position'))
                 ->numeric()
@@ -63,7 +63,7 @@ class StagesRelationManager extends RelationManager
                     table: 'crm_pipeline_stages',
                     column: 'position',
                     ignoreRecord: true,
-                    modifyRuleUsing: fn (Unique $rule) => $rule->where('pipeline_id', $this->getOwnerRecord()->id),
+                    modifyRuleUsing: fn(Unique $rule) => $rule->where('pipeline_id', $this->getOwnerRecord()->id),
                 )
                 ->helperText(__('crm.help.unique_stage_position')),
             Forms\Components\Toggle::make('is_active')
@@ -80,12 +80,23 @@ class StagesRelationManager extends RelationManager
             ->emptyStateDescription(__('crm.empty.stages.description'))
             ->emptyStateIcon('heroicon-o-rectangle-stack')
             ->columns([
-                Tables\Columns\TextColumn::make('position')->label(__('crm.fields.position'))->badge()->color('gray'),
-                Tables\Columns\TextColumn::make('label')->label(__('crm.fields.label'))->searchable()->weight('medium')
-                    ->formatStateUsing(fn ($state, CrmPipelineStage $record) => $record->display_label),
-                Tables\Columns\TextColumn::make('code')->label(__('crm.fields.code'))->badge()->color('gray'),
-                Tables\Columns\TextColumn::make('stage_type')->label(__('crm.fields.stage_type'))->badge()
-                    ->formatStateUsing(fn ($state) => $state instanceof CrmStageType ? $state->getLabel() : __('crm.stage_types.' . $state)),
+                Tables\Columns\TextColumn::make('position')
+                    ->label(__('crm.fields.position'))
+                    ->badge()
+                    ->color('gray'),
+                Tables\Columns\TextColumn::make('label')
+                    ->label(__('crm.fields.label'))
+                    ->searchable()
+                    ->weight('medium')
+                    ->formatStateUsing(fn($state, CrmPipelineStage $record) => $record->display_label),
+                Tables\Columns\TextColumn::make('code')
+                    ->label(__('crm.fields.code'))
+                    ->badge()
+                    ->color('gray'),
+                Tables\Columns\TextColumn::make('stage_type')
+                    ->label(__('crm.fields.stage_type'))
+                    ->badge()
+                    ->formatStateUsing(fn($state) => $state instanceof CrmStageType ? $state->getLabel() : __('crm.stage_types.' . $state)),
                 Tables\Columns\IconColumn::make('is_active')->label(__('crm.fields.active'))->boolean(),
                 Tables\Columns\TextColumn::make('requirements_count')->label(__('crm.navigation.requirements'))->counts('requirements')->badge(),
             ])
@@ -100,7 +111,7 @@ class StagesRelationManager extends RelationManager
                     })
                     ->using(function (array $data): CrmPipelineStage {
                         return $this->run(
-                            fn () => app(CrmPipelineStageService::class)->create(auth()->user(), $this->getOwnerRecord(), $data),
+                            fn() => app(CrmPipelineStageService::class)->create(auth()->user(), $this->getOwnerRecord(), $data),
                             __('crm.actions.create_stage'),
                         );
                     }),
@@ -110,7 +121,7 @@ class StagesRelationManager extends RelationManager
                 Tables\Actions\EditAction::make()
                     ->using(function (CrmPipelineStage $record, array $data): CrmPipelineStage {
                         return $this->run(
-                            fn () => app(CrmPipelineStageService::class)->update(auth()->user(), $record, $data),
+                            fn() => app(CrmPipelineStageService::class)->update(auth()->user(), $record, $data),
                             __('crm.actions.update_stage'),
                         );
                     }),
@@ -121,12 +132,12 @@ class StagesRelationManager extends RelationManager
                     ->modalHeading(__('crm.actions.manage_requirements'))
                     ->modalDescription(__('crm.help.requirements_configuration'))
                     ->modalWidth('4xl')
-                    ->visible(fn (CrmPipelineStage $record): bool => auth()->user()->can('update', $record))
+                    ->visible(fn(CrmPipelineStage $record): bool => auth()->user()->can('update', $record))
                     ->form([
                         Forms\Components\Repeater::make('requirements')
                             ->label(__('crm.navigation.requirements'))
                             ->addActionLabel(__('crm.actions.add_requirement'))
-                            ->itemLabel(fn (array $state): ?string => $state['label'] ?? null)
+                            ->itemLabel(fn(array $state): ?string => $state['label'] ?? null)
                             ->collapsible()
                             ->schema([
                                 Forms\Components\Hidden::make('id'),
@@ -144,27 +155,39 @@ class StagesRelationManager extends RelationManager
                                     ->label(__('crm.fields.required_field'))
                                     ->options(CrmPipelineStageService::fieldOptions())
                                     ->searchable()
-                                    ->visible(fn (Forms\Get $get): bool => in_array($get('requirement_type'), [
+                                    ->visible(fn(Forms\Get $get): bool => in_array($get('requirement_type'), [
                                         CrmRequirementType::FieldRequired->value,
                                         CrmRequirementType::FieldEquals->value,
                                     ], true))
-                                    ->required(fn (Forms\Get $get): bool => in_array($get('requirement_type'), [
+                                    ->required(fn(Forms\Get $get): bool => in_array($get('requirement_type'), [
                                         CrmRequirementType::FieldRequired->value,
                                         CrmRequirementType::FieldEquals->value,
                                     ], true)),
                                 Forms\Components\TextInput::make('expected_value')
                                     ->label(__('crm.fields.expected_value'))
-                                    ->visible(fn (Forms\Get $get): bool => $get('requirement_type') === CrmRequirementType::FieldEquals->value)
-                                    ->required(fn (Forms\Get $get): bool => $get('requirement_type') === CrmRequirementType::FieldEquals->value),
+                                    ->visible(fn(Forms\Get $get): bool => $get('requirement_type') === CrmRequirementType::FieldEquals->value)
+                                    ->required(fn(Forms\Get $get): bool => $get('requirement_type') === CrmRequirementType::FieldEquals->value),
                                 Forms\Components\Select::make('related_record')
                                     ->label(__('crm.fields.required_record'))
                                     ->options(CrmPipelineStageService::relatedRecordOptions())
-                                    ->visible(fn (Forms\Get $get): bool => $get('requirement_type') === CrmRequirementType::RelatedRecordExists->value)
-                                    ->required(fn (Forms\Get $get): bool => $get('requirement_type') === CrmRequirementType::RelatedRecordExists->value),
+                                    ->visible(fn(Forms\Get $get): bool => $get('requirement_type') === CrmRequirementType::RelatedRecordExists->value)
+                                    ->required(fn(Forms\Get $get): bool => $get('requirement_type') === CrmRequirementType::RelatedRecordExists->value),
+                                Forms\Components\Select::make('activity_type')
+                                    ->label(__('crm.activities.fields.type'))
+                                    ->options(CrmActivityType::options())
+                                    ->live()
+                                    ->visible(fn(Forms\Get $get): bool => $get('requirement_type') === CrmRequirementType::ActivityExists->value)
+                                    ->required(fn(Forms\Get $get): bool => $get('requirement_type') === CrmRequirementType::ActivityExists->value),
+                                Forms\Components\Select::make('allowed_outcomes')
+                                    ->label(__('crm.activities.fields.allowed_outcomes'))
+                                    ->multiple()
+                                    ->options(fn(Forms\Get $get) => ($type = CrmActivityType::tryFrom((string) $get('activity_type'))) ? CrmActivityOutcome::optionsFor($type) : [])
+                                    ->visible(fn(Forms\Get $get): bool => $get('requirement_type') === CrmRequirementType::ActivityExists->value)
+                                    ->required(fn(Forms\Get $get): bool => $get('requirement_type') === CrmRequirementType::ActivityExists->value),
                                 Forms\Components\Placeholder::make('checklist_explanation')
                                     ->label(__('crm.fields.how_it_works'))
                                     ->content(__('crm.help.checklist_requirement'))
-                                    ->visible(fn (Forms\Get $get): bool => $get('requirement_type') === CrmRequirementType::ChecklistCompleted->value)
+                                    ->visible(fn(Forms\Get $get): bool => $get('requirement_type') === CrmRequirementType::ChecklistCompleted->value)
                                     ->columnSpanFull(),
                                 Forms\Components\Toggle::make('is_required')
                                     ->label(__('crm.fields.mandatory'))
@@ -176,15 +199,17 @@ class StagesRelationManager extends RelationManager
                             ->defaultItems(0)
                             ->columns(2),
                     ])
-                    ->fillForm(fn (CrmPipelineStage $record) => [
+                    ->fillForm(fn(CrmPipelineStage $record) => [
                         'requirements' => $record->requirements()->get()->map(
-                            fn ($requirement) => [
+                            fn($requirement) => [
                                 'id' => $requirement->id,
                                 'label' => $requirement->label,
                                 'requirement_type' => $requirement->requirement_type?->value,
                                 'field' => $requirement->config_json['field'] ?? null,
                                 'expected_value' => $requirement->config_json['value'] ?? null,
                                 'related_record' => $this->relatedRecordKey($requirement->config_json ?? []),
+                                'activity_type' => $requirement->config_json['activity_type'] ?? null,
+                                'allowed_outcomes' => $requirement->config_json['allowed_outcomes'] ?? [],
                                 'is_required' => $requirement->is_required,
                                 'is_active' => $requirement->is_active,
                             ],
@@ -192,12 +217,12 @@ class StagesRelationManager extends RelationManager
                     ])
                     ->action(function (CrmPipelineStage $record, array $data): void {
                         $this->run(
-                            fn () => app(CrmPipelineStageService::class)->syncRequirements(auth()->user(), $record, $data['requirements'] ?? []),
+                            fn() => app(CrmPipelineStageService::class)->syncRequirements(auth()->user(), $record, $data['requirements'] ?? []),
                             __('crm.actions.manage_requirements'),
                         );
                     }),
                 Tables\Actions\DeleteAction::make()
-                    ->visible(fn (CrmPipelineStage $record) => ! $record->opportunities()->exists()),
+                    ->visible(fn(CrmPipelineStage $record) => !$record->opportunities()->exists()),
             ]);
     }
 

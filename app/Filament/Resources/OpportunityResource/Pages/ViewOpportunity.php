@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\OpportunityResource\Pages;
 
 use App\Filament\Resources\OpportunityResource;
-use App\Filament\Resources\OpportunityResource\RelationManagers\{RequirementCompletionsRelationManager, StageHistoriesRelationManager};
+use App\Filament\Resources\OpportunityResource\RelationManagers\{ActivitiesRelationManager, FollowUpTasksRelationManager, RequirementCompletionsRelationManager, StageHistoriesRelationManager};
 use App\Models\Opportunity;
 use App\Services\OpportunityWorkflowService;
 use Filament\Actions;
@@ -22,7 +22,7 @@ class ViewOpportunity extends ViewRecord
 
     public function getRelationManagers(): array
     {
-        return [RequirementCompletionsRelationManager::class, StageHistoriesRelationManager::class];
+        return [RequirementCompletionsRelationManager::class, StageHistoriesRelationManager::class, FollowUpTasksRelationManager::class, ActivitiesRelationManager::class];
     }
 
     public function infolist(Infolist $infolist): Infolist

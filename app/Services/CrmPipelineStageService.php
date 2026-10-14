@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Enums\{CrmRequirementType, CrmStageType};
+use App\Enums\{CrmActivityOutcome, CrmActivityType, CrmRequirementType, CrmStageType};
 use App\Models\{CrmPipeline, CrmPipelineStage, CrmStageRequirement, User};
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
@@ -227,7 +227,20 @@ class CrmPipelineStageService
                 $row['related_record'] ?? $this->relatedRecordKey($legacy),
                 $index,
             ),
+            CrmRequirementType::ActivityExists => $this->activityConfiguration($row, $legacy, $index),
         };
+    }
+
+    private function activityConfiguration(array $row, array $legacy, int $index): array
+    {
+        $type = CrmActivityType::tryFrom((string) ($row['activity_type'] ?? $legacy['activity_type'] ?? ''));
+        if (! $type) $this->invalid("requirements.{$index}.activity_type", __('crm.tasks.errors.type_invalid'));
+        $raw = $row['allowed_outcomes'] ?? $legacy['allowed_outcomes'] ?? [];
+        $raw = is_array($raw) ? $raw : [$raw];
+        $allowed = collect($raw)->map(fn ($value) => $value instanceof CrmActivityOutcome ? $value->value : (string) $value)
+            ->filter(fn (string $value) => array_key_exists($value, CrmActivityOutcome::optionsFor($type)))->values()->all();
+        if ($allowed === []) $this->invalid("requirements.{$index}.allowed_outcomes", __('crm.tasks.errors.activity_outcome_required'));
+        return ['activity_type' => $type->value, 'allowed_outcomes' => $allowed];
     }
 
     private function field(mixed $field, int $index): string

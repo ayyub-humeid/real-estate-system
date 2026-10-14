@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\LeadResource\Pages;
 
 use App\Filament\Resources\LeadResource;
-use App\Filament\Resources\LeadResource\RelationManagers\{InquiriesRelationManager, OpportunitiesRelationManager};
+use App\Filament\Resources\LeadResource\RelationManagers\{ActivitiesRelationManager, FollowUpTasksRelationManager, InquiriesRelationManager, OpportunitiesRelationManager};
 use Filament\Actions;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
@@ -20,7 +20,7 @@ class ViewLead extends ViewRecord
 
     public function getRelationManagers(): array
     {
-        return [InquiriesRelationManager::class, OpportunitiesRelationManager::class];
+        return [InquiriesRelationManager::class, OpportunitiesRelationManager::class, FollowUpTasksRelationManager::class, ActivitiesRelationManager::class];
     }
 
     public function infolist(Infolist $infolist): Infolist

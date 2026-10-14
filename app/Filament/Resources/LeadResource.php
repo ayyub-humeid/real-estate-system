@@ -98,6 +98,8 @@ class LeadResource extends Resource
         return [
             RelationManagers\InquiriesRelationManager::class,
             RelationManagers\OpportunitiesRelationManager::class,
+            RelationManagers\FollowUpTasksRelationManager::class,
+            RelationManagers\ActivitiesRelationManager::class,
         ];
     }
 

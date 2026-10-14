@@ -36,4 +36,12 @@ class Opportunity extends Model
     {
         return $this->hasMany(OpportunityStageHistory::class)->orderByDesc('changed_at')->orderByDesc('id');
     }
+    public function followUpTasks(): HasMany
+    {
+        return $this->hasMany(CrmFollowUpTask::class);
+    }
+    public function activities(): HasMany
+    {
+        return $this->hasMany(CrmActivity::class)->orderByDesc('occurred_at')->orderByDesc('id');
+    }
 }
