@@ -124,5 +124,13 @@ class CrmFilamentWorkflowTest extends TestCase
             ->callMountedAction()
             ->assertHasNoActionErrors();
         $this->assertSame($won->id, $opportunity->fresh()->pipeline_stage_id);
+
+        // A drop onto the card's current column is a no-op: it must not reopen
+        // the closing modal or create another history entry.
+        $historyCount = $opportunity->fresh()->stageHistories()->count();
+        Livewire::test(CrmKanban::class)
+            ->call('moveOpportunity', $opportunity->id, (string) $won->id)
+            ->assertActionNotMounted('terminalMove');
+        $this->assertSame($historyCount, $opportunity->fresh()->stageHistories()->count());
     }
 }

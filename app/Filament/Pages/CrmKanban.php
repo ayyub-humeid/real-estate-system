@@ -89,10 +89,16 @@ class CrmKanban extends Page
             $stage = CrmPipelineStage::withoutGlobalScopes()->findOrFail((int) $stageId);
             if ((int) $opportunity->company_id !== (int) $this->companyId || (int) $stage->company_id !== (int) $this->companyId)
                 throw ValidationException::withMessages(['company_id' => __('crm.errors.cross_company')]);
+            // Dropping a card back into its own column is not a transition.
+            // Ignore it completely: no modal, notification, history, or write.
+            if ((int) $opportunity->pipeline_stage_id === (int) $stage->id)
+                return;
             if ($stage->stage_type !== CrmStageType::Open) {
                 $this->mountAction('terminalMove', [
                     'opportunityId' => $opportunity->id,
                     'stageId' => $stage->id,
+                    // Keep the source stable while Livewire re-renders the modal.
+                    'fromStageId' => $opportunity->pipeline_stage_id,
                 ]);
 
                 return;
@@ -159,11 +165,14 @@ class CrmKanban extends Page
     /** @param array<string, mixed> $arguments */
     private function terminalDescription(array $arguments): string
     {
-        $opportunity = Opportunity::withoutGlobalScopes()->with('stage')->find($arguments['opportunityId'] ?? null);
+        $fromStageId = $arguments['fromStageId'] ?? null;
+        $fromStage = $fromStageId
+            ? CrmPipelineStage::withoutGlobalScopes()->find($fromStageId)
+            : Opportunity::withoutGlobalScopes()->with('stage')->find($arguments['opportunityId'] ?? null)?->stage;
         $stage = $this->terminalStage($arguments);
 
         return __('crm.workflow.terminal_description', [
-            'from' => $opportunity?->stage?->display_label ?? '—',
+            'from' => $fromStage?->display_label ?? '—',
             'to' => $stage?->display_label ?? '—',
         ]);
     }
