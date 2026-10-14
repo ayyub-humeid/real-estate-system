@@ -3077,16 +3077,27 @@ Every user-facing status must use a semantic Filament badge color rather than on
 
 Choose the color by business meaning, not by the literal status name. A module may use a different color only when its workflow meaning genuinely differs; do not build a separate color system per resource.
 
+For operational CRM Tasks specifically: `pending` is `warning`, `in_progress`
+is `info`, `completed` is `success`, and `cancelled` is `danger`. Implement
+this mapping in the backed status enum/value object and reuse it in every list,
+relation manager, infolist, and board display; do not duplicate ad-hoc colour
+arrays in each UI component.
+
 ### Business-date validation
 
 Validate dates by their business meaning in both the Filament form and the server-side service; a DatePicker restriction alone is not security or domain validation.
 
 - **Historical event dates** — payments, actual costs, corrections, receipts, inspections, and completed workflow events — may be today or in the past, but must not be future-dated.
 - **Planned/target dates** — estimated completion, target submissions, and scheduled future work — may be future dates when the workflow permits it.
+- **Scheduled task and follow-up dates** — a task `due_at` and a next-follow-up date are planned operational datetimes and must not be before the current application time. Apply `minDate(now())` to every matching Filament control and repeat the same `due_at >= now()` validation in the authoritative create/update service, including relation-manager edits.
 - **Derived audit timestamps** — submitted, approved, completed, created, and updated timestamps — are system-generated and must not be manually entered.
 - Do not impose artificial ordering between separate valid financial events (for example, a payment can be an advance before an invoice). Add cross-date ordering only when the approved domain explicitly requires it.
 
 The form must prevent an invalid date where practical and state the rule in helper text. The service must reject a crafted or bypassed request with a clear validation notification.
+
+### Timezone consistency
+
+All user-entered operational datetimes (including CRM task due dates) must be interpreted, displayed, and compared in the configured application timezone. Configure it through `APP_TIMEZONE` (the current deployment default is `Asia/Hebron`); never show a local wall-clock input while comparing it to an implicit UTC `now()`. Automated tests for time-sensitive filters must include a same-day timestamp a few minutes in the past, not only a prior-day value.
 
 ### Relation-manager usability review
 
@@ -4193,6 +4204,22 @@ only when Filament explicitly supplies that parameter by name and type in the
 relevant API. Each new resource table should have a browser-shaped Livewire
 test that loads its list page with enum-backed and relationship-backed values.
 
+### Query Closure Rule
+
+For Filament table/query callbacks, use Filament's documented `$query` name —
+never abbreviations such as `$q`. This applies to `modifyQueryUsing()`, filter
+`queries()`, relationship query modifiers, and equivalent Table callbacks.
+Filament resolves these closures by parameter name; `$q` is not injectable and
+causes `BindingResolutionException` at page render time.
+
+```php
+// Correct
+->modifyQueryUsing(fn ($query) => $query->with('relation'))
+
+// Incorrect: Filament cannot resolve $q
+->modifyQueryUsing(fn ($q) => $q->with('relation'))
+```
+
 When a Filament form is filled from an Eloquent model, a backed-enum cast may
 return the enum instance; a newly entered form value may instead be its scalar
 string. Service code that consumes a Select/Repeater enum value must accept
@@ -4298,6 +4325,20 @@ Workflow-blocker notifications must route staff to the relevant record, not
 always to a generic parent View: a related inquiry condition opens the Lead's
 Inquiries, a Lead-field condition opens the Lead, an Opportunity field opens
 Opportunity Edit, and a checklist opens the Opportunity completion screen.
+
+### Operational CRM: Tasks vs Activities
+
+Follow-up Tasks represent assigned future work; Activities represent a real
+business event that happened. Never use a Task's completion status as proof of
+customer contact, viewing, or meeting outcome. Complete-and-log flows must
+create the Activity and complete the Task in one transaction, lock the Task,
+and retain a database-level idempotency guard. Stage requirements that depend
+on operational work must inspect structured Activity type/outcome values, never
+free-text notes, and must never move a Kanban record automatically.
+
+Task reminders must be idempotent: record the successful reminder dispatch on
+the Task (or a dedicated log) inside a lock/transaction so repeated scheduler
+runs do not produce duplicate notifications.
 
 Before a terminal workflow transition such as Won/Lost, collect that outcome's
 standard required data in the same transition modal (for example closing notes
