@@ -120,6 +120,19 @@ class RoleResource extends ShieldRoleResource
             'Stage requirements' => ['crm_stage_requirement'],
             'Requirement completions' => ['opportunity_requirement_completion'],
             'Stage history' => ['opportunity_stage_history'],
+            'Follow-up tasks' => [
+                'exact:create_crm_follow_up_task',
+                'exact:update_crm_follow_up_task',
+                'exact:view_own_crm_follow_up_tasks',
+                'exact:view_team_crm_follow_up_tasks',
+            ],
+            'Task assignment and completion' => [
+                'exact:assign_crm_follow_up_task',
+                'exact:complete_crm_follow_up_task',
+                'exact:complete_any_crm_follow_up_task',
+                'exact:cancel_crm_follow_up_task',
+            ],
+            'Activities' => ['exact:create_crm_activity', 'exact:view_crm_activity'],
         ],
         'Listings Management' => [
             'Listing lifecycle' => ['exact:publish_listing', 'exact:pause_listing', 'exact:archive_listing'],

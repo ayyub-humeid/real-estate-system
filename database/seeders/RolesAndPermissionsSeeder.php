@@ -129,6 +129,11 @@ class RolesAndPermissionsSeeder extends Seeder
             'view_any_crm_stage_requirement', 'view_crm_stage_requirement', 'create_crm_stage_requirement', 'update_crm_stage_requirement', 'delete_crm_stage_requirement',
             'view_any_opportunity_requirement_completion', 'view_opportunity_requirement_completion',
             'view_any_opportunity_stage_history', 'view_opportunity_stage_history',
+            // Phase 07.4 — CRM operational follow-up workflow.
+            'view_own_crm_follow_up_tasks', 'view_team_crm_follow_up_tasks',
+            'create_crm_follow_up_task', 'update_crm_follow_up_task', 'assign_crm_follow_up_task',
+            'complete_crm_follow_up_task', 'complete_any_crm_follow_up_task', 'cancel_crm_follow_up_task',
+            'create_crm_activity', 'view_crm_activity',
         ];
 
         foreach ($customDomainPermissions as $permission) {
