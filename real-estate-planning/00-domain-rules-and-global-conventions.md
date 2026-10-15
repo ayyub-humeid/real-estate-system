@@ -2380,6 +2380,14 @@ submitted proposal.
   expired Revisions are immutable business history.
 - Internal approval and external/customer agreement are separate actions.
   Approval alone must not accept an Offer.
+- When a parent workflow record has a pending child approval, surface that
+  pending state prominently in the parent list/detail UI. This is a derived
+  display state, not a replacement for the record's authoritative workflow
+  status, and it must be loaded query-efficiently.
+- A requester must not choose an approver unless a separately approved routing
+  policy defines that assignment. By default, requesting approval creates one
+  company-scoped pending approval; any user with the explicit approval
+  permission may decide it. Keep future routing rules server-side.
 - An agreed Revision is derived from Revision state; do not duplicate a
   mutable `agreed_revision_id` convenience field on Offer unless a later,
   concrete performance need justifies it.
@@ -2401,6 +2409,24 @@ Relation-manager child creation must explicitly inherit the parent company
 context. Use localized enum labels and translation keys for every static
 commercial term, status, action, error, and empty state; never use translated
 labels as workflow values.
+
+Do not rely on Filament's generated Model names for relation-manager create,
+edit, view, confirmation, or empty-state text. Set explicit translated modal
+headings/descriptions and empty-state messages so class names never leak into
+Arabic or English UI.
+
+Localization is a delivery check, not deferred polish: before closing a phase,
+audit every new Resource and Relation Manager in list, create, edit, view,
+workflow, filter, tab, modal, confirmation, table, enum, notification,
+validation, and empty states. Each static user-facing value must use an Arabic
+and English translation key; do not rely on framework-generated labels.
+
+When a record has an assigned operational owner, distinguish company-wide
+visibility from owned-record visibility. A `view_own_*` permission must scope
+both the Resource query and every related-record surface to the authenticated
+owner; a Policy check alone is not enough because relation tables can otherwise
+leak sibling records. Management-only workflow permissions must remain
+separate from sensitive approval and final-agreement authority.
 
 When querying or comparing a workflow state represented by a PHP Enum, use
 the Enum case (or `EnumCase->value` for database predicates), never a raw

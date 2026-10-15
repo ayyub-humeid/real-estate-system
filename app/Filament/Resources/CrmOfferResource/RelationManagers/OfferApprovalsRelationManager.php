@@ -52,8 +52,8 @@ class OfferApprovalsRelationManager extends RelationManager
             ->emptyStateDescription(__('crm.offer_empty.approvals_description'))
             ->emptyStateIcon('heroicon-o-check-badge')
             ->actions([
-                    Tables\Actions\Action::make('approve')->label(__('crm.offers.actions.approve'))->color('success')->requiresConfirmation()->visible(fn(CrmOfferApproval $record) => $record->status === OfferApprovalStatus::Pending && auth()->user()->can('approveRevision', $record->revision))->action(fn(CrmOfferApproval $record) => $this->decide($record, true, [])),
-                    Tables\Actions\Action::make('reject')->label(__('crm.offers.actions.reject'))->color('danger')->form([Forms\Components\Textarea::make('decision_notes')->label(__('crm.offers.fields.decision_notes'))])->visible(fn(CrmOfferApproval $record) => $record->status === OfferApprovalStatus::Pending && auth()->user()->can('rejectRevision', $record->revision))->action(fn(CrmOfferApproval $record, array $data) => $this->decide($record, false, $data)),
+                    Tables\Actions\Action::make('approve')->label(__('crm.offers.actions.approve'))->modalHeading(__('crm.offer_modals.approve'))->color('success')->requiresConfirmation()->visible(fn(CrmOfferApproval $record) => $record->status === OfferApprovalStatus::Pending && auth()->user()->can('approveRevision', $record->revision))->action(fn(CrmOfferApproval $record) => $this->decide($record, true, [])),
+                    Tables\Actions\Action::make('reject')->label(__('crm.offers.actions.reject'))->modalHeading(__('crm.offer_modals.reject'))->color('danger')->form([Forms\Components\Textarea::make('decision_notes')->label(__('crm.offers.fields.decision_notes'))])->visible(fn(CrmOfferApproval $record) => $record->status === OfferApprovalStatus::Pending && auth()->user()->can('rejectRevision', $record->revision))->action(fn(CrmOfferApproval $record, array $data) => $this->decide($record, false, $data)),
                 ]);
     }
     private function decide(CrmOfferApproval $record, bool $approved, array $data): void

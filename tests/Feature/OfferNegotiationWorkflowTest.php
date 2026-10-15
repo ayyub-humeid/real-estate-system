@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\{CrmInquirySource, CrmRequirementType, OfferApprovalStatus, OfferProposedBySide, OfferRevisionStatus, OfferStatus, OpportunityType};
+use App\Filament\Resources\CrmOfferResource;
 use App\Models\{Company, CrmOffer, CrmStageRequirement, User};
 use App\Services\{LeadIntakeService, OfferNegotiationService, OpportunityService, OpportunityWorkflowService};
 use Illuminate\Auth\Access\AuthorizationException;
@@ -28,8 +29,8 @@ class OfferNegotiationWorkflowTest extends TestCase
         $first = $this->offer($actor, $opportunity); $second = $this->offer($actor, $opportunity);
         $this->assertMatchesRegularExpression('/^OFF-' . now()->format('Y') . '-0001$/', $first->reference_number);
         $this->assertNotSame($first->reference_number, $second->reference_number);
-        $one = $this->draft($actor, $first); $two = $this->draft($actor, $first, ['amount' => 111000, 'proposed_by_side' => 'company']);
-        $this->assertSame(1, $one->revision_number); $this->assertSame(2, $two->revision_number);
+        $one = $this->draft($actor, $first, ['payment_method' => 'bank_transfer']); $two = $this->draft($actor, $first, ['amount' => 111000, 'proposed_by_side' => 'company']);
+        $this->assertSame(1, $one->revision_number); $this->assertSame(2, $two->revision_number); $this->assertSame('bank_transfer', $one->payment_method);
     }
 
     public function test_submitted_revision_is_immutable_and_counteroffer_preserves_history(): void
@@ -51,7 +52,8 @@ class OfferNegotiationWorkflowTest extends TestCase
     public function test_internal_approval_is_not_external_agreement_and_agreement_records_actor(): void
     {
         $company = $this->company('A'); $actor = $this->user($company, $this->permissions()); $approver = $this->user($company, ['approve_offer_revision', 'confirm_offer_agreement']); $offer = $this->offer($actor, $this->opportunity($actor)); $revision = app(OfferNegotiationService::class)->submitRevision($actor, $this->draft($actor, $offer));
-        $approval = app(OfferNegotiationService::class)->requestApproval($actor, $revision, $approver->id);
+        $approval = app(OfferNegotiationService::class)->requestApproval($actor, $revision);
+        $this->assertNull($approval->assigned_approver_id);
         $approved = app(OfferNegotiationService::class)->decideApproval($approver, $approval, true, 'Within authority');
         $this->assertSame(OfferApprovalStatus::Approved, $approved->status); $this->assertSame(OfferStatus::Negotiating, $offer->fresh()->status);
         $agreed = app(OfferNegotiationService::class)->confirmAgreement($approver, $revision);
@@ -78,6 +80,27 @@ class OfferNegotiationWorkflowTest extends TestCase
             'transaction_type' => 'sale',
             'assigned_to' => $assignee->id,
         ]);
+    }
+
+    public function test_assigned_negotiator_sees_and_manages_only_own_offers(): void
+    {
+        $company = $this->company('A');
+        $manager = $this->user($company, $this->permissions());
+        $ahmad = $this->user($company, ['view_own_crm_offer', 'manage_own_crm_offer']);
+        $otherEmployee = $this->user($company, []);
+        $opportunity = $this->opportunity($manager);
+        $owned = app(OfferNegotiationService::class)->createOffer($manager, ['opportunity_id' => $opportunity->id, 'transaction_type' => 'sale', 'assigned_to' => $ahmad->id]);
+        $other = app(OfferNegotiationService::class)->createOffer($manager, ['opportunity_id' => $opportunity->id, 'transaction_type' => 'sale', 'assigned_to' => $otherEmployee->id]);
+
+        $this->assertTrue($ahmad->can('viewAny', CrmOffer::class));
+        $this->assertTrue($ahmad->can('view', $owned));
+        $this->assertFalse($ahmad->can('view', $other));
+        $this->actingAs($ahmad);
+        $this->assertSame([$owned->id], CrmOfferResource::getEloquentQuery()->pluck('id')->all());
+        $this->assertSame(1, app(OfferNegotiationService::class)->createDraftRevision($ahmad, $owned, ['proposed_by_side' => 'company', 'amount' => 120000, 'currency' => 'USD'])->revision_number);
+
+        $this->expectException(AuthorizationException::class);
+        app(OfferNegotiationService::class)->createDraftRevision($ahmad, $other, ['proposed_by_side' => 'company', 'amount' => 120000, 'currency' => 'USD']);
     }
 
     public function test_rental_terms_and_accepted_offer_stage_requirement_are_enforced_without_moving_opportunity(): void

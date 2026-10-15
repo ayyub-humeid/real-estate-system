@@ -11,6 +11,9 @@
 - Added explicit server-side workflows for draft creation/editing, submission,
   counteroffers, approval requests, approval/rejection decisions, external
   agreement confirmation, withdrawal, rejection, and expiry.
+- Approval requests are permission-routed rather than employee-routed: the
+  requester cannot select a manager. A pending approval can be decided by any
+  same-company user with the explicit approval permission.
 - Kept internal approval separate from external agreement. Agreement records
   its actor/time and produces the one derived agreed Revision; approval alone
   leaves the Offer negotiating.
@@ -42,18 +45,22 @@ indexes, compatible with MySQL and PostgreSQL.
 
 - Every service entry point authorizes the authenticated actor before changing
   domain state.
-- Offers, Opportunities, Listings, assignees, and approvers are explicitly
-  checked against the parent company, even when global scopes are bypassed.
+- Offers, Opportunities, Listings, and assignees are explicitly checked
+  against the parent company, even when global scopes are bypassed.
 - Negotiator assignment requires `assign_offer`; an assigned negotiator does
   not receive approval or agreement authority automatically.
+- `view_own_crm_offer` and `manage_own_crm_offer` let a negotiator see and
+  work only on their assigned Offers. The Resource query, Opportunity → Offers
+  relation table, and record Policies all enforce this scope; sensitive
+  approval and final-agreement actions remain separate permissions.
 
 ## Automated verification
 
 - MySQL `realState_test`
-  - `OfferNegotiationWorkflowTest`: **9 tests / 23 assertions passed**.
+  - `OfferNegotiationWorkflowTest`: **10 tests / 30 assertions passed**.
   - Phase 07.2–07.4 regression selection: **17 tests / 75 assertions passed**.
 - PostgreSQL `realstate_pg_test`
-  - `OfferNegotiationWorkflowTest`: **9 tests / 23 assertions passed**.
+  - `OfferNegotiationWorkflowTest`: **10 tests / 30 assertions passed**.
   - Phase 07.2–07.4 regression selection: **17 tests / 75 assertions passed**.
 
 - Full regression suite: **121 tests / 591 assertions passed** on both MySQL

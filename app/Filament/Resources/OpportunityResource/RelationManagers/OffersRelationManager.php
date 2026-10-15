@@ -27,7 +27,7 @@ class OffersRelationManager extends RelationManager
     }
     public function table(Tables\Table $table): Tables\Table
     {
-        return $table->columns([
+        return $table->modifyQueryUsing(fn (\Illuminate\Database\Eloquent\Builder $query) => CrmOfferResource::scopeForViewer($query))->columns([
             Tables\Columns\TextColumn::make('reference_number')->label(__('crm.offers.fields.reference_number'))->weight('bold'),
             Tables\Columns\TextColumn::make('transaction_type')->label(__('crm.offers.fields.transaction_type'))->badge()->formatStateUsing(fn ($state) => $state instanceof OpportunityType ? $state->getLabel() : __('crm.opportunity_types.' . $state)),
             Tables\Columns\TextColumn::make('latestRevision.amount')->label(__('crm.offers.fields.latest_amount'))->money(fn (CrmOffer $record) => $record->latestRevision?->currency ?? 'USD')->placeholder('—'),
@@ -38,6 +38,7 @@ class OffersRelationManager extends RelationManager
             ->emptyStateIcon('heroicon-o-document-currency-dollar')
             ->headerActions([
             Tables\Actions\CreateAction::make()->label(__('crm.offers.actions.create_offer'))
+                ->modalHeading(__('crm.offer_modals.create_offer'))
                 ->mutateFormDataUsing(function (array $data): array { $data['company_id'] = $this->getOwnerRecord()->company_id; $data['opportunity_id'] = $this->getOwnerRecord()->id; return $data; })
                 ->using(fn (array $data) => app(OfferNegotiationService::class)->createOffer(auth()->user(), $data)),
         ])->actions([

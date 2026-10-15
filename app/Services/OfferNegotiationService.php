@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Enums\{OfferApprovalStatus, OfferProposedBySide, OfferRevisionStatus, OfferStatus, OpportunityType, RentFrequency};
+use App\Enums\{OfferApprovalStatus, OfferPaymentMethod, OfferProposedBySide, OfferRevisionStatus, OfferStatus, OpportunityType, RentFrequency};
 use App\Models\{Company, CrmOffer, CrmOfferApproval, CrmOfferNumberSequence, CrmOfferRevision, Listing, Opportunity, User};
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Carbon;
@@ -104,18 +104,17 @@ class OfferNegotiationService
         return $this->submitRevision($actor, $revision);
     }
 
-    public function requestApproval(User $actor, CrmOfferRevision $revision, ?int $approverId = null): CrmOfferApproval
+    public function requestApproval(User $actor, CrmOfferRevision $revision): CrmOfferApproval
     {
         $this->authorize($actor, 'requestApproval', $revision);
-        return DB::transaction(function () use ($actor, $revision, $approverId): CrmOfferApproval {
+        return DB::transaction(function () use ($actor, $revision): CrmOfferApproval {
             $locked = CrmOfferRevision::withoutGlobalScopes()->lockForUpdate()->findOrFail($revision->id);
             $this->lockedOffer($locked->offer);
             if ($locked->status !== OfferRevisionStatus::Submitted)
                 $this->invalid('revision', __('crm.offers.errors.approval_requires_submitted'));
             if ($locked->approvals()->where('status', OfferApprovalStatus::Pending->value)->lockForUpdate()->exists())
                 $this->invalid('approval', __('crm.offers.errors.approval_pending'));
-            $approver = $this->user($approverId, $locked->company_id, 'assigned_approver_id');
-            return CrmOfferApproval::withoutGlobalScopes()->create(['company_id' => $locked->company_id, 'offer_revision_id' => $locked->id, 'requested_by' => $actor->id, 'assigned_approver_id' => $approver?->id, 'status' => OfferApprovalStatus::Pending->value]);
+            return CrmOfferApproval::withoutGlobalScopes()->create(['company_id' => $locked->company_id, 'offer_revision_id' => $locked->id, 'requested_by' => $actor->id, 'assigned_approver_id' => null, 'status' => OfferApprovalStatus::Pending->value]);
         });
     }
 
@@ -223,6 +222,10 @@ class OfferNegotiationService
         $currency = $this->currency($data['currency'] ?? null);
         $downPayment = $this->money($data['down_payment_amount'] ?? null, 'down_payment_amount');
         $deposit = $this->money($data['deposit_amount'] ?? null, 'deposit_amount');
+        $paymentMethod = $data['payment_method'] ?? null;
+        if (filled($paymentMethod) && ! ($paymentMethod = OfferPaymentMethod::tryFrom((string) $paymentMethod))) {
+            $this->invalid('payment_method', __('crm.offers.errors.payment_method_invalid'));
+        }
         if ($downPayment !== null && $downPayment > $amount)
             $this->invalid('down_payment_amount', __('crm.offers.errors.down_payment_exceeds'));
         $expiresAt = $this->dateTime($data['expires_at'] ?? null, 'expires_at');
@@ -245,7 +248,7 @@ class OfferNegotiationService
         $terms = $data['terms_json'] ?? null;
         if ($terms !== null && !is_array($terms))
             $this->invalid('terms_json', __('crm.offers.errors.terms_invalid'));
-        return ['proposed_by_side' => $side->value, 'amount' => $amount, 'currency' => $currency, 'down_payment_amount' => $downPayment, 'payment_method' => filled($data['payment_method'] ?? null) ? trim((string) $data['payment_method']) : null, 'payment_terms' => filled($data['payment_terms'] ?? null) ? trim((string) $data['payment_terms']) : null, 'rent_frequency' => $rentFrequency, 'lease_term_value' => $leaseTermValue ? (int) $leaseTermValue : null, 'lease_term_unit' => $leaseTermUnit, 'deposit_amount' => $deposit, 'terms_json' => $terms, 'notes' => $data['notes'] ?? null, 'expires_at' => $expiresAt];
+        return ['proposed_by_side' => $side->value, 'amount' => $amount, 'currency' => $currency, 'down_payment_amount' => $downPayment, 'payment_method' => $paymentMethod?->value, 'payment_terms' => filled($data['payment_terms'] ?? null) ? trim((string) $data['payment_terms']) : null, 'rent_frequency' => $rentFrequency, 'lease_term_value' => $leaseTermValue ? (int) $leaseTermValue : null, 'lease_term_unit' => $leaseTermUnit, 'deposit_amount' => $deposit, 'terms_json' => $terms, 'notes' => $data['notes'] ?? null, 'expires_at' => $expiresAt];
     }
 
     private function nextReference(Company $company): string

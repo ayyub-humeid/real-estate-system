@@ -39,7 +39,16 @@ class CrmOfferResource extends Resource
     }
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
-        return parent::getEloquentQuery()->with(['opportunity.lead', 'listing', 'assignedTo', 'latestRevision']);
+        return static::scopeForViewer(parent::getEloquentQuery())
+            ->with(['opportunity.lead', 'listing', 'assignedTo', 'latestRevision']);
+    }
+    public static function scopeForViewer(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
+    {
+        $user = auth()->user();
+        if ($user && ! $user->isSuperAdmin() && ! $user->can('view_any_crm::offer') && $user->can('view_own_crm_offer')) {
+            $query->where('assigned_to', $user->id);
+        }
+        return $query;
     }
 
     public static function form(Forms\Form $form): Forms\Form
@@ -97,11 +106,11 @@ class CrmOfferResource extends Resource
                     Tables\Filters\SelectFilter::make('transaction_type')->label(__('crm.offers.fields.transaction_type'))->options(OpportunityType::options()),
                 ])->actions([
                     Tables\Actions\ViewAction::make()->label(__('crm.actions.details')),
-                    Tables\Actions\EditAction::make()->visible(fn(CrmOffer $record) => in_array($record->status, [OfferStatus::Draft, OfferStatus::Negotiating], true)),
+                    Tables\Actions\EditAction::make()->label(__('crm.actions.edit'))->modalHeading(__('crm.offer_modals.edit_offer'))->visible(fn(CrmOffer $record) => in_array($record->status, [OfferStatus::Draft, OfferStatus::Negotiating], true)),
                     static::workflowAction('withdraw', __('crm.offers.actions.withdraw'), 'danger'),
                     static::workflowAction('reject', __('crm.offers.actions.close_rejected'), 'danger'),
                     static::workflowAction('expire', __('crm.offers.actions.expire'), 'warning'),
-                    Tables\Actions\DeleteAction::make(),
+                    Tables\Actions\DeleteAction::make()->label(__('crm.actions.delete'))->modalHeading(__('crm.offer_modals.delete_offer'))->modalDescription(__('crm.offer_modals.delete_offer_description')),
                 ])->defaultSort('created_at', 'desc');
     }
 
@@ -152,7 +161,7 @@ class CrmOfferResource extends Resource
     }
     private static function workflowAction(string $action, string $label, string $color): Tables\Actions\Action
     {
-        return Tables\Actions\Action::make($action)->label($label)->color($color)->tooltip($label)->requiresConfirmation()
+        return Tables\Actions\Action::make($action)->label($label)->modalHeading($label)->color($color)->tooltip($label)->requiresConfirmation()
             ->visible(fn(CrmOffer $record) => auth()->user()->can($action === 'reject' ? 'close' : $action, $record) && in_array($record->status, [OfferStatus::Draft, OfferStatus::Negotiating], true))
             ->action(function (CrmOffer $record) use ($action, $label): void {
                 try {

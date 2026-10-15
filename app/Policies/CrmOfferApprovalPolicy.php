@@ -9,8 +9,8 @@ use Illuminate\Auth\Access\HandlesAuthorization;
 class CrmOfferApprovalPolicy
 {
     use HandlesAuthorization, CompanyOwnedPolicy;
-    public function viewAny(User $user): bool { return $user->can('view_any_offer_approval'); }
-    public function view(User $user, CrmOfferApproval $record): bool { return $this->canForRecord($user, 'view_offer_approval', $record); }
+    public function viewAny(User $user): bool { return $user->can('view_any_offer_approval') || $user->can('view_own_crm_offer'); }
+    public function view(User $user, CrmOfferApproval $record): bool { return $this->canForRecord($user, 'view_offer_approval', $record) || ($this->belongsToUserCompany($user, $record) && (int) $record->revision?->offer?->assigned_to === (int) $user->id && $user->can('view_own_crm_offer')); }
     public function create(User $user): bool { return false; }
     public function update(User $user, CrmOfferApproval $record): bool { return false; }
     public function delete(User $user, CrmOfferApproval $record): bool { return false; }
