@@ -133,7 +133,7 @@ class RoleResource extends ShieldRoleResource
                 'exact:cancel_crm_follow_up_task',
             ],
             'Activities' => ['exact:create_crm_activity', 'exact:view_crm_activity'],
-            'Offers and negotiations' => ['exact:view_own_crm_offer', 'exact:manage_own_crm_offer', 'offer_revision', 'offer_approval', 'exact:submit_offer_revision', 'exact:request_offer_approval', 'exact:approve_offer_revision', 'exact:reject_offer_revision', 'exact:confirm_offer_agreement', 'exact:withdraw_offer', 'exact:close_offer', 'exact:expire_offer', 'exact:assign_offer'],
+            'Offers and negotiations' => ['exact:view_own_crm_offer', 'exact:manage_own_crm_offer', 'offer_revision', 'offer_approval', 'exact:finalize_offer_revision', 'exact:request_offer_approval', 'exact:approve_offer_revision', 'exact:reject_offer_revision', 'exact:confirm_offer_agreement', 'exact:withdraw_offer', 'exact:close_offer', 'exact:expire_offer', 'exact:assign_offer'],
         ],
         'Listings Management' => [
             'Listing lifecycle' => ['exact:publish_listing', 'exact:pause_listing', 'exact:archive_listing'],
@@ -183,7 +183,7 @@ class RoleResource extends ShieldRoleResource
         [$domains, $other] = static::groupCustomPermissionOptions($options);
 
         if ($other !== []) {
-            $domains['Other Custom Permissions'] = ['Uncategorized' => $other];
+            $domains['other_custom_permissions'] = ['uncategorized' => $other];
         }
 
         return Forms\Components\Tabs\Tab::make('custom')
@@ -193,12 +193,12 @@ class RoleResource extends ShieldRoleResource
             ->schema([
                 Forms\Components\Grid::make(2)
                     ->schema(collect($domains)
-                        ->map(fn (array $groups, string $domain): Forms\Components\Section => Forms\Components\Section::make($domain)
-                            ->description(collect($groups)->map(fn (array $permissions) => count($permissions))->sum().' permissions')
+                        ->map(fn (array $groups, string $domain): Forms\Components\Section => Forms\Components\Section::make(static::rolePermissionGroupLabel($domain))
+                            ->description(__('permissions.count', ['count' => collect($groups)->map(fn (array $permissions) => count($permissions))->sum()]))
                             ->collapsible()
                             ->columns(2)
                             ->schema(collect($groups)
-                                ->map(fn (array $permissions, string $group): Forms\Components\Section => Forms\Components\Section::make($group)
+                                ->map(fn (array $permissions, string $group): Forms\Components\Section => Forms\Components\Section::make(static::rolePermissionGroupLabel($group))
                                     ->compact()
                                     ->schema([
                                         static::getCheckboxListFormComponent(
@@ -211,6 +211,43 @@ class RoleResource extends ShieldRoleResource
                         ->values()
                         ->all()),
             ]);
+    }
+
+    /** Translate custom permission labels for presentation only; database keys remain authorization contracts. */
+    public static function getCustomPermissionOptions(): ?array
+    {
+        return FilamentShield::getCustomPermissions()
+            ->mapWithKeys(fn (string $permission): array => [$permission => static::rolePermissionLabel($permission)])
+            ->toArray();
+    }
+
+    private static function rolePermissionLabel(string $permission): string
+    {
+        $exactLabel = __('permissions.exact.'.$permission);
+
+        if ($exactLabel !== 'permissions.exact.'.$permission) {
+            return $exactLabel;
+        }
+
+        foreach (['view_any', 'view_own', 'complete_any', 'force_delete_any', 'force_delete', 'delete_any', 'restore_any', 'create', 'update', 'delete', 'view', 'approve', 'cancel', 'complete', 'manage', 'attach', 'detach', 'clear', 'waive', 'change', 'assign', 'replace', 'submit', 'review', 'request', 'close', 'reject', 'commit', 'release', 'record', 'allocate', 'void', 'start', 'resolve', 'correct', 'reactivate', 'publish', 'pause', 'archive', 'move', 'finalize', 'withdraw', 'expire'] as $action) {
+            $prefix = $action.'_';
+
+            if (str_starts_with($permission, $prefix)) {
+                $entity = substr($permission, strlen($prefix));
+
+                return __('permissions.label', [
+                    'action' => __('permissions.actions.'.$action),
+                    'entity' => __('permissions.entities.'.$entity),
+                ]);
+            }
+        }
+
+        return str($permission)->headline()->toString();
+    }
+
+    private static function rolePermissionGroupLabel(string $group): string
+    {
+        return __('permissions.groups.'.str($group)->slug('_'));
     }
     /** Keep platform permissions out of a company role form as well as rejecting forged input in the service. */
     public static function getCheckboxListFormComponent(string $name, array $options, bool $searchable = true, array|int|string|null $columns = null, array|int|string|null $columnSpan = null): Component

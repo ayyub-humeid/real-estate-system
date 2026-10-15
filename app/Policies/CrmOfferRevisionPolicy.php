@@ -23,7 +23,7 @@ class CrmOfferRevisionPolicy
     public function forceDeleteAny(User $user): bool { return false; }
     public function replicate(User $user, CrmOfferRevision $record): bool { return false; }
     public function reorder(User $user): bool { return false; }
-    public function submit(User $user, CrmOfferRevision $record): bool { return $this->canForRecord($user, 'submit_offer_revision', $record) || $this->ownsOffer($user, $record, 'manage_own_crm_offer'); }
+    public function submit(User $user, CrmOfferRevision $record): bool { return $this->canForRecord($user, 'finalize_offer_revision', $record) || $this->ownsOffer($user, $record, 'manage_own_crm_offer'); }
     public function requestApproval(User $user, CrmOfferRevision $record): bool { return $this->canForRecord($user, 'request_offer_approval', $record) || $this->ownsOffer($user, $record, 'manage_own_crm_offer'); }
     public function approveRevision(User $user, CrmOfferRevision $record): bool { return $this->canForRecord($user, 'approve_offer_revision', $record); }
     public function rejectRevision(User $user, CrmOfferRevision $record): bool { return $this->canForRecord($user, 'reject_offer_revision', $record); }

@@ -532,7 +532,7 @@ create_offer
 update_draft_offer
 assign_offer
 create_offer_revision
-submit_offer_revision
+finalize_offer_revision
 request_offer_approval
 view_offer_approval
 approve_offer_revision

@@ -138,7 +138,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'view_own_crm_offer', 'manage_own_crm_offer',
             'view_any_offer_revision', 'view_offer_revision', 'create_offer_revision', 'update_offer_revision', 'delete_offer_revision',
             'view_any_offer_approval', 'view_offer_approval',
-            'submit_offer_revision', 'request_offer_approval', 'approve_offer_revision', 'reject_offer_revision',
+            'finalize_offer_revision', 'request_offer_approval', 'approve_offer_revision', 'reject_offer_revision',
             'confirm_offer_agreement', 'withdraw_offer', 'close_offer', 'expire_offer', 'assign_offer',
         ];
 
