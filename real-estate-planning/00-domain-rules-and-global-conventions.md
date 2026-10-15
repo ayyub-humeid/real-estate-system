@@ -2367,6 +2367,47 @@ Do not use contract records merely to represent quotations or negotiations.
 
 ---
 
+# 88.1 Offer Negotiation Integrity
+
+An Offer is one commercial negotiation case. Price or term changes are new
+Revisions under that Offer; they are not new Offers and do not overwrite a
+submitted proposal.
+
+- Generate the business reference only in a transaction-backed, company-scoped
+  sequence. Never accept a manual offer number or calculate one with `MAX()`.
+- Generate Revision numbers while the parent Offer row is locked.
+- Draft Revisions may be edited. Submitted, superseded, agreed, withdrawn and
+  expired Revisions are immutable business history.
+- Internal approval and external/customer agreement are separate actions.
+  Approval alone must not accept an Offer.
+- An agreed Revision is derived from Revision state; do not duplicate a
+  mutable `agreed_revision_id` convenience field on Offer unless a later,
+  concrete performance need justifies it.
+- Terminal Offers reject ordinary negotiation actions. At most one Revision
+  may become agreed for an Offer.
+- An agreed Offer may satisfy a CRM stage requirement, but must never move an
+  Opportunity, reserve inventory, create a contract, lease, or payment by
+  itself.
+- Every selected Opportunity, Listing, assignee and approver must be
+  same-company validated in the service, including direct/Livewire requests.
+
+---
+
+# 88.2 Commercial Workflow UI
+
+Offer workflow actions belong on the Offer and Revision detail surfaces, with
+state-aware visibility and readable Validation/Authorization notifications.
+Relation-manager child creation must explicitly inherit the parent company
+context. Use localized enum labels and translation keys for every static
+commercial term, status, action, error, and empty state; never use translated
+labels as workflow values.
+
+When querying or comparing a workflow state represented by a PHP Enum, use
+the Enum case (or `EnumCase->value` for database predicates), never a raw
+status string. This keeps refactors safe and prevents divergent status values.
+
+---
+
 # 89. Reservation Is Not Sale
 
 A reservation temporarily represents commercial intent/hold.
