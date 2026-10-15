@@ -88,7 +88,11 @@ class CrmOfferResource extends Resource
             Tables\Columns\TextColumn::make('latestRevision.amount')->label(__('crm.offers.fields.latest_amount'))->money(fn(CrmOffer $record) => $record->latestRevision?->currency ?? 'USD')->placeholder('—'),
             Tables\Columns\TextColumn::make('status')->label(__('crm.fields.status'))->badge()->formatStateUsing(fn($state) => $state instanceof OfferStatus ? $state->getLabel() : __('crm.offers.statuses.' . $state))->color(fn($state) => $state instanceof OfferStatus ? $state->color() : OfferStatus::tryFrom((string) $state)?->color()),
             Tables\Columns\TextColumn::make('assignedTo.name')->label(__('crm.offers.fields.negotiator'))->placeholder('—'),
-        ])->filters([
+        ])
+            ->emptyStateHeading(__('crm.offer_empty.offers_heading'))
+            ->emptyStateDescription(__('crm.offer_empty.offers_description'))
+            ->emptyStateIcon('heroicon-o-document-currency-dollar')
+            ->filters([
                     Tables\Filters\SelectFilter::make('status')->label(__('crm.fields.status'))->options(OfferStatus::options()),
                     Tables\Filters\SelectFilter::make('transaction_type')->label(__('crm.offers.fields.transaction_type'))->options(OpportunityType::options()),
                 ])->actions([

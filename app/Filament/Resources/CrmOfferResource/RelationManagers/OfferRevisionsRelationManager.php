@@ -113,7 +113,11 @@ class OfferRevisionsRelationManager extends RelationManager
                 ->label(__('crm.offers.fields.expires_at'))
                 ->dateTime()
                 ->placeholder('—'),
-        ])->headerActions([
+        ])
+            ->emptyStateHeading(__('crm.offer_empty.revisions_heading'))
+            ->emptyStateDescription(__('crm.offer_empty.revisions_description'))
+            ->emptyStateIcon('heroicon-o-document-text')
+            ->headerActions([
                     Tables\Actions\CreateAction::make()->label(__('crm.offers.actions.add_draft_revision'))
                         ->mutateFormDataUsing(function (array $data): array {
                             $data['company_id'] = $this->getOwnerRecord()->company_id;

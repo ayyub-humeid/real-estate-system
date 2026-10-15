@@ -47,7 +47,11 @@ class OfferApprovalsRelationManager extends RelationManager
                 ->label(__('crm.offers.fields.decided_by'))
                 ->placeholder('—'),
             Tables\Columns\TextColumn::make('decided_at')->label(__('crm.offers.fields.decided_at'))->dateTime()->placeholder('—'),
-        ])->actions([
+        ])
+            ->emptyStateHeading(__('crm.offer_empty.approvals_heading'))
+            ->emptyStateDescription(__('crm.offer_empty.approvals_description'))
+            ->emptyStateIcon('heroicon-o-check-badge')
+            ->actions([
                     Tables\Actions\Action::make('approve')->label(__('crm.offers.actions.approve'))->color('success')->requiresConfirmation()->visible(fn(CrmOfferApproval $record) => $record->status === OfferApprovalStatus::Pending && auth()->user()->can('approveRevision', $record->revision))->action(fn(CrmOfferApproval $record) => $this->decide($record, true, [])),
                     Tables\Actions\Action::make('reject')->label(__('crm.offers.actions.reject'))->color('danger')->form([Forms\Components\Textarea::make('decision_notes')->label(__('crm.offers.fields.decision_notes'))])->visible(fn(CrmOfferApproval $record) => $record->status === OfferApprovalStatus::Pending && auth()->user()->can('rejectRevision', $record->revision))->action(fn(CrmOfferApproval $record, array $data) => $this->decide($record, false, $data)),
                 ]);
