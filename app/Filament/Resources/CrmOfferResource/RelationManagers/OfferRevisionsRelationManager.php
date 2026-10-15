@@ -129,13 +129,11 @@ class OfferRevisionsRelationManager extends RelationManager
             ->emptyStateDescription(__('crm.offer_empty.revisions_description'))
             ->emptyStateIcon('heroicon-o-document-text')
             ->headerActions([
-                    Tables\Actions\CreateAction::make()->label(__('crm.offers.actions.add_draft_revision'))
+                    Tables\Actions\Action::make('add_draft_revision')->label(__('crm.offers.actions.add_draft_revision'))
                         ->modalHeading(__('crm.offer_modals.create_revision'))
-                        ->mutateFormDataUsing(function (array $data): array {
-                            $data['company_id'] = $this->getOwnerRecord()->company_id;
-                            return $data;
-                        })
-                        ->using(fn(array $data) => app(OfferNegotiationService::class)->createDraftRevision(auth()->user(), $this->getOwnerRecord(), $data)),
+                        ->form($this->formSchema())
+                        ->visible(fn() => auth()->user()->can('createRevision', $this->getOwnerRecord()))
+                        ->action(fn(array $data) => $this->run(__('crm.offers.actions.add_draft_revision'), fn() => app(OfferNegotiationService::class)->createDraftRevision(auth()->user(), $this->getOwnerRecord(), $data))),
                     Tables\Actions\Action::make('counteroffer')
                         ->label(__('crm.offers.actions.create_counteroffer'))
                         ->modalHeading(__('crm.offer_modals.create_counteroffer'))
