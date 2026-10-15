@@ -64,6 +64,10 @@ class Company extends Model
     {
         return $this->hasMany(Opportunity::class);
     }
+    public function offers(): HasMany
+    {
+        return $this->hasMany(CrmOffer::class);
+    }
 
     public function listings(): HasMany
     {

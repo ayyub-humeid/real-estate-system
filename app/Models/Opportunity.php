@@ -44,4 +44,8 @@ class Opportunity extends Model
     {
         return $this->hasMany(CrmActivity::class)->orderByDesc('occurred_at')->orderByDesc('id');
     }
+    public function offers(): HasMany
+    {
+        return $this->hasMany(CrmOffer::class)->orderByDesc('created_at')->orderByDesc('id');
+    }
 }

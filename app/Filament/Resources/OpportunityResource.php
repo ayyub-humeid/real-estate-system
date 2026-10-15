@@ -138,6 +138,7 @@ class OpportunityResource extends Resource
             RelationManagers\StageHistoriesRelationManager::class,
             RelationManagers\FollowUpTasksRelationManager::class,
             RelationManagers\ActivitiesRelationManager::class,
+            RelationManagers\OffersRelationManager::class,
         ];
     }
 

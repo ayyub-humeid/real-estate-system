@@ -55,6 +55,10 @@ class Listing extends Model
     {
         return $this->belongsTo(User::class, 'updated_by');
     }
+    public function offers(): HasMany
+    {
+        return $this->hasMany(CrmOffer::class)->orderByDesc('created_at')->orderByDesc('id');
+    }
 
     public function getTargetLabelAttribute(): string
     {
