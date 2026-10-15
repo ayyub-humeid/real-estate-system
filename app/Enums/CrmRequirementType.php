@@ -8,9 +8,12 @@ enum CrmRequirementType: string implements HasLabel
     case RelatedRecordExists = 'related_record_exists';
     case ChecklistCompleted = 'checklist_completed';
     case ActivityExists = 'activity_exists';
+    case AcceptedOfferExists = 'accepted_offer_exists';
     public function getLabel(): ?string
     {
-        return __('crm.requirement_types.' . $this->value);
+        return $this === self::AcceptedOfferExists
+            ? __('crm.offer_requirement_types.accepted_offer_exists')
+            : __('crm.requirement_types.' . $this->value);
     }
     public static function options(): array
     {

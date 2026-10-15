@@ -228,6 +228,7 @@ class CrmPipelineStageService
                 $index,
             ),
             CrmRequirementType::ActivityExists => $this->activityConfiguration($row, $legacy, $index),
+            CrmRequirementType::AcceptedOfferExists => null,
         };
     }
 

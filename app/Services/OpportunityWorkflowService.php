@@ -1,7 +1,7 @@
 <?php
 namespace App\Services;
-use App\Enums\{CrmActivityOutcome, CrmActivityType, CrmRequirementType, CrmStageType};
-use App\Models\{CrmPipelineStage, CrmStageRequirement, Opportunity, OpportunityRequirementCompletion, OpportunityStageHistory, User};
+use App\Enums\{CrmActivityOutcome, CrmActivityType, CrmRequirementType, CrmStageType, OfferStatus};
+use App\Models\{CrmOffer, CrmPipelineStage, CrmStageRequirement, Opportunity, OpportunityRequirementCompletion, OpportunityStageHistory, User};
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -59,7 +59,7 @@ class OpportunityWorkflowService
         CrmPipelineStage $toStage,
     ): void {
         $missing = $this->missingRequirements($opportunity, $requirementsStage)
-            ->map(fn (CrmStageRequirement $requirement): string => '• **' . $requirement->display_label . "**\n\n" . $this->requirementGuidance($requirement))
+            ->map(fn(CrmStageRequirement $requirement): string => '• **' . $requirement->display_label . "**\n\n" . $this->requirementGuidance($requirement))
             ->all();
         if ($missing)
             $this->invalid('stage', __('crm.errors.requirements_missing', [
@@ -76,7 +76,7 @@ class OpportunityWorkflowService
             ->where('is_active', true)
             ->where('is_required', true)
             ->get()
-            ->filter(fn (CrmStageRequirement $requirement): bool => ! $this->requirementIsSatisfied($opportunity, $requirement))
+            ->filter(fn(CrmStageRequirement $requirement): bool => !$this->requirementIsSatisfied($opportunity, $requirement))
             ->values();
     }
     /**
@@ -86,7 +86,7 @@ class OpportunityWorkflowService
     public function requirementIsSatisfied(Opportunity $o, CrmStageRequirement $r): bool
     {
         $config = $r->config_json ?? [];
-        return match ($r->requirement_type) { CrmRequirementType::FieldRequired => $this->value($o, $config['field'] ?? null) !== null && $this->value($o, $config['field'] ?? null) !== '', CrmRequirementType::FieldEquals => $this->value($o, $config['field'] ?? null) == ($config['value'] ?? null), CrmRequirementType::RelatedRecordExists => $this->related($o, $config), CrmRequirementType::ChecklistCompleted => $o->requirementCompletions()->where('stage_requirement_id', $r->id)->exists(), CrmRequirementType::ActivityExists => $this->activity($o, $config), };
+        return match ($r->requirement_type) { CrmRequirementType::FieldRequired => $this->value($o, $config['field'] ?? null) !== null && $this->value($o, $config['field'] ?? null) !== '', CrmRequirementType::FieldEquals => $this->value($o, $config['field'] ?? null) == ($config['value'] ?? null), CrmRequirementType::RelatedRecordExists => $this->related($o, $config), CrmRequirementType::ChecklistCompleted => $o->requirementCompletions()->where('stage_requirement_id', $r->id)->exists(), CrmRequirementType::ActivityExists => $this->activity($o, $config), CrmRequirementType::AcceptedOfferExists => $this->acceptedOffer($o), };
     }
     private function value(Opportunity $o, ?string $field): mixed
     {
@@ -105,9 +105,19 @@ class OpportunityWorkflowService
     private function activity(Opportunity $opportunity, array $config): bool
     {
         $type = CrmActivityType::tryFrom((string) ($config['activity_type'] ?? ''));
-        $outcomes = collect($config['allowed_outcomes'] ?? [])->filter(fn ($value) => CrmActivityOutcome::tryFrom((string) $value))->values()->all();
-        if (! $type || $outcomes === []) return false;
+        $outcomes = collect($config['allowed_outcomes'] ?? [])->filter(fn($value) => CrmActivityOutcome::tryFrom((string) $value))->values()->all();
+        if (!$type || $outcomes === [])
+            return false;
         return $opportunity->activities()->where('company_id', $opportunity->company_id)->where('type', $type->value)->whereIn('outcome', $outcomes)->exists();
+    }
+    private function acceptedOffer(Opportunity $opportunity): bool
+    {
+        return CrmOffer::withoutGlobalScopes()
+            ->where('company_id', $opportunity->company_id)
+            ->where('opportunity_id', $opportunity->id)
+            ->where('status', OfferStatus::Accepted->value)
+            ->whereHas('agreedRevision')
+            ->exists();
     }
     public function requirementGuidance(CrmStageRequirement $requirement): string
     {
@@ -128,6 +138,7 @@ class OpportunityWorkflowService
             CrmRequirementType::ActivityExists => __('crm.requirement_guidance.activity', [
                 'type' => CrmActivityType::tryFrom((string) ($config['activity_type'] ?? ''))?->getLabel() ?? '—',
             ]),
+            CrmRequirementType::AcceptedOfferExists => __('crm.offer_requirement_guidance.accepted_offer'),
         };
     }
     private function fieldLabel(?string $field): string
