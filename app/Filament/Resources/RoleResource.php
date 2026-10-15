@@ -133,6 +133,7 @@ class RoleResource extends ShieldRoleResource
                 'exact:cancel_crm_follow_up_task',
             ],
             'Activities' => ['exact:create_crm_activity', 'exact:view_crm_activity'],
+            'Offers and negotiations' => ['offer_revision', 'offer_approval', 'exact:submit_offer_revision', 'exact:request_offer_approval', 'exact:approve_offer_revision', 'exact:reject_offer_revision', 'exact:confirm_offer_agreement', 'exact:withdraw_offer', 'exact:close_offer', 'exact:expire_offer', 'exact:assign_offer'],
         ],
         'Listings Management' => [
             'Listing lifecycle' => ['exact:publish_listing', 'exact:pause_listing', 'exact:archive_listing'],

@@ -134,6 +134,11 @@ class RolesAndPermissionsSeeder extends Seeder
             'create_crm_follow_up_task', 'update_crm_follow_up_task', 'assign_crm_follow_up_task',
             'complete_crm_follow_up_task', 'complete_any_crm_follow_up_task', 'cancel_crm_follow_up_task',
             'create_crm_activity', 'view_crm_activity',
+            // Phase 07.5 — Offer negotiation revisions and approval workflow.
+            'view_any_offer_revision', 'view_offer_revision', 'create_offer_revision', 'update_offer_revision', 'delete_offer_revision',
+            'view_any_offer_approval', 'view_offer_approval',
+            'submit_offer_revision', 'request_offer_approval', 'approve_offer_revision', 'reject_offer_revision',
+            'confirm_offer_agreement', 'withdraw_offer', 'close_offer', 'expire_offer', 'assign_offer',
         ];
 
         foreach ($customDomainPermissions as $permission) {
