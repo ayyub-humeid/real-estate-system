@@ -14,7 +14,7 @@ use Illuminate\Validation\ValidationException;
 class ActivitiesRelationManager extends RelationManager
 {
     protected static string $relationship = 'activities';
-    protected static ?string $title = 'Activities';
+    public static function getTitle(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): string { return __('crm.activities.models.activities'); }
     public function isReadOnly(): bool { return false; }
     public function form(Forms\Form $form): Forms\Form { return $form->schema([]); }
     public function table(Tables\Table $table): Tables\Table { return $table->columns([
