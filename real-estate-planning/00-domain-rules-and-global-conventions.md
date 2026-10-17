@@ -1605,6 +1605,34 @@ allowed tenant scope
 
 ---
 
+### Filament Error-Response and Selection-Label Rule
+
+When a Filament create, edit, relation-manager, or workflow action calls a
+domain service:
+
+1. keep the `ValidationException` so the relevant field receives its inline
+   validation message;
+2. also show a danger notification with the first clear business error, so a
+   user never has to infer why an action did not save;
+3. show a distinct unauthorized notification for authorization failures;
+4. do not swallow exceptions and silently leave the user on the form.
+
+Every material create, update, workflow, or relation-manager action must also
+give an explicit outcome: a success notification and refreshed state on
+success, or a specific translated failure notification and field error on an
+expected failure. No important action may appear to do nothing.
+
+Select options for business records must identify the record in business
+terms, not by an opaque ID or reference alone. Include the reference plus the
+most useful contextual labels, such as Unit, customer/Lead, property, project,
+or status. Keep user-entered names untranslated; translate only the fixed
+label text around them.
+
+This behavior must be covered by a Filament/Livewire workflow test in addition
+to service-level validation tests.
+
+---
+
 # 50. Derived Values
 
 Do not persist values that can be safely derived unless there is a clear performance/reporting reason.
