@@ -7,6 +7,9 @@ return [
         'view_own_crm_offer' => 'View my assigned offers', 'manage_own_crm_offer' => 'Manage my assigned offers',
         'view_own_crm_follow_up_tasks' => 'View my follow-up tasks', 'view_team_crm_follow_up_tasks' => 'View team follow-up tasks',
         'close_won_opportunity' => 'Close opportunity as won', 'close_lost_opportunity' => 'Close opportunity as lost',
+        'send_reservation_for_approval' => 'Send reservation for approval', 'approve_and_activate_reservation' => 'Approve and activate reservation',
+        'reject_reservation_request' => 'Reject reservation request', 'cancel_unit_reservation' => 'Cancel reservation',
+        'extend_unit_reservation' => 'Extend reservation', 'expire_unit_reservation' => 'Expire reservation',
     ],
     'actions' => [
         'view_any' => 'View all', 'view_own' => 'View own', 'complete_any' => 'Complete any', 'force_delete_any' => 'Force delete any', 'force_delete' => 'Force delete', 'delete_any' => 'Delete any', 'restore_any' => 'Restore any',
@@ -21,6 +24,7 @@ return [
         'actual_unit_from_planned_unit' => 'actual unit from approved plan', 'unit_status' => 'unit status', 'unit_ownership' => 'unit ownership', 'unit_status_history' => 'unit status history', 'unit_documents' => 'unit documents',
         'listing' => 'listing', 'listing_price' => 'listing price', 'lead' => 'lead', 'opportunity' => 'opportunity', 'opportunity_stage' => 'opportunity stage', 'lead_inquiry' => 'lead inquiry', 'crm_pipeline_stage' => 'CRM pipeline stage', 'crm_stage_requirement' => 'stage requirement', 'opportunity_requirement_completion' => 'requirement completion', 'opportunity_stage_history' => 'stage history', 'crm_follow_up_tasks' => 'follow-up tasks', 'crm_follow_up_task' => 'follow-up task', 'crm_activity' => 'CRM activity', 'crm_offer' => 'CRM offer', 'offer_revision' => 'offer revision', 'offer_approval' => 'offer approval', 'offer' => 'offer', 'offer_agreement' => 'offer agreement',
         'lost_opportunity' => 'lost opportunity', 'won_opportunity' => 'won opportunity', 'project_members' => 'project members', 'team_crm_follow_up_tasks' => 'team follow-up tasks', 'unit' => 'unit', 'role' => 'role',
+        'unit_reservation' => 'reservation',
     ],
     'groups' => [
         'property_acquisition' => 'Property acquisition', 'acquisition_workflow' => 'Acquisition workflow', 'acquisition_properties' => 'Acquisition properties', 'acquisition_parties' => 'Acquisition parties', 'property_ownership' => 'Property ownership', 'due_diligence_cases' => 'Due diligence cases', 'due_diligence_items' => 'Due diligence items',
@@ -30,6 +34,6 @@ return [
         'construction' => 'Construction', 'construction_lifecycle' => 'Construction lifecycle', 'work_package_tasks' => 'Work package tasks', 'work_packages' => 'Work packages', 'progress_updates' => 'Progress updates', 'inspections' => 'Inspections', 'issues' => 'Issues', 'delays' => 'Delays',
         'unit_setup' => 'Unit setup', 'create_from_approved_plan' => 'Create from approved plan', 'unit_status' => 'Unit status', 'unit_ownership' => 'Unit ownership', 'unit_history_and_documents' => 'Unit history and documents',
         'crm' => 'CRM', 'lead_workflow' => 'Lead workflow', 'opportunity_workflow' => 'Opportunity workflow', 'lead_inquiries' => 'Lead inquiries', 'pipeline_stages' => 'Pipeline stages', 'stage_requirements' => 'Stage requirements', 'requirement_completions' => 'Requirement completions', 'stage_history' => 'Stage history', 'follow_up_tasks' => 'Follow-up tasks', 'task_assignment_and_completion' => 'Task assignment and completion', 'offers_and_negotiations' => 'Offers & negotiations',
-        'listings_management' => 'Listings management', 'listing_lifecycle' => 'Listing lifecycle', 'listing_pricing' => 'Listing pricing', 'other_custom_permissions' => 'Other custom permissions', 'uncategorized' => 'Uncategorized',
+        'listings_management' => 'Listings management', 'listing_lifecycle' => 'Listing lifecycle', 'listing_pricing' => 'Listing pricing', 'reservations' => 'Reservations', 'other_custom_permissions' => 'Other custom permissions', 'uncategorized' => 'Uncategorized',
     ],
 ];

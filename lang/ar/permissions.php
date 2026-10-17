@@ -7,6 +7,9 @@ return [
         'view_own_crm_offer' => 'عرض العروض المعيّنة لي', 'manage_own_crm_offer' => 'إدارة العروض المعيّنة لي',
         'view_own_crm_follow_up_tasks' => 'عرض مهام المتابعة الخاصة بي', 'view_team_crm_follow_up_tasks' => 'عرض مهام متابعة الفريق',
         'close_won_opportunity' => 'إغلاق الفرصة كرابحة', 'close_lost_opportunity' => 'إغلاق الفرصة كخاسرة',
+        'send_reservation_for_approval' => 'إرسال الحجز للاعتماد', 'approve_and_activate_reservation' => 'اعتماد وتفعيل الحجز',
+        'reject_reservation_request' => 'رفض طلب الحجز', 'cancel_unit_reservation' => 'إلغاء الحجز',
+        'extend_unit_reservation' => 'تمديد الحجز', 'expire_unit_reservation' => 'إنهاء الحجز',
     ],
     'actions' => [
         'view_any' => 'عرض كل', 'view_own' => 'عرض الخاصة بي', 'complete_any' => 'إكمال أي', 'force_delete_any' => 'حذف نهائي لأي', 'force_delete' => 'حذف نهائي', 'delete_any' => 'حذف أي', 'restore_any' => 'استعادة أي',
@@ -21,6 +24,7 @@ return [
         'actual_unit_from_planned_unit' => 'وحدة فعلية من مخطط معتمد', 'unit_status' => 'حالة الوحدة', 'unit_ownership' => 'ملكية الوحدة', 'unit_status_history' => 'سجل حالة الوحدة', 'unit_documents' => 'مستندات الوحدة',
         'listing' => 'الإعلان', 'listing_price' => 'سعر الإعلان', 'lead' => 'عميل محتمل', 'opportunity' => 'فرصة', 'opportunity_stage' => 'مرحلة الفرصة', 'lead_inquiry' => 'استفسار العميل المحتمل', 'crm_pipeline_stage' => 'مرحلة مسار العملاء', 'crm_stage_requirement' => 'شرط المرحلة', 'opportunity_requirement_completion' => 'إكمال شرط الفرصة', 'opportunity_stage_history' => 'سجل مراحل الفرصة', 'crm_follow_up_tasks' => 'مهام المتابعة', 'crm_follow_up_task' => 'مهمة متابعة', 'crm_activity' => 'نشاط إدارة العملاء', 'crm_offer' => 'عرض إدارة العملاء', 'offer_revision' => 'تعديل العرض', 'offer_approval' => 'موافقة العرض', 'offer' => 'العرض', 'offer_agreement' => 'اتفاق العرض',
         'lost_opportunity' => 'فرصة خاسرة', 'won_opportunity' => 'فرصة رابحة', 'project_members' => 'أعضاء المشروع', 'team_crm_follow_up_tasks' => 'مهام متابعة الفريق', 'unit' => 'الوحدة', 'role' => 'الدور',
+        'unit_reservation' => 'الحجز',
     ],
     'groups' => [
         'property_acquisition' => 'الاستحواذ العقاري', 'acquisition_workflow' => 'مسار الاستحواذ', 'acquisition_properties' => 'عقارات الاستحواذ', 'acquisition_parties' => 'أطراف الاستحواذ', 'property_ownership' => 'ملكية العقار', 'due_diligence_cases' => 'حالات التحقق', 'due_diligence_items' => 'بنود التحقق',
@@ -30,6 +34,6 @@ return [
         'construction' => 'الإنشاء', 'construction_lifecycle' => 'دورة الإنشاء', 'work_package_tasks' => 'مهام حزم العمل', 'work_packages' => 'حزم العمل', 'progress_updates' => 'تحديثات التقدم', 'inspections' => 'الفحوصات', 'issues' => 'المشكلات', 'delays' => 'التأخيرات',
         'unit_setup' => 'إعداد الوحدات', 'create_from_approved_plan' => 'الإنشاء من مخطط معتمد', 'unit_status' => 'حالة الوحدة', 'unit_ownership' => 'ملكية الوحدة', 'unit_history_and_documents' => 'سجل الوحدة ومستنداتها',
         'crm' => 'إدارة العملاء', 'lead_workflow' => 'مسار العميل المحتمل', 'opportunity_workflow' => 'مسار الفرصة', 'lead_inquiries' => 'استفسارات العملاء المحتملين', 'pipeline_stages' => 'مراحل المسار', 'stage_requirements' => 'شروط المراحل', 'requirement_completions' => 'إكمال الشروط', 'stage_history' => 'سجل المراحل', 'follow_up_tasks' => 'مهام المتابعة', 'task_assignment_and_completion' => 'تعيين وإكمال المهام', 'offers_and_negotiations' => 'العروض والتفاوض',
-        'listings_management' => 'إدارة الإعلانات', 'listing_lifecycle' => 'دورة الإعلان', 'listing_pricing' => 'تسعير الإعلان', 'other_custom_permissions' => 'صلاحيات مخصصة أخرى', 'uncategorized' => 'غير مصنفة',
+        'listings_management' => 'إدارة الإعلانات', 'listing_lifecycle' => 'دورة الإعلان', 'listing_pricing' => 'تسعير الإعلان', 'reservations' => 'الحجوزات', 'other_custom_permissions' => 'صلاحيات مخصصة أخرى', 'uncategorized' => 'غير مصنفة',
     ],
 ];

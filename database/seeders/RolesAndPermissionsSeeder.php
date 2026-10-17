@@ -140,6 +140,9 @@ class RolesAndPermissionsSeeder extends Seeder
             'view_any_offer_approval', 'view_offer_approval',
             'finalize_offer_revision', 'request_offer_approval', 'approve_offer_revision', 'reject_offer_revision',
             'confirm_offer_agreement', 'withdraw_offer', 'close_offer', 'expire_offer', 'assign_offer',
+            // Phase 07.6 — reservation lifecycle. Top-level CRUD comes from Shield.
+            'send_reservation_for_approval', 'approve_and_activate_reservation', 'reject_reservation_request',
+            'cancel_unit_reservation', 'extend_unit_reservation', 'expire_unit_reservation',
         ];
 
         foreach ($customDomainPermissions as $permission) {
