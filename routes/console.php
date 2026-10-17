@@ -9,3 +9,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('crm:send-task-reminders')->everyFiveMinutes()->withoutOverlapping();
+Schedule::command('reservations:expire-due')->everyFiveMinutes()->withoutOverlapping();
