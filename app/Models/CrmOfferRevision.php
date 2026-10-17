@@ -61,4 +61,8 @@ class CrmOfferRevision extends Model
     {
         return $this->hasMany(CrmOfferApproval::class, 'offer_revision_id')->latest();
     }
+    public function reservations(): HasMany
+    {
+        return $this->hasMany(UnitReservation::class, 'offer_revision_id');
+    }
 }

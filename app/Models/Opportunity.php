@@ -48,4 +48,8 @@ class Opportunity extends Model
     {
         return $this->hasMany(CrmOffer::class)->orderByDesc('created_at')->orderByDesc('id');
     }
+    public function reservations(): HasMany
+    {
+        return $this->hasMany(UnitReservation::class);
+    }
 }

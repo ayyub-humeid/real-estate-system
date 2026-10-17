@@ -272,4 +272,9 @@ class Unit extends Model
     {
         return $this->morphMany(Document::class, 'documentable');
     }
+
+    public function reservations(): HasMany
+    {
+        return $this->hasMany(UnitReservation::class);
+    }
 }

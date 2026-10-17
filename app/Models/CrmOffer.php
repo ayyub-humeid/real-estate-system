@@ -51,4 +51,8 @@ class CrmOffer extends Model
     {
         return $this->hasManyThrough(CrmOfferApproval::class, CrmOfferRevision::class, 'offer_id', 'offer_revision_id');
     }
+    public function reservations(): HasMany
+    {
+        return $this->hasMany(UnitReservation::class, 'offer_id');
+    }
 }

@@ -69,6 +69,11 @@ class Company extends Model
         return $this->hasMany(CrmOffer::class);
     }
 
+    public function reservations(): HasMany
+    {
+        return $this->hasMany(UnitReservation::class);
+    }
+
     public function listings(): HasMany
     {
         return $this->hasMany(Listing::class);
