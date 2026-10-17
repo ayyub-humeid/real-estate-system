@@ -4,11 +4,13 @@ namespace Tests\Feature;
 
 use App\Enums\{CrmInquirySource, CrmRequirementType, OfferApprovalStatus, OfferProposedBySide, OfferRevisionStatus, OfferStatus, OpportunityType};
 use App\Filament\Resources\CrmOfferResource;
+use App\Filament\Resources\CrmOfferResource\Pages\CreateCrmOffer;
 use App\Models\{Company, CrmOffer, CrmStageRequirement, User};
 use App\Services\{LeadIntakeService, OfferNegotiationService, OpportunityService, OpportunityWorkflowService};
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
+use Livewire\Livewire;
 use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
 
@@ -127,5 +129,18 @@ class OfferNegotiationWorkflowTest extends TestCase
         app()->setLocale('ar');
         $this->assertSame('مسودة', OfferStatus::Draft->getLabel());
         $this->assertSame('العميل', OfferProposedBySide::Customer->getLabel());
+    }
+
+    public function test_offer_create_form_returns_a_validation_error_when_transaction_type_conflicts_with_the_opportunity(): void
+    {
+        $company = $this->company('A');
+        $actor = $this->user($company, $this->permissions());
+        $opportunity = $this->opportunity($actor, OpportunityType::Sale);
+        $this->actingAs($actor);
+
+        Livewire::test(CreateCrmOffer::class)
+            ->fillForm(['opportunity_id' => $opportunity->id, 'transaction_type' => OpportunityType::Rent->value])
+            ->call('create')
+            ->assertHasErrors(['transaction_type']);
     }
 }
