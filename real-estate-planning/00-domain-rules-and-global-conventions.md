@@ -1628,8 +1628,37 @@ most useful contextual labels, such as Unit, customer/Lead, property, project,
 or status. Keep user-entered names untranslated; translate only the fixed
 label text around them.
 
+Where a business selector has deterministic eligibility rules, query and show
+only eligible records before submission. For example, a reservation selector
+must omit accepted Offers whose listed Unit is not ready/available or whose
+planned Unit has not yet become an actual ready Unit. It may show an unlisted
+accepted Offer only when the form can require a separate eligible target Unit.
+This is a UX and traffic optimization, not a replacement for service-level
+validation, transaction locking, or concurrency protection.
+
 This behavior must be covered by a Filament/Livewire workflow test in addition
 to service-level validation tests.
+
+### State-Gated Action and Responsive Workflow Rule
+
+Every workflow action shown in a table, relation manager, or record header must
+be gated by all three of: its server-side Policy permission, the record's
+current allowed state, and any inexpensive prerequisite that can be determined
+without attempting the action. The domain service remains the final authority
+and must retain its validation/locking checks for direct or concurrent requests.
+
+Do not show actions that are impossible in the current state merely to return a
+validation error after the user clicks. For example, Draft-only submission must
+not appear on an active record, Pending-only approval must not appear after
+activation, and expiry may appear only when the active record is actually due.
+Group many optional workflow actions in a responsive ActionGroup/menu so long
+English labels do not make a table unusable on narrower screens. Test the
+visible/hidden action states in a Filament/Livewire workflow test.
+
+When a workflow creates structured data that is displayed immediately (for
+example, JSON snapshots), test the complete action-and-rerender path. Format
+arrays/objects explicitly for the display component; a success notification is
+not sufficient if the ensuing render fails.
 
 ---
 

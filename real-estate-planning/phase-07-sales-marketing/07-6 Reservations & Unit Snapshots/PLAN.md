@@ -371,10 +371,28 @@ Reuse the project's scheduler/job architecture if available.
 - requires explicit permission
 - works only for active reservations
 - validates the new expiration date
+- the form must only accept a date strictly later than the reservation's
+  current `valid_until` (not merely later than now), while the service repeats
+  this validation under its transaction
 - preserves audit history
 - does not silently rewrite the activation snapshot
 
 Store old/new expiry in history metadata if useful.
+
+Reservation workflow actions in Filament must be state-gated: Draft shows Send
+for Approval; Pending shows Approve/Reject; Active shows Cancel/Extend and only
+shows Expire after its expiry time. The service remains the canonical guard.
+After activation, render the immutable Unit and commercial snapshots through
+explicit JSON/text display state, and cover the actual activation/re-render path
+in a Filament test so a success toast cannot conceal a rendering exception.
+
+The Create Reservation selectors must pre-filter deterministic invalid choices:
+only ready Units without an active reservation may be selected, and an Accepted
+Offer is shown only when its actual target is ready/available or its planned
+target has already been converted to such an actual Unit. An accepted Offer
+without a Listing remains valid only when the form can require a separate ready
+available actual Unit. Server validation and locks still enforce the same rules
+at save/activation time.
 
 ---
 

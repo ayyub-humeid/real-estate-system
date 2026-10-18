@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources;
 
-use App\Enums\{OfferStatus, OpportunityType};
+use App\Enums\{OfferRevisionStatus, OfferStatus, OpportunityType};
 use App\Filament\Resources\CrmOfferResource\{Pages, RelationManagers};
 use App\Models\{Company, CrmOffer, Listing, Opportunity, User};
 use App\Services\OfferNegotiationService;
@@ -40,7 +40,11 @@ class CrmOfferResource extends Resource
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
         return static::scopeForViewer(parent::getEloquentQuery())
-            ->with(['opportunity.lead', 'listing', 'assignedTo', 'latestRevision']);
+            ->with(['opportunity.lead', 'listing', 'assignedTo', 'latestRevision'])
+            ->withExists(['revisions as has_expired_submitted_revision' => fn (\Illuminate\Database\Eloquent\Builder $query) => $query
+                ->where('status', OfferRevisionStatus::Submitted->value)
+                ->whereNotNull('expires_at')
+                ->where('expires_at', '<=', now())]);
     }
     public static function scopeForViewer(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
     {
@@ -110,7 +114,7 @@ class CrmOfferResource extends Resource
                     static::workflowAction('withdraw', __('crm.offers.actions.withdraw'), 'danger'),
                     static::workflowAction('reject', __('crm.offers.actions.close_rejected'), 'danger'),
                     static::workflowAction('expire', __('crm.offers.actions.expire'), 'warning'),
-                    Tables\Actions\DeleteAction::make()->label(__('crm.actions.delete'))->modalHeading(__('crm.offer_modals.delete_offer'))->modalDescription(__('crm.offer_modals.delete_offer_description')),
+                    Tables\Actions\DeleteAction::make()->label(__('crm.actions.delete'))->modalHeading(__('crm.offer_modals.delete_offer'))->modalDescription(__('crm.offer_modals.delete_offer_description'))->visible(fn (CrmOffer $record): bool => $record->status === OfferStatus::Draft),
                 ])->defaultSort('created_at', 'desc');
     }
 
@@ -162,7 +166,8 @@ class CrmOfferResource extends Resource
     private static function workflowAction(string $action, string $label, string $color): Tables\Actions\Action
     {
         return Tables\Actions\Action::make($action)->label($label)->modalHeading($label)->color($color)->tooltip($label)->requiresConfirmation()
-            ->visible(fn(CrmOffer $record) => auth()->user()->can($action === 'reject' ? 'close' : $action, $record) && in_array($record->status, [OfferStatus::Draft, OfferStatus::Negotiating], true))
+            ->visible(fn(CrmOffer $record) => static::workflowActionAllowed($action, $record)
+                && auth()->user()->can($action === 'reject' ? 'close' : $action, $record))
             ->action(function (CrmOffer $record) use ($action, $label): void {
                 try {
                     app(OfferNegotiationService::class)->{$action === 'reject' ? 'rejectOffer' : $action . 'Offer'}(auth()->user(), $record);
@@ -174,5 +179,14 @@ class CrmOfferResource extends Resource
                     Notification::make()->danger()->title(__('crm.errors.unauthorized'))->send();
                 }
             });
+    }
+
+    private static function workflowActionAllowed(string $action, CrmOffer $record): bool
+    {
+        if (! in_array($record->status, [OfferStatus::Draft, OfferStatus::Negotiating], true)) {
+            return false;
+        }
+
+        return $action !== 'expire' || (bool) $record->has_expired_submitted_revision;
     }
 }

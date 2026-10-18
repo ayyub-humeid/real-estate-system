@@ -39,8 +39,9 @@ class ViewUnitReservation extends ViewRecord
     {
         return Actions\Action::make($name)
             ->label($label)->modalHeading($label)->color($color)->requiresConfirmation()
-            ->form($extend ? [Forms\Components\DateTimePicker::make('valid_until')->label(__('reservations.fields.valid_until'))->required()->minDate(now())] : ($reason ? [Forms\Components\Textarea::make('reason')->label(__('reservations.fields.reason'))->required()] : []))
-            ->visible(fn () => auth()->user()->can(match ($name) {'send' => 'sendForApproval', 'approve' => 'approveAndActivate', 'reject' => 'rejectRequest', 'cancel' => 'cancelReservation', 'extend' => 'extendReservation', 'expire' => 'expireReservation'}, $this->record))
+            ->form(fn (): array => UnitReservationResource::workflowForm($this->record, $reason, $extend))
+            ->visible(fn (): bool => UnitReservationResource::workflowActionAllowed($name, $this->record)
+                && auth()->user()->can(UnitReservationResource::workflowAbility($name), $this->record))
             ->action(function (array $data) use ($name, $label): void {
                 try {
                     $service = app(ReservationWorkflowService::class);
@@ -49,7 +50,7 @@ class ViewUnitReservation extends ViewRecord
                         'reject' => $service->rejectRequest(auth()->user(), $this->record, $data['reason'] ?? null), 'cancel' => $service->cancelReservation(auth()->user(), $this->record, $data['reason'] ?? null),
                         'extend' => $service->extendReservation(auth()->user(), $this->record, $data['valid_until']), 'expire' => $service->expireReservation(auth()->user(), $this->record),
                     };
-                    $this->record = $this->record->fresh();
+                    $this->record = $this->record->fresh(['snapshot']);
                     Notification::make()->success()->title($label)->send();
                 } catch (ValidationException $exception) {
                     Notification::make()->danger()->title($label)->body(collect($exception->errors())->flatten()->first())->send();

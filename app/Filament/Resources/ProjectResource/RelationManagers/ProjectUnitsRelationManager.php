@@ -1,6 +1,6 @@
 <?php
 namespace App\Filament\Resources\ProjectResource\RelationManagers;
-use App\Enums\UnitType;
+use App\Enums\{UnitStatus, UnitType};
 use App\Models\{ProjectPlannedUnit, Property, Unit};
 use App\Services\UnitSetupService;
 use Filament\Forms;
@@ -8,6 +8,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Validation\ValidationException;
 class ProjectUnitsRelationManager extends RelationManager
 {
@@ -62,6 +63,49 @@ class ProjectUnitsRelationManager extends RelationManager
                                 Notification::make()->danger()->title('Cannot create actual Unit')->body(collect($e->errors())->flatten()->first())->send();
                             }
                         }),
-                ])->actions([Tables\Actions\ViewAction::make()->url(fn(Unit $u) => \App\Filament\Resources\UnitResource::getUrl('view', ['record' => $u]))]);
+                ])->actions([
+                    Tables\Actions\ViewAction::make()->url(fn(Unit $u) => \App\Filament\Resources\UnitResource::getUrl('view', ['record' => $u])),
+                    Tables\Actions\Action::make('change_status')
+                        ->label('Change status')
+                        ->icon('heroicon-o-arrow-path')
+                        ->tooltip('Change physical status')
+                        ->visible(fn (Unit $record): bool => ! empty($this->transitionOptions($record))
+                            && (auth()->user()->can('changeStatus', $record) || auth()->user()->can('reactivate', $record)))
+                        ->form(fn (Unit $record): array => [
+                            Forms\Components\Select::make('status')
+                                ->label('Physical status')
+                                ->options($this->transitionOptions($record))
+                                ->required(),
+                            Forms\Components\Textarea::make('reason')
+                                ->label('Reason')
+                                ->required(fn (Forms\Get $get): bool => in_array($get('status'), [UnitStatus::Inactive->value, UnitStatus::Draft->value], true)),
+                        ])
+                        ->action(function (Unit $record, array $data): void {
+                            try {
+                                app(UnitSetupService::class)->transitionStatus(auth()->user(), $record, $data['status'], $data['reason'] ?? null);
+                                Notification::make()->success()->title('Unit status updated')->send();
+                            } catch (ValidationException $exception) {
+                                Notification::make()->danger()->title('Cannot change status')->body(collect($exception->errors())->flatten()->first())->send();
+                                throw $exception;
+                            } catch (AuthorizationException) {
+                                Notification::make()->danger()->title('Unauthorized')->send();
+                            }
+                        }),
+                ]);
+    }
+
+    private function transitionOptions(Unit $unit): array
+    {
+        $current = UnitStatus::tryFrom((string) $unit->status);
+
+        if (! $current) {
+            return [];
+        }
+
+        return collect(UnitStatus::cases())
+            ->filter(fn (UnitStatus $status): bool => $current->canTransitionTo($status))
+            ->filter(fn (UnitStatus $status): bool => auth()->user()->can($status === UnitStatus::Draft ? 'reactivate' : 'changeStatus', $unit))
+            ->mapWithKeys(fn (UnitStatus $status): array => [$status->value => UnitStatus::options()[$status->value]])
+            ->all();
     }
 }

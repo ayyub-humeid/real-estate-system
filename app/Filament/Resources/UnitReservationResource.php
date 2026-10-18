@@ -35,7 +35,7 @@ class UnitReservationResource extends Resource
             Forms\Components\Select::make('source')->label(__('reservations.fields.source'))->options(ReservationSource::options())->required()->default(ReservationSource::Direct->value)->live()->disabled(fn (?UnitReservation $record) => $record !== null),
             Forms\Components\Select::make('customer_party_id')->label(__('reservations.fields.customer'))->options(fn (Forms\Get $get) => Party::withoutGlobalScopes()->where('company_id', static::companyId($get) ?: 0)->where('is_active', true)->orderBy('name')->pluck('name', 'id'))->searchable()->required(),
             Forms\Components\Select::make('offer_id')->label(__('reservations.fields.offer'))->options(fn (Forms\Get $get) => static::acceptedOfferOptions(static::companyId($get)))->searchable()->live()->visible(fn (Forms\Get $get) => $is($get, ReservationSource::AcceptedOffer))->required(fn (Forms\Get $get) => $is($get, ReservationSource::AcceptedOffer))->disabled(fn (?UnitReservation $record) => $record !== null)->helperText(fn (Forms\Get $get) => static::acceptedOfferRequiresManualUnit($get('offer_id')) ? __('reservations.help.accepted_offer_without_listing') : __('reservations.help.accepted_offer')),
-            Forms\Components\Select::make('unit_id')->label(__('reservations.fields.unit'))->options(fn (Forms\Get $get) => Unit::withoutGlobalScopes()->where('company_id', static::companyId($get) ?: 0)->where('status', UnitStatus::Ready->value)->orderBy('unit_number')->pluck('unit_number', 'id'))->searchable()->visible(fn (Forms\Get $get) => $is($get, ReservationSource::Direct) || ($is($get, ReservationSource::AcceptedOffer) && static::acceptedOfferRequiresManualUnit($get('offer_id'))))->required(fn (Forms\Get $get) => $is($get, ReservationSource::Direct) || ($is($get, ReservationSource::AcceptedOffer) && static::acceptedOfferRequiresManualUnit($get('offer_id')))),
+            Forms\Components\Select::make('unit_id')->label(__('reservations.fields.unit'))->options(fn (Forms\Get $get) => static::availableReadyUnitOptions(static::companyId($get)))->searchable()->visible(fn (Forms\Get $get) => $is($get, ReservationSource::Direct) || ($is($get, ReservationSource::AcceptedOffer) && static::acceptedOfferRequiresManualUnit($get('offer_id'))))->required(fn (Forms\Get $get) => $is($get, ReservationSource::Direct) || ($is($get, ReservationSource::AcceptedOffer) && static::acceptedOfferRequiresManualUnit($get('offer_id')))),
             Forms\Components\Select::make('transaction_type')->label(__('reservations.fields.transaction_type'))->options(OpportunityType::options())->required()->visible(fn (Forms\Get $get) => $is($get, ReservationSource::Direct))->live(),
             Forms\Components\TextInput::make('agreed_amount')->label(__('reservations.fields.agreed_amount'))->numeric()->minValue(0.01)->required()->visible(fn (Forms\Get $get) => $is($get, ReservationSource::Direct)),
             Forms\Components\TextInput::make('currency')->label(__('reservations.fields.currency'))->length(3)->default('USD')->required()->visible(fn (Forms\Get $get) => $is($get, ReservationSource::Direct)),
@@ -62,14 +62,52 @@ class UnitReservationResource extends Resource
             Tables\Columns\TextColumn::make('status')->label(__('crm.fields.status'))->badge()->formatStateUsing(fn ($state) => $state instanceof ReservationStatus ? $state->getLabel() : __('reservations.statuses.'.$state))->color(fn ($state) => $state instanceof ReservationStatus ? $state->color() : ReservationStatus::tryFrom((string) $state)?->color()),
             Tables\Columns\TextColumn::make('valid_until')->label(__('reservations.fields.valid_until'))->dateTime()->placeholder('—'),
         ])->filters([Tables\Filters\SelectFilter::make('status')->label(__('crm.fields.status'))->options(ReservationStatus::options()), Tables\Filters\SelectFilter::make('source')->label(__('reservations.fields.source'))->options(ReservationSource::options())])->actions([
-            Tables\Actions\ViewAction::make()->label(__('crm.actions.details')), Tables\Actions\EditAction::make()->label(__('crm.actions.edit'))->visible(fn (UnitReservation $record) => $record->status === ReservationStatus::Draft), Tables\Actions\DeleteAction::make()->label(__('crm.actions.delete'))->visible(fn (UnitReservation $record) => $record->status === ReservationStatus::Draft),
-            static::workflowAction('send', __('reservations.actions.send_for_approval'), 'info'), static::workflowAction('approve', __('reservations.actions.approve_activate'), 'success'), static::workflowAction('reject', __('reservations.actions.reject'), 'danger', true), static::workflowAction('cancel', __('reservations.actions.cancel'), 'danger', true), static::workflowAction('extend', __('reservations.actions.extend'), 'warning', false, true), static::workflowAction('expire', __('reservations.actions.expire'), 'warning'),
+            Tables\Actions\ViewAction::make()->label(__('crm.actions.details')),
+            Tables\Actions\EditAction::make()->label(__('crm.actions.edit'))->visible(fn (UnitReservation $record) => $record->status === ReservationStatus::Draft),
+            Tables\Actions\ActionGroup::make([
+                static::workflowAction('send', __('reservations.actions.send_for_approval'), 'info'),
+                static::workflowAction('approve', __('reservations.actions.approve_activate'), 'success'),
+                static::workflowAction('reject', __('reservations.actions.reject'), 'danger', true),
+                static::workflowAction('cancel', __('reservations.actions.cancel'), 'danger', true),
+                static::workflowAction('extend', __('reservations.actions.extend'), 'warning', false, true),
+                static::workflowAction('expire', __('reservations.actions.expire'), 'warning'),
+                Tables\Actions\DeleteAction::make()->label(__('crm.actions.delete'))->visible(fn (UnitReservation $record) => $record->status === ReservationStatus::Draft),
+            ])->visible(fn (UnitReservation $record): bool => static::hasAvailableWorkflowAction($record)
+                || ($record->status === ReservationStatus::Draft && auth()->user()->can('delete', $record))),
         ])->defaultSort('created_at', 'desc');
     }
     public static function infolist(Infolist $infolist): Infolist { return $infolist->schema([
         Components\Section::make(__('reservations.sections.overview'))->schema([Components\TextEntry::make('reservation_number')->label(__('reservations.fields.number'))->weight('bold'), Components\TextEntry::make('status')->label(__('crm.fields.status'))->badge()->formatStateUsing(fn ($state) => $state instanceof ReservationStatus ? $state->getLabel() : __('reservations.statuses.'.$state))->color(fn ($state) => $state instanceof ReservationStatus ? $state->color() : ReservationStatus::tryFrom((string) $state)?->color()), Components\TextEntry::make('customer.name')->label(__('reservations.fields.customer')), Components\TextEntry::make('unit.unit_number')->label(__('reservations.fields.unit')), Components\TextEntry::make('valid_until')->label(__('reservations.fields.valid_until'))->dateTime()->placeholder('—')])->columns(3),
         Components\Section::make(__('reservations.sections.commercial_terms'))->schema([Components\TextEntry::make('transaction_type')->label(__('reservations.fields.transaction_type'))->formatStateUsing(fn ($state) => $state instanceof OpportunityType ? $state->getLabel() : __('crm.opportunity_types.'.$state)), Components\TextEntry::make('agreed_amount')->label(__('reservations.fields.agreed_amount'))->money(fn (UnitReservation $record) => $record->currency), Components\TextEntry::make('payment_method')->label(__('reservations.fields.payment_method'))->placeholder('—'), Components\TextEntry::make('rent_frequency')->label(__('reservations.fields.rent_frequency'))->placeholder('—')])->columns(4),
-        Components\Section::make(__('reservations.sections.snapshot'))->visible(fn (UnitReservation $record) => $record->snapshot !== null)->schema([Components\TextEntry::make('snapshot.created_at')->label(__('reservations.fields.snapshot_created_at'))->dateTime(), Components\TextEntry::make('snapshot.unit_data')->label(__('reservations.fields.unit_snapshot'))->formatStateUsing(fn ($state) => json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE))->columnSpanFull(), Components\TextEntry::make('snapshot.commercial_terms')->label(__('reservations.fields.commercial_snapshot'))->formatStateUsing(fn ($state) => json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE))->columnSpanFull()]),
+        Components\Section::make(__('reservations.sections.snapshot'))->visible(fn (UnitReservation $record) => $record->snapshot !== null)->schema([
+            Components\TextEntry::make('snapshot.created_at')->label(__('reservations.fields.snapshot_created_at'))->dateTime(),
+            Components\Section::make(__('reservations.sections.unit_at_activation'))->schema([
+                static::snapshotEntry('snapshot_property_name', 'unit_data', 'property_name', 'property'),
+                static::snapshotEntry('snapshot_project_name', 'unit_data', 'project_name', 'project'),
+                static::snapshotEntry('snapshot_building_name', 'unit_data', 'building_name', 'building'),
+                static::snapshotEntry('snapshot_floor_label', 'unit_data', 'floor_label', 'floor'),
+                static::snapshotEntry('snapshot_unit_number', 'unit_data', 'unit_number', 'unit'),
+                static::snapshotEntry('snapshot_unit_type', 'unit_data', 'type', 'unit_type')->formatStateUsing(fn ($state) => filled($state) ? ucfirst(str_replace('_', ' ', $state)) : '—'),
+                static::snapshotEntry('snapshot_actual_area', 'unit_data', 'actual_area', 'actual_area')->suffix(fn (UnitReservation $record) => ' '.(data_get($record->snapshot?->unit_data, 'area_unit') ?? '')),
+                static::snapshotEntry('snapshot_bedrooms', 'unit_data', 'bedrooms', 'bedrooms'),
+                static::snapshotEntry('snapshot_bathrooms', 'unit_data', 'bathrooms', 'bathrooms'),
+                static::snapshotEntry('snapshot_features', 'unit_data', 'features', 'features')->formatStateUsing(fn ($state) => collect($state ?? [])->map(fn (array $feature) => filled($feature['value'] ?? null) ? "{$feature['name']}: ".static::snapshotPlainValue($feature['value']) : ($feature['name'] ?? null))->filter()->implode(', '))->placeholder('—')->columnSpanFull(),
+            ])->columns(3)->columnSpanFull(),
+            Components\Section::make(__('reservations.sections.commercial_terms_at_activation'))->schema([
+                static::snapshotEntry('snapshot_transaction_type', 'commercial_terms', 'transaction_type', 'transaction_type')->formatStateUsing(fn ($state) => OpportunityType::tryFrom((string) $state)?->getLabel() ?? '—'),
+                Components\TextEntry::make('snapshot_agreed_amount')->label(__('reservations.fields.agreed_amount'))->state(fn (UnitReservation $record) => data_get($record->snapshot?->commercial_terms, 'agreed_amount'))->money(fn (UnitReservation $record) => data_get($record->snapshot?->commercial_terms, 'currency') ?? 'USD'),
+                static::snapshotEntry('snapshot_currency', 'commercial_terms', 'currency', 'currency'),
+                static::snapshotEntry('snapshot_down_payment', 'commercial_terms', 'down_payment_amount', 'down_payment_amount'),
+                static::snapshotEntry('snapshot_payment_method', 'commercial_terms', 'payment_method', 'payment_method'),
+                static::snapshotEntry('snapshot_payment_terms', 'commercial_terms', 'payment_terms', 'payment_terms'),
+                static::snapshotEntry('snapshot_rent_frequency', 'commercial_terms', 'rent_frequency', 'rent_frequency'),
+                static::snapshotEntry('snapshot_lease_term_value', 'commercial_terms', 'lease_term_value', 'lease_term_value'),
+                static::snapshotEntry('snapshot_lease_term_unit', 'commercial_terms', 'lease_term_unit', 'lease_term_unit'),
+                static::snapshotEntry('snapshot_deposit', 'commercial_terms', 'deposit_amount', 'deposit_amount'),
+                static::snapshotEntry('snapshot_valid_until', 'commercial_terms', 'valid_until', 'valid_until')->dateTime(),
+                static::snapshotEntry('snapshot_additional_terms', 'commercial_terms', 'additional_terms', 'additional_terms')->formatStateUsing(fn ($state) => static::snapshotPlainValue($state))->columnSpanFull(),
+            ])->columns(3)->columnSpanFull(),
+        ])->columns(3),
     ]); }
     public static function getRelations(): array { return [RelationManagers\ReservationStatusHistoriesRelationManager::class]; }
     public static function getPages(): array { return ['index' => Pages\ListUnitReservations::route('/'), 'create' => Pages\CreateUnitReservation::route('/create'), 'view' => Pages\ViewUnitReservation::route('/{record}'), 'edit' => Pages\EditUnitReservation::route('/{record}/edit')]; }
@@ -78,31 +116,163 @@ class UnitReservationResource extends Resource
     {
         if (! $companyId) return [];
         $offers = CrmOffer::withoutGlobalScopes()->where('company_id', $companyId)->where('status', OfferStatus::Accepted->value)->with(['listing.listable', 'opportunity.lead'])->orderByDesc('closed_at')->get();
-        $plannedIds = $offers->filter(fn (CrmOffer $offer) => $offer->listing?->listable_type === 'planned_unit')->pluck('listing.listable_id');
-        $actualUnits = Unit::withoutGlobalScopes()->where('company_id', $companyId)->whereIn('planned_unit_id', $plannedIds)->pluck('unit_number', 'planned_unit_id');
+        $availableUnits = static::availableReadyUnits($companyId);
+        $actualUnitsById = $availableUnits->keyBy('id');
+        $actualUnitsByPlannedId = $availableUnits->filter(fn (Unit $unit) => $unit->planned_unit_id !== null)->keyBy('planned_unit_id');
 
-        return $offers->mapWithKeys(function (CrmOffer $offer) use ($actualUnits): array {
+        return $offers->filter(function (CrmOffer $offer) use ($availableUnits, $actualUnitsById, $actualUnitsByPlannedId): bool {
+            $listing = $offer->listing;
+
+            if (! $listing) {
+                return $availableUnits->isNotEmpty();
+            }
+
+            return match ($listing->listable_type) {
+                'unit' => $actualUnitsById->has($listing->listable_id),
+                'planned_unit' => $actualUnitsByPlannedId->has($listing->listable_id),
+                default => false,
+            };
+        })->mapWithKeys(function (CrmOffer $offer) use ($actualUnitsById, $actualUnitsByPlannedId): array {
             $listing = $offer->listing;
             $actualUnit = $listing?->listable_type === 'unit'
-                ? $listing->listable?->unit_number
-                : $actualUnits->get($listing?->listable_id);
+                ? $actualUnitsById->get($listing?->listable_id)?->unit_number
+                : $actualUnitsByPlannedId->get($listing?->listable_id)?->unit_number;
             $unit = $actualUnit
                 ? __('reservations.labels.actual_unit', ['unit' => $actualUnit])
-                : ($listing?->listable_type === 'planned_unit'
-                    ? __('reservations.labels.planned_unit_not_converted', ['unit' => $listing->listable?->code ?? '—'])
-                    : __('reservations.labels.no_listing_select_unit'));
+                : __('reservations.labels.no_listing_select_unit');
 
             return [$offer->id => __('reservations.offer_option', [
                 'reference' => $offer->reference_number,
-                'listing' => $listing?->title ?? __('reservations.labels.no_listing'),
                 'unit' => $unit,
                 'lead' => $offer->opportunity?->lead?->name ?? '—',
             ])];
         })->all();
     }
+
+    public static function availableReadyUnitOptions(?int $companyId): array
+    {
+        if (! $companyId) return [];
+
+        return static::availableReadyUnits($companyId)
+            ->sortBy('unit_number')
+            ->mapWithKeys(fn (Unit $unit): array => [$unit->id => $unit->unit_number])
+            ->all();
+    }
+
+    private static function availableReadyUnits(int $companyId): \Illuminate\Support\Collection
+    {
+        return Unit::withoutGlobalScopes()
+            ->where('company_id', $companyId)
+            ->where('status', UnitStatus::Ready->value)
+            ->whereDoesntHave('reservations', fn (\Illuminate\Database\Eloquent\Builder $query) => $query
+                ->withoutGlobalScopes()
+                ->where('status', ReservationStatus::Active->value))
+            ->get(['id', 'planned_unit_id', 'unit_number']);
+    }
+
+    private static function snapshotEntry(string $name, string $group, string $key, string $label): Components\TextEntry
+    {
+        return Components\TextEntry::make($name)
+            ->label(__('reservations.fields.'.$label))
+            ->state(fn (UnitReservation $record) => data_get($record->snapshot?->{$group} ?? [], $key))
+            ->placeholder('—');
+    }
+
+    private static function snapshotPlainValue(mixed $value): string
+    {
+        if ($value === null || $value === '') {
+            return '—';
+        }
+
+        if (is_bool($value)) {
+            return $value ? __('reservations.labels.yes') : __('reservations.labels.no');
+        }
+
+        if (! is_array($value)) {
+            return (string) $value;
+        }
+
+        return collect($value)
+            ->map(fn ($item, $key): string => is_string($key)
+                ? "{$key}: ".static::snapshotPlainValue($item)
+                : static::snapshotPlainValue($item))
+            ->implode(', ');
+    }
     public static function acceptedOfferRequiresManualUnit(?int $offerId): bool
     {
         return $offerId && ! CrmOffer::withoutGlobalScopes()->find($offerId)?->listing_id;
     }
-    public static function workflowAction(string $name, string $label, string $color, bool $reason = false, bool $extend = false): Tables\Actions\Action { return Tables\Actions\Action::make($name)->label($label)->modalHeading($label)->color($color)->tooltip($label)->requiresConfirmation()->form($extend ? [Forms\Components\DateTimePicker::make('valid_until')->label(__('reservations.fields.valid_until'))->required()->minDate(now())] : ($reason ? [Forms\Components\Textarea::make('reason')->label(__('reservations.fields.reason'))->required()] : []))->visible(fn (UnitReservation $record) => auth()->user()->can(match ($name) {'send' => 'sendForApproval', 'approve' => 'approveAndActivate', 'reject' => 'rejectRequest', 'cancel' => 'cancelReservation', 'extend' => 'extendReservation', 'expire' => 'expireReservation'}, $record))->action(function (UnitReservation $record, array $data) use ($name, $label): void { try { $service = app(ReservationWorkflowService::class); match ($name) {'send' => $service->sendForApproval(auth()->user(), $record), 'approve' => $service->approveAndActivate(auth()->user(), $record), 'reject' => $service->rejectRequest(auth()->user(), $record, $data['reason'] ?? null), 'cancel' => $service->cancelReservation(auth()->user(), $record, $data['reason'] ?? null), 'extend' => $service->extendReservation(auth()->user(), $record, $data['valid_until']), 'expire' => $service->expireReservation(auth()->user(), $record)}; Notification::make()->success()->title($label)->send(); } catch (ValidationException $exception) { Notification::make()->danger()->title($label)->body(collect($exception->errors())->flatten()->first())->send(); throw $exception; } catch (AuthorizationException) { Notification::make()->danger()->title(__('crm.errors.unauthorized'))->send(); } }); }
+    public static function workflowAction(string $name, string $label, string $color, bool $reason = false, bool $extend = false): Tables\Actions\Action
+    {
+        return Tables\Actions\Action::make($name)
+            ->label($label)
+            ->modalHeading($label)
+            ->color($color)
+            ->tooltip($label)
+            ->requiresConfirmation()
+            ->form(fn (UnitReservation $record): array => static::workflowForm($record, $reason, $extend))
+            ->visible(fn (UnitReservation $record): bool => static::workflowActionAllowed($name, $record)
+                && auth()->user()->can(static::workflowAbility($name), $record))
+            ->action(function (UnitReservation $record, array $data) use ($name, $label): void {
+                try {
+                    $service = app(ReservationWorkflowService::class);
+                    match ($name) {
+                        'send' => $service->sendForApproval(auth()->user(), $record),
+                        'approve' => $service->approveAndActivate(auth()->user(), $record),
+                        'reject' => $service->rejectRequest(auth()->user(), $record, $data['reason'] ?? null),
+                        'cancel' => $service->cancelReservation(auth()->user(), $record, $data['reason'] ?? null),
+                        'extend' => $service->extendReservation(auth()->user(), $record, $data['valid_until']),
+                        'expire' => $service->expireReservation(auth()->user(), $record),
+                    };
+                    Notification::make()->success()->title($label)->send();
+                } catch (ValidationException $exception) {
+                    Notification::make()->danger()->title($label)->body(collect($exception->errors())->flatten()->first())->send();
+                    throw $exception;
+                } catch (AuthorizationException) {
+                    Notification::make()->danger()->title(__('crm.errors.unauthorized'))->send();
+                }
+            });
+    }
+
+    public static function workflowAbility(string $name): string
+    {
+        return match ($name) {
+            'send' => 'sendForApproval', 'approve' => 'approveAndActivate', 'reject' => 'rejectRequest',
+            'cancel' => 'cancelReservation', 'extend' => 'extendReservation', 'expire' => 'expireReservation',
+        };
+    }
+
+    public static function workflowActionAllowed(string $name, UnitReservation $record): bool
+    {
+        $status = $record->status instanceof ReservationStatus
+            ? $record->status
+            : ReservationStatus::tryFrom((string) $record->status);
+
+        return match ($name) {
+            'send' => $status === ReservationStatus::Draft,
+            'approve', 'reject' => $status === ReservationStatus::Pending,
+            'cancel', 'extend' => $status === ReservationStatus::Active,
+            'expire' => $status === ReservationStatus::Active && $record->valid_until !== null && $record->valid_until->isPast(),
+        };
+    }
+
+    public static function workflowForm(UnitReservation $record, bool $reason, bool $extend): array
+    {
+        if ($extend) {
+            return [Forms\Components\DateTimePicker::make('valid_until')
+                ->label(__('reservations.fields.valid_until'))
+                ->helperText(__('reservations.help.extension_after_current_expiry', ['date' => $record->valid_until?->format('Y-m-d H:i') ?? '—']))
+                ->required()
+                ->after($record->valid_until ?? now())];
+        }
+
+        return $reason ? [Forms\Components\Textarea::make('reason')->label(__('reservations.fields.reason'))->required()] : [];
+    }
+
+    public static function hasAvailableWorkflowAction(UnitReservation $record): bool
+    {
+        return collect(['send', 'approve', 'reject', 'cancel', 'extend', 'expire'])
+            ->contains(fn (string $name): bool => static::workflowActionAllowed($name, $record)
+                && auth()->user()->can(static::workflowAbility($name), $record));
+    }
 }

@@ -132,14 +132,14 @@ class OfferRevisionsRelationManager extends RelationManager
                     Tables\Actions\Action::make('add_draft_revision')->label(__('crm.offers.actions.add_draft_revision'))
                         ->modalHeading(__('crm.offer_modals.create_revision'))
                         ->form($this->formSchema())
-                        ->visible(fn() => auth()->user()->can('createRevision', $this->getOwnerRecord()))
+                        ->visible(fn() => $this->offerAcceptsRevisions() && auth()->user()->can('createRevision', $this->getOwnerRecord()))
                         ->action(fn(array $data) => $this->run(__('crm.offers.actions.add_draft_revision'), fn() => app(OfferNegotiationService::class)->createDraftRevision(auth()->user(), $this->getOwnerRecord(), $data))),
                     Tables\Actions\Action::make('counteroffer')
                         ->label(__('crm.offers.actions.create_counteroffer'))
                         ->modalHeading(__('crm.offer_modals.create_counteroffer'))
                         ->icon('heroicon-o-arrow-path-rounded-square')
                         ->form($this->formSchema())
-                        ->visible(fn() => auth()->user()->can('createRevision', $this->getOwnerRecord()))
+                        ->visible(fn() => $this->offerAcceptsRevisions() && auth()->user()->can('createRevision', $this->getOwnerRecord()))
                         ->action(fn(array $data) => $this->run(__('crm.offers.actions.create_counteroffer'), fn() => app(OfferNegotiationService::class)->createCounteroffer(auth()->user(), $this->getOwnerRecord(), $data))),
                 ])->actions([
                     Tables\Actions\ViewAction::make()->label(__('crm.actions.details'))->modalHeading(__('crm.offer_modals.view_revision'))->infolist([
@@ -149,7 +149,7 @@ class OfferRevisionsRelationManager extends RelationManager
                     ]),
                     Tables\Actions\EditAction::make()->label(__('crm.actions.edit'))->modalHeading(__('crm.offer_modals.edit_revision'))->visible(fn(CrmOfferRevision $record) => $record->status === OfferRevisionStatus::Draft && auth()->user()->can('update', $record))->using(fn(CrmOfferRevision $record, array $data) => app(OfferNegotiationService::class)->updateDraftRevision(auth()->user(), $record, $data)),
                     Tables\Actions\Action::make('submit')->label(__('crm.offer_finalize.action'))->modalHeading(__('crm.offer_finalize.action'))->modalDescription(__('crm.offer_finalize.description'))->icon('heroicon-o-paper-airplane')->color('info')->requiresConfirmation()->visible(fn(CrmOfferRevision $record) => $record->status === OfferRevisionStatus::Draft && auth()->user()->can('submit', $record))->action(fn(CrmOfferRevision $record) => $this->run(__('crm.offer_finalize.action'), fn() => app(OfferNegotiationService::class)->submitRevision(auth()->user(), $record))),
-                    Tables\Actions\Action::make('request_approval')->label(__('crm.offers.actions.request_approval'))->modalHeading(__('crm.offer_modals.request_approval'))->icon('heroicon-o-user-plus')->requiresConfirmation()->visible(fn(CrmOfferRevision $record) => $record->status === OfferRevisionStatus::Submitted && auth()->user()->can('requestApproval', $record))->action(fn(CrmOfferRevision $record) => $this->run(__('crm.offers.actions.request_approval'), fn() => app(OfferNegotiationService::class)->requestApproval(auth()->user(), $record))),
+                    Tables\Actions\Action::make('request_approval')->label(__('crm.offers.actions.request_approval'))->modalHeading(__('crm.offer_modals.request_approval'))->icon('heroicon-o-user-plus')->requiresConfirmation()->visible(fn(CrmOfferRevision $record) => $record->status === OfferRevisionStatus::Submitted && ! $record->has_pending_approval && auth()->user()->can('requestApproval', $record))->action(fn(CrmOfferRevision $record) => $this->run(__('crm.offers.actions.request_approval'), fn() => app(OfferNegotiationService::class)->requestApproval(auth()->user(), $record))),
                     Tables\Actions\Action::make('confirm_agreement')->label(__('crm.offers.actions.confirm_agreement'))->modalHeading(__('crm.offer_modals.confirm_agreement'))->icon('heroicon-o-check-badge')->color('success')->requiresConfirmation()->visible(fn(CrmOfferRevision $record) => $record->status === OfferRevisionStatus::Submitted && auth()->user()->can('confirmAgreement', $record))->action(fn(CrmOfferRevision $record) => $this->run(__('crm.offers.actions.confirm_agreement'), fn() => app(OfferNegotiationService::class)->confirmAgreement(auth()->user(), $record))),
                 ])->defaultSort('revision_number', 'desc');
     }
@@ -169,5 +169,10 @@ class OfferRevisionsRelationManager extends RelationManager
         } catch (AuthorizationException) {
             Notification::make()->danger()->title(__('crm.errors.unauthorized'))->send();
         }
+    }
+
+    private function offerAcceptsRevisions(): bool
+    {
+        return in_array($this->getOwnerRecord()->status, [\App\Enums\OfferStatus::Draft, \App\Enums\OfferStatus::Negotiating], true);
     }
 }

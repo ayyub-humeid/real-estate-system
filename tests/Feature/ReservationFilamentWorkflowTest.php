@@ -13,7 +13,7 @@ class ReservationFilamentWorkflowTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function actor(Company $company): User { $user = User::factory()->create(['company_id' => $company->id]); foreach (['view_any_unit::reservation', 'view_unit::reservation', 'create_unit::reservation', 'update_unit::reservation', 'send_reservation_for_approval', 'approve_and_activate_reservation'] as $permission) $user->givePermissionTo(Permission::findOrCreate($permission, 'web')); return $user; }
+    private function actor(Company $company): User { $user = User::factory()->create(['company_id' => $company->id]); foreach (['view_any_unit::reservation', 'view_unit::reservation', 'create_unit::reservation', 'update_unit::reservation', 'send_reservation_for_approval', 'approve_and_activate_reservation', 'cancel_unit_reservation'] as $permission) $user->givePermissionTo(Permission::findOrCreate($permission, 'web')); return $user; }
     private function unit(Company $company): Unit { $location = Location::withoutGlobalScopes()->create(['company_id' => $company->id, 'name' => 'City', 'type' => 'city']); $property = Property::withoutGlobalScopes()->create(['company_id' => $company->id, 'location_id' => $location->id, 'name' => 'Property', 'address' => 'Address']); return Unit::withoutGlobalScopes()->create(['company_id' => $company->id, 'property_id' => $property->id, 'unit_number' => 'U-101', 'type' => 'apartment', 'status' => 'ready']); }
 
     public function test_direct_reservation_form_and_view_workflow_actions_are_available_in_filament(): void
@@ -26,7 +26,17 @@ class ReservationFilamentWorkflowTest extends TestCase
         $reservation = UnitReservation::withoutGlobalScopes()->firstOrFail();
         Livewire::test(ListUnitReservations::class)->assertCanSeeTableRecords([$reservation])->callTableAction('send', $reservation)->assertHasNoTableActionErrors();
         $reservation->refresh(); $this->assertSame('pending', $reservation->status->value);
-        Livewire::test(ViewUnitReservation::class, ['record' => $reservation->getRouteKey()])->assertActionVisible('approve');
+        Livewire::test(ViewUnitReservation::class, ['record' => $reservation->getRouteKey()])
+            ->assertActionHidden('send')
+            ->assertActionVisible('approve')
+            ->callAction('approve')
+            ->assertHasNoErrors()
+            ->assertActionHidden('approve')
+            ->assertActionVisible('cancel');
+
+        $reservation->refresh();
+        $this->assertSame('active', $reservation->status->value);
+        $this->assertNotNull($reservation->snapshot);
     }
 
     public function test_create_failure_returns_a_clear_inline_validation_error_instead_of_silently_not_saving(): void

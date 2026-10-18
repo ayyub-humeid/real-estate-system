@@ -291,8 +291,8 @@ class UnitResource extends Resource
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
                 Action::make('changeStatus')->label('Change status')->icon('heroicon-o-arrow-path')->tooltip('Change physical operational status')
-                    ->visible(fn (Unit $record) => auth()->user()->can('changeStatus', $record) || auth()->user()->can('reactivate', $record))
-                    ->form(fn (Unit $record) => [Forms\Components\Select::make('status')->options(UnitStatus::options())->required(), Forms\Components\Textarea::make('reason')->required(fn (Forms\Get $get) => in_array($get('status'), ['inactive', 'draft'], true))])
+                    ->visible(fn (Unit $record) => ! empty(static::statusTransitionOptions($record)) && (auth()->user()->can('changeStatus', $record) || auth()->user()->can('reactivate', $record)))
+                    ->form(fn (Unit $record) => [Forms\Components\Select::make('status')->options(static::statusTransitionOptions($record))->required(), Forms\Components\Textarea::make('reason')->required(fn (Forms\Get $get) => in_array($get('status'), ['inactive', 'draft'], true))])
                     ->action(function (Unit $record, array $data): void { try { app(UnitSetupService::class)->transitionStatus(auth()->user(), $record, $data['status'], $data['reason'] ?? null); Notification::make()->success()->title('Unit status updated')->send(); } catch (\Illuminate\Validation\ValidationException $e) { Notification::make()->danger()->title('Cannot change status')->body(collect($e->errors())->flatten()->first())->send(); } }),
 
                 // ── AI Description Generator ─────────────────────────────
@@ -376,6 +376,21 @@ class UnitResource extends Resource
             RelationManagers\MaintenanceRequestsRelationManager::class,
             RelationManagers\ImagesRelationManager::class,
         ];
+    }
+
+    private static function statusTransitionOptions(Unit $unit): array
+    {
+        $current = UnitStatus::tryFrom((string) $unit->status);
+
+        if (! $current) {
+            return [];
+        }
+
+        return collect(UnitStatus::cases())
+            ->filter(fn (UnitStatus $status): bool => $current->canTransitionTo($status))
+            ->filter(fn (UnitStatus $status): bool => auth()->user()->can($status === UnitStatus::Draft ? 'reactivate' : 'changeStatus', $unit))
+            ->mapWithKeys(fn (UnitStatus $status): array => [$status->value => UnitStatus::options()[$status->value]])
+            ->all();
     }
 
     public static function getPages(): array

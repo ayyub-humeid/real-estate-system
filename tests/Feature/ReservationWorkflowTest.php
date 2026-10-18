@@ -34,6 +34,7 @@ class ReservationWorkflowTest extends TestCase
         $this->assertSame(['approve_and_activate', 'send_for_approval'], $active->statusHistories()->pluck('action')->all());
         $unit->update(['unit_number' => 'Changed after activation']);
         $this->assertSame($snapshot->unit_data['unit_number'], $active->fresh()->snapshot->unit_data['unit_number']);
+        $this->assertArrayNotHasKey($unit->id, UnitReservationResource::availableReadyUnitOptions($company->id));
     }
 
     public function test_pending_requests_do_not_block_but_second_active_reservation_is_rejected(): void
@@ -59,13 +60,15 @@ class ReservationWorkflowTest extends TestCase
     {
         $company = $this->company('A'); $actor = $this->user($company, $this->permissions()); $planned = $this->plannedUnit($company); $property = $this->unit($company)->property; $project = $planned->floor->building->project;
         ProjectProperty::withoutGlobalScopes()->create(['company_id' => $company->id, 'project_id' => $project->id, 'property_id' => $property->id, 'attached_at' => now()]);
-        $unit = app(UnitSetupService::class)->convertPlannedUnit($actor, $planned, ['property_id' => $property->id, 'unit_number' => 'A-'.uniqid(), 'actual_area' => 100, 'area_unit' => 'm2']);
-        $unit = app(UnitSetupService::class)->transitionStatus($actor, $unit, 'ready');
         $listing = Listing::withoutGlobalScopes()->create(['company_id' => $company->id, 'listable_type' => 'planned_unit', 'listable_id' => $planned->id, 'listing_type' => 'sale', 'title' => 'Off-plan listing', 'asking_price' => 120000, 'currency' => 'USD', 'created_by' => $actor->id]);
         $lead = app(LeadIntakeService::class)->createLead($actor, ['name' => 'Nour', 'phone' => '0591234567', 'source' => CrmInquirySource::Manual->value]);
         $opportunity = app(OpportunityService::class)->create($actor, ['lead_id' => $lead->id, 'listing_id' => $listing->id, 'type' => OpportunityType::Sale->value, 'source' => CrmInquirySource::Manual->value]);
         $offers = app(OfferNegotiationService::class); $offer = $offers->createOffer($actor, ['opportunity_id' => $opportunity->id, 'listing_id' => $listing->id, 'transaction_type' => 'sale']);
         $revision = $offers->createDraftRevision($actor, $offer, ['proposed_by_side' => OfferProposedBySide::Customer->value, 'amount' => 110000, 'currency' => 'USD']); $offers->confirmAgreement($actor, $offers->submitRevision($actor, $revision));
+
+        $this->assertArrayNotHasKey($offer->id, UnitReservationResource::acceptedOfferOptions($company->id));
+        $unit = app(UnitSetupService::class)->convertPlannedUnit($actor, $planned, ['property_id' => $property->id, 'unit_number' => 'A-'.uniqid(), 'actual_area' => 100, 'area_unit' => 'm2']);
+        $unit = app(UnitSetupService::class)->transitionStatus($actor, $unit, 'ready');
 
         $reservation = app(ReservationWorkflowService::class)->createDraft($actor, ['source' => ReservationSource::AcceptedOffer->value, 'offer_id' => $offer->id, 'customer_party_id' => $this->customer($company)->id]);
 
