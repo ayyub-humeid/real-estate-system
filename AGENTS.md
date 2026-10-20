@@ -23,6 +23,7 @@ If this repository already has an `AGENTS.md`, merge these instructions into it 
 - Do not use raw update/delete actions for ownership, legal, payment, or other historical records. Provide an explicit corrective/replacement workflow instead.
 - After adding a new Filament/Livewire component, rebuild autoload metadata when needed and clear Laravel/Filament caches before manual verification.
 - Verify current-phase workflows and authorization on both MySQL and PostgreSQL test databases before completion.
+- **User-Friendly Feedback & Error Surfacing (Zero Silent Failures):** Every business, workflow, create, or update action must provide clear, actionable feedback to the user. Silent failures, unhandled exceptions, and blank rejections are strictly forbidden. Validation errors must display the specific invalid field or rule; authorization denials must display clear 'Unauthorized' explanations; and unexpected exceptions must be surfaced through prominent, persistent notifications so users are never left guessing.
 
 ---
 

@@ -2478,6 +2478,22 @@ workflow, filter, tab, modal, confirmation, table, enum, notification,
 validation, and empty states. Each static user-facing value must use an Arabic
 and English translation key; do not rely on framework-generated labels.
 
+## Legacy Localization Baseline
+
+The legacy/admin surfaces are localized through the same Laravel translator as
+the newer CRM and reservation domains. Resource model/navigation labels and
+Filament field, table, filter, infolist, and action labels must use that
+central translation path. Headings, tabs, help text, placeholders, enum
+options, notifications, validation messages, and empty states still require
+explicit translation calls/keys: automatic label translation does not make
+those surfaces safe by itself.
+
+Never translate a database value merely because it is displayed. Translate
+controlled enum/catalogue labels, but preserve names, notes, descriptions,
+custom pipeline/stage labels, addresses, and every other user-entered value
+exactly as entered. Add an Arabic and English regression assertion whenever a
+shared legacy enum or navigation label is introduced or changed.
+
 When a record has an assigned operational owner, distinguish company-wide
 visibility from owned-record visibility. A `view_own_*` permission must scope
 both the Resource query and every related-record surface to the authenticated
@@ -3989,11 +4005,23 @@ Tables\Actions\CreateAction::make()
                 ->send();
 
             return null;
+        } catch (\Throwable $e) {
+            \Filament\Notifications\Notification::make()
+                ->danger()
+                ->title(__('An unexpected error occurred'))
+                ->body($e->getMessage())
+                ->persistent()
+                ->send();
+
+            return null;
         }
     }),
 ```
 
-This rule also applies to custom workflow actions (e.g., "Clear", "Waive", "Approve"). On success, send a `->success()` notification so the user knows the action completed.
+This rule also applies to:
+1. **Custom workflow actions** (e.g., "Submit", "Approve", "Revision", "Sign", "Activate", "Clear", "Waive"): Must use persistent danger notifications on failure and success notifications on completion.
+2. **`CreateRecord` pages** (`handleRecordCreation`): Must wrap draft/record creation calls in `try/catch` to convert validation, authorization, and generic runtime exceptions into visible, persistent notifications so users never experience a silent failure or guess what went wrong.
+
 
 ## Parent Workflow Reassessment Rule
 
