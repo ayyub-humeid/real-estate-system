@@ -69,11 +69,14 @@ READY TO CLOSE
 
 ## Verification
 
-- MySQL (`realState_test`): `ContractFoundationTest` passed — 11 tests, 51
-  assertions. Full Laravel regression completed successfully.
-- PostgreSQL (`realstate_pg_test`): clean `migrate:fresh` passed, then
-  `ContractFoundationTest` passed — 11 tests, 51 assertions. Full compact
-  Laravel regression completed successfully.
+- MySQL (`realState_test`): `ContractFoundationTest` passed — 12 tests, 56
+  assertions. Full Laravel regression passed — 147 tests, 737 assertions.
+- PostgreSQL (`realstate_pg_test`): clean `migrate:fresh` passed, then the
+  full Laravel regression passed — 147 tests, 737 assertions.
+- Contract status translations use the non-colliding `contract_domain` group.
+  This prevents Laravel from resolving generic labels such as `__('Contracts')`
+  to a translation array; a regression test covers the Contract and Template
+  resource labels in Arabic and English.
 - Resource routes were registered and Laravel/Filament caches were cleared
   after generating the new permissions.
 
