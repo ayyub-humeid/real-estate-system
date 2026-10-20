@@ -42,6 +42,7 @@ class DatabaseSeeder extends Seeder
         $this->seedTenantsAndLeases();
         $this->seedMaintenanceRequests();
         $this->seedExpenses();
+        $this->call(DemoRealEstateCompanySeeder::class);
 
         $this->command->info('✅ All done! System is fully seeded with realistic demo data.');
         $this->printLoginInfo();
