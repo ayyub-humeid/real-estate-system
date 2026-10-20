@@ -21,7 +21,7 @@ class CreateEmployee extends CreateRecord
 
         if (!$user->isSuperAdmin() && !$user->company?->canAddEmployee()) {
             Notification::make()
-                ->title('Limit Reached')
+                ->title(__('Limit Reached'))
                 ->body('Your plan does not allow adding more employees.')
                 ->danger()
                 ->persistent()
@@ -84,7 +84,7 @@ class CreateEmployee extends CreateRecord
 
         } catch (\Exception $e) {
             Notification::make()
-                ->title('Error creating employee')
+                ->title(__('Error creating employee'))
                 ->body($e->getMessage())
                 ->danger()
                 ->send();

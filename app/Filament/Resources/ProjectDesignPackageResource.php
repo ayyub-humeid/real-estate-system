@@ -16,6 +16,7 @@ use Filament\Tables\Table;
  */
 class ProjectDesignPackageResource extends Resource
 {
+    use \App\Filament\Resources\Concerns\UsesLocalizedResourceLabels;
     protected static ?string $model = ProjectDesignPackage::class;
     protected static ?string $navigationIcon = 'heroicon-o-pencil-square';
     protected static bool $shouldRegisterNavigation = false;

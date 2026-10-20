@@ -13,6 +13,7 @@ use Filament\Tables\Table;
 
 class CompanySettingResource extends Resource
 {
+    use \App\Filament\Resources\Concerns\UsesLocalizedResourceLabels;
     protected static ?string $model = CompanySetting::class;
     protected static ?string $navigationIcon = 'heroicon-o-cog-6-tooth';
     protected static ?string $navigationGroup = '🏢 Core';
@@ -23,8 +24,8 @@ class CompanySettingResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Company Branding')
-                    ->description('Upload company logo, lease background, and signature')
+                Forms\Components\Section::make(__('Company Branding'))
+                    ->description(__('Upload company logo, lease background, and signature'))
                     ->schema([
                         Forms\Components\FileUpload::make('logo')
                             ->label('Company Logo')
@@ -39,7 +40,7 @@ class CompanySettingResource extends Resource
                             ->directory('company-settings/backgrounds')
                             ->imageEditor()
                             ->maxSize(5120)
-                            ->helperText('Watermark or background image for lease documents'),
+                            ->helperText(__('Watermark or background image for lease documents')),
 
                         Forms\Components\FileUpload::make('signature')
                             ->label('Company Signature')
@@ -47,13 +48,13 @@ class CompanySettingResource extends Resource
                             ->directory('company-settings/signatures')
                             ->imageEditor()
                             ->maxSize(1024)
-                            ->helperText('Digital signature for contracts'),
+                            ->helperText(__('Digital signature for contracts')),
                     ])
                     ->columns(3)
                     ->collapsible(),
 
-                Forms\Components\Section::make('Company Information')
-                    ->description('Legal information for contracts and invoices')
+                Forms\Components\Section::make(__('Company Information'))
+                    ->description(__('Legal information for contracts and invoices'))
                     ->schema([
                         Forms\Components\Select::make('company_id')
                             ->relationship('company', 'name')
@@ -91,17 +92,17 @@ class CompanySettingResource extends Resource
                     ->columns(2)
                     ->collapsible(),
 
-                Forms\Components\Section::make('Lease Document Settings')
+                Forms\Components\Section::make(__('Lease Document Settings'))
                     ->schema([
                         Forms\Components\Textarea::make('lease_terms')
                             ->label('Default Lease Terms & Conditions')
                             ->rows(5)
-                            ->helperText('These terms will appear in all lease contracts'),
+                            ->helperText(__('These terms will appear in all lease contracts')),
 
                         Forms\Components\Textarea::make('lease_footer_text')
                             ->label('Lease Footer Text')
                             ->rows(2)
-                            ->placeholder('This contract is legally binding...'),
+                            ->placeholder(__('This contract is legally binding...')),
 
                         Forms\Components\ColorPicker::make('lease_header_color')
                             ->label('Lease Header Color')
@@ -114,7 +115,7 @@ class CompanySettingResource extends Resource
                     ->columns(2)
                     ->collapsible(),
 
-                Forms\Components\Section::make('Receipt Settings')
+                Forms\Components\Section::make(__('Receipt Settings'))
                     ->schema([
                         Forms\Components\Textarea::make('receipt_terms')
                             ->rows(3),
@@ -135,14 +136,14 @@ class CompanySettingResource extends Resource
                     ])
                     ->collapsible(),
 
-                Forms\Components\Section::make('Payment Policies')
+                Forms\Components\Section::make(__('Payment Policies'))
                     ->schema([
                         Forms\Components\TextInput::make('payment_grace_period_days')
                             ->label('Grace Period (Days)')
                             ->numeric()
                             ->default(5)
                             ->minValue(0)
-                            ->helperText('Days allowed after due date before marking overdue'),
+                            ->helperText(__('Days allowed after due date before marking overdue')),
 
                         Forms\Components\TextInput::make('late_payment_fee_percentage')
                             ->label('Late Payment Fee (%)')
@@ -150,11 +151,11 @@ class CompanySettingResource extends Resource
                             ->default(0)
                             ->minValue(0)
                             ->suffix('%')
-                            ->helperText('Percentage fee for late payments'),
+                            ->helperText(__('Percentage fee for late payments')),
 
                         Forms\Components\Toggle::make('allow_maintenance_unit_marketing')
                             ->label('Allow marketing during maintenance')
-                            ->helperText('Published Listings for maintenance Units are blocked unless enabled.')
+                            ->helperText(__('Published Listings for maintenance Units are blocked unless enabled.'))
                             ->default(false),
                     ])
                     ->columns(2)

@@ -18,6 +18,7 @@ use Illuminate\Validation\ValidationException;
 
 class CrmOfferResource extends Resource
 {
+    use \App\Filament\Resources\Concerns\UsesLocalizedResourceLabels;
     protected static ?string $model = CrmOffer::class;
     protected static ?string $navigationIcon = 'heroicon-o-document-currency-dollar';
     protected static ?int $navigationSort = 5;
@@ -96,11 +97,11 @@ class CrmOfferResource extends Resource
         return $table->columns([
             Tables\Columns\TextColumn::make('reference_number')->label(__('crm.offers.fields.reference_number'))->searchable()->sortable()->weight('bold'),
             Tables\Columns\TextColumn::make('opportunity.lead.name')->label(__('crm.fields.lead'))->searchable(),
-            Tables\Columns\TextColumn::make('listing.title')->label(__('crm.fields.listing'))->placeholder('—'),
+            Tables\Columns\TextColumn::make('listing.title')->label(__('crm.fields.listing'))->placeholder(__('—')),
             Tables\Columns\TextColumn::make('transaction_type')->label(__('crm.offers.fields.transaction_type'))->badge()->formatStateUsing(fn($state) => $state instanceof OpportunityType ? $state->getLabel() : __('crm.opportunity_types.' . $state)),
-            Tables\Columns\TextColumn::make('latestRevision.amount')->label(__('crm.offers.fields.latest_amount'))->money(fn(CrmOffer $record) => $record->latestRevision?->currency ?? 'USD')->placeholder('—'),
+            Tables\Columns\TextColumn::make('latestRevision.amount')->label(__('crm.offers.fields.latest_amount'))->money(fn(CrmOffer $record) => $record->latestRevision?->currency ?? 'USD')->placeholder(__('—')),
             Tables\Columns\TextColumn::make('status')->label(__('crm.fields.status'))->badge()->formatStateUsing(fn($state) => $state instanceof OfferStatus ? $state->getLabel() : __('crm.offers.statuses.' . $state))->color(fn($state) => $state instanceof OfferStatus ? $state->color() : OfferStatus::tryFrom((string) $state)?->color()),
-            Tables\Columns\TextColumn::make('assignedTo.name')->label(__('crm.offers.fields.negotiator'))->placeholder('—'),
+            Tables\Columns\TextColumn::make('assignedTo.name')->label(__('crm.offers.fields.negotiator'))->placeholder(__('—')),
         ])
             ->emptyStateHeading(__('crm.offer_empty.offers_heading'))
             ->emptyStateDescription(__('crm.offer_empty.offers_description'))
@@ -124,17 +125,17 @@ class CrmOfferResource extends Resource
             Components\Section::make(__('crm.offers.sections.overview'))->schema([
                 Components\TextEntry::make('reference_number')->label(__('crm.offers.fields.reference_number'))->weight('bold'),
                 Components\TextEntry::make('opportunity.lead.name')->label(__('crm.fields.lead')),
-                Components\TextEntry::make('listing.title')->label(__('crm.fields.listing'))->placeholder('—'),
+                Components\TextEntry::make('listing.title')->label(__('crm.fields.listing'))->placeholder(__('—')),
                 Components\TextEntry::make('transaction_type')->label(__('crm.offers.fields.transaction_type'))->badge()->formatStateUsing(fn($state) => $state instanceof OpportunityType ? $state->getLabel() : __('crm.opportunity_types.' . $state)),
                 Components\TextEntry::make('status')->label(__('crm.fields.status'))->badge()->formatStateUsing(fn($state) => $state instanceof OfferStatus ? $state->getLabel() : __('crm.offers.statuses.' . $state))->color(fn($state) => $state instanceof OfferStatus ? $state->color() : OfferStatus::tryFrom((string) $state)?->color()),
-                Components\TextEntry::make('assignedTo.name')->label(__('crm.offers.fields.negotiator'))->placeholder('—'),
-                Components\TextEntry::make('createdBy.name')->label(__('crm.offers.fields.created_by'))->placeholder('—'),
+                Components\TextEntry::make('assignedTo.name')->label(__('crm.offers.fields.negotiator'))->placeholder(__('—')),
+                Components\TextEntry::make('createdBy.name')->label(__('crm.offers.fields.created_by'))->placeholder(__('—')),
             ])->columns(3),
             Components\Section::make(__('crm.offers.sections.agreement'))->schema([
                 Components\TextEntry::make('agreedRevision.revision_number')->label(__('crm.offers.fields.agreed_revision'))->formatStateUsing(fn($state) => $state ? __('crm.offers.revision_number', ['number' => $state]) : '—'),
-                Components\TextEntry::make('agreedRevision.amount')->label(__('crm.offers.fields.agreed_amount'))->money(fn(CrmOffer $record) => $record->agreedRevision?->currency ?? 'USD')->placeholder('—'),
-                Components\TextEntry::make('agreedRevision.confirmedBy.name')->label(__('crm.offers.fields.confirmed_by'))->placeholder('—'),
-                Components\TextEntry::make('agreedRevision.confirmed_at')->label(__('crm.offers.fields.confirmed_at'))->dateTime()->placeholder('—'),
+                Components\TextEntry::make('agreedRevision.amount')->label(__('crm.offers.fields.agreed_amount'))->money(fn(CrmOffer $record) => $record->agreedRevision?->currency ?? 'USD')->placeholder(__('—')),
+                Components\TextEntry::make('agreedRevision.confirmedBy.name')->label(__('crm.offers.fields.confirmed_by'))->placeholder(__('—')),
+                Components\TextEntry::make('agreedRevision.confirmed_at')->label(__('crm.offers.fields.confirmed_at'))->dateTime()->placeholder(__('—')),
             ])->columns(4),
         ]);
     }

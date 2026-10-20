@@ -31,8 +31,8 @@ class CheckSubscription
         if (! $company->is_active || ! $company->hasActiveSubscription()) {
             return response()->view('errors.subscription-required', [
                 'message' => $company->is_active 
-                    ? 'Your subscription has expired or is inactive. Please upgrade your plan to continue.'
-                    : 'Your company account is currently inactive. Please contact support.',
+                    ? __('Your subscription has expired or is inactive. Please upgrade your plan to continue.')
+                    : __('Your company account is currently inactive. Please contact support.'),
             ]);
         }
 

@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class UnitFeatureResource extends Resource
 {
+    use \App\Filament\Resources\Concerns\UsesLocalizedResourceLabels;
     protected static ?string $model = UnitFeature::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-sparkles';
@@ -33,11 +34,11 @@ class UnitFeatureResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Feature Details')
-                    ->description('Specify the feature for a specific unit')
+                Forms\Components\Section::make(__('Feature Details'))
+                    ->description(__('Specify the feature for a specific unit'))
                     ->schema([
                         Forms\Components\Select::make('unit_id')
-                            ->label('Unit')
+                            ->label(__('Unit'))
                             ->relationship('unit', 'unit_number', function (Builder $query) {
                                 $query->with('property');
                             })
@@ -48,14 +49,14 @@ class UnitFeatureResource extends Resource
                             ->columnSpan(2),
 
                         Forms\Components\TextInput::make('name')
-                            ->label('Feature Name')
-                            ->placeholder('e.g., Sea View, High Ceiling')
+                            ->label(__('Feature Name'))
+                            ->placeholder(__('e.g., Sea View, High Ceiling'))
                             ->required()
                             ->maxLength(255),
 
                         Forms\Components\TextInput::make('value')
-                            ->label('Value / Detail (Optional)')
-                            ->placeholder('e.g., Panoramic, 4 Meters')
+                            ->label(__('Value / Detail (Optional)'))
+                            ->placeholder(__('e.g., Panoramic, 4 Meters'))
                             ->maxLength(255),
                     ])->columns(2)
             ]);
@@ -66,25 +67,26 @@ class UnitFeatureResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('unit.property.name')
-                    ->label('Property')
+                    ->label(__('Property'))
                     ->searchable()
                     ->sortable()
                     ->badge(),
                 Tables\Columns\TextColumn::make('unit.unit_number')
-                    ->label('Unit #')
+                    ->label(__('Unit #'))
                     ->sortable()
                     ->searchable(),
                 Tables\Columns\TextColumn::make('name')
-                    ->label('Feature')
+                    ->label(__('Feature'))
                     ->searchable()
                     ->sortable()
                     ->weight('bold'),
                 Tables\Columns\TextColumn::make('value')
-                    ->label('Detail')
-                    ->placeholder('—'),
+                    ->label(__('Detail'))
+                    ->placeholder(__('—')),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('unit')
+                    ->label(__('Unit'))
                     ->relationship('unit', 'unit_number')
                     ->searchable()
                     ->preload(),
@@ -97,7 +99,9 @@ class UnitFeatureResource extends Resource
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
-            ]);
+            ])
+            ->emptyStateHeading(__('No unit features yet'))
+            ->emptyStateIcon('heroicon-o-sparkles');
     }
 
     public static function getRelations(): array

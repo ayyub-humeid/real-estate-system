@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Hash;
 
 class TenantResource extends Resource
 {
+    use \App\Filament\Resources\Concerns\UsesLocalizedResourceLabels;
     protected static ?string $model = Tenant::class;
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
     protected static ?string $navigationGroup = '👥 People';
@@ -62,8 +63,8 @@ class TenantResource extends Resource
         return $form
             ->schema([
                 // 🔥 SECTION 1: Basic Information (saves to users table)
-                Forms\Components\Section::make('Basic Information')
-                    ->description('This information will be saved in the user account')
+                Forms\Components\Section::make(__('Basic Information'))
+                    ->description(__('This information will be saved in the user account'))
                     ->schema([
                         self::companyField(),
 
@@ -130,7 +131,7 @@ class TenantResource extends Resource
                     ->columns(2),
 
                 // 🔥 SECTION 2: Employment Information (saves to tenants table)
-                Forms\Components\Section::make('Employment Information')
+                Forms\Components\Section::make(__('Employment Information'))
                     ->schema([
                         Forms\Components\TextInput::make('employer_name')
                             ->maxLength(255),
@@ -160,7 +161,7 @@ class TenantResource extends Resource
                     ->collapsible(),
 
                 // 🔥 SECTION 3: Emergency Contact
-                Forms\Components\Section::make('Emergency Contact')
+                Forms\Components\Section::make(__('Emergency Contact'))
                     ->schema([
                         Forms\Components\TextInput::make('emergency_contact_name')
                             ->maxLength(255),
@@ -171,13 +172,13 @@ class TenantResource extends Resource
 
                         Forms\Components\TextInput::make('emergency_contact_relationship')
                             ->maxLength(255)
-                            ->placeholder('Father, Mother, Spouse, etc.'),
+                            ->placeholder(__('Father, Mother, Spouse, etc.')),
                     ])
                     ->columns(3)
                     ->collapsible(),
 
                 // 🔥 SECTION 4: Previous Address
-                Forms\Components\Section::make('Previous Address')
+                Forms\Components\Section::make(__('Previous Address'))
                     ->schema([
                         Forms\Components\Textarea::make('previous_address')
                             ->rows(2)
@@ -200,7 +201,7 @@ class TenantResource extends Resource
                     ->collapsible(),
 
                 // 🔥 SECTION 5: Identification
-                Forms\Components\Section::make('Identification')
+                Forms\Components\Section::make(__('Identification'))
                     ->schema([
                         Forms\Components\Select::make('id_type')
                             ->options([
@@ -221,7 +222,7 @@ class TenantResource extends Resource
                     ->collapsible(),
 
                 // 🔥 SECTION 6: Move-in Details
-                Forms\Components\Section::make('Move-in Details')
+                Forms\Components\Section::make(__('Move-in Details'))
                     ->schema([
                         Forms\Components\DatePicker::make('move_in_date')
                             ->native(false),
@@ -241,13 +242,13 @@ class TenantResource extends Resource
                             ->visible(fn(Forms\Get $get) => $get('has_pets'))
                             ->rows(2)
                             ->columnSpanFull()
-                            ->placeholder('Type, breed, size, etc.'),
+                            ->placeholder(__('Type, breed, size, etc.')),
                     ])
                     ->columns(3)
                     ->collapsible(),
 
                 // 🔥 SECTION 7: References (Repeater for multiple references)
-                Forms\Components\Section::make('References')
+                Forms\Components\Section::make(__('References'))
                     ->schema([
                         Forms\Components\Repeater::make('references')
                             ->schema([
@@ -276,7 +277,7 @@ class TenantResource extends Resource
                     ->collapsible(),
 
                 // 🔥 SECTION 8: Background Check
-                Forms\Components\Section::make('Background Check')
+                Forms\Components\Section::make(__('Background Check'))
                     ->schema([
                         Forms\Components\Select::make('background_check_status')
                             ->options([
@@ -308,7 +309,7 @@ class TenantResource extends Resource
                     ->collapsible(),
 
                 // 🔥 SECTION 9: Status & Notes
-                Forms\Components\Section::make('Additional Information')
+                Forms\Components\Section::make(__('Additional Information'))
                     ->schema([
                         Forms\Components\Select::make('status')
                             ->options([

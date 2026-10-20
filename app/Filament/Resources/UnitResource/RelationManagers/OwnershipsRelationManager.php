@@ -11,33 +11,45 @@ use Illuminate\Validation\ValidationException;
 class OwnershipsRelationManager extends RelationManager
 {
     protected static string $relationship = 'ownerships';
-    protected static ?string $title = 'Ownership';
+
+    public static function getTitle(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): string
+    {
+        return __('Ownership');
+    }
+
     public function isReadOnly(): bool
     {
         return false;
     }
+
     public function table(Table $table): Table
     {
         return $table->columns([
-            Tables\Columns\TextColumn::make('party.name')->label('Owner'),
-            Tables\Columns\TextColumn::make('ownership_percentage')->suffix('%'),
-            Tables\Columns\TextColumn::make('start_date')->date(),
-            Tables\Columns\TextColumn::make('end_date')->date()->placeholder('Current')->badge(),
+            Tables\Columns\TextColumn::make('party.name')->label(__('Owner')),
+            Tables\Columns\TextColumn::make('ownership_percentage')->label(__('Ownership %'))->suffix('%'),
+            Tables\Columns\TextColumn::make('start_date')->label(__('Start Date'))->date(),
+            Tables\Columns\TextColumn::make('end_date')->label(__('End Date'))->date()->placeholder(__('Current'))->badge(),
         ])->headerActions([
-                    Tables\Actions\Action::make('replaceOwnership')->label('Replace ownership')->icon('heroicon-o-user-group')->tooltip('Record a new complete ownership allocation')
-                        ->visible(fn() => auth()->user()->can('changeOwnership', $this->getOwnerRecord()))
-                        ->form([
-                            Forms\Components\DatePicker::make('start_date')->required()->default(now()),
-                            Forms\Components\Textarea::make('notes'),
-                            Forms\Components\Repeater::make('allocations')->schema([
-                                Forms\Components\Select::make('party_id')->options(fn() => Party::query()->where('is_active', true)->orderBy('name')->pluck('name', 'id'))->searchable()->required(),
-                                Forms\Components\TextInput::make('ownership_percentage')->numeric()->minValue(0.01)->maxValue(100)->required(),
-                            ])->minItems(1)->required(),
-                        ])->action(function (array $data): void {
-                            try {
-                                app(UnitSetupService::class)->replaceOwnership(auth()->user(), $this->getOwnerRecord(), $data['allocations'], $data['start_date'], $data['notes'] ?? null);
-                                Notification::make()->success()->title('Ownership replaced')->send(); } catch (ValidationException $e) {
-                                Notification::make()->danger()->title('Cannot replace ownership')->body(collect($e->errors())->flatten()->first())->send(); } }),
-                ])->actions([Tables\Actions\ViewAction::make()]);
+            Tables\Actions\Action::make('replaceOwnership')
+                ->label(__('Replace ownership'))
+                ->icon('heroicon-o-user-group')
+                ->tooltip(__('Record a new complete ownership allocation'))
+                ->visible(fn() => auth()->user()->can('changeOwnership', $this->getOwnerRecord()))
+                ->form([
+                    Forms\Components\DatePicker::make('start_date')->label(__('Start Date'))->required()->default(now()),
+                    Forms\Components\Textarea::make('notes')->label(__('Notes')),
+                    Forms\Components\Repeater::make('allocations')->label(__('Allocations'))->schema([
+                        Forms\Components\Select::make('party_id')->label(__('Owner'))->options(fn() => Party::query()->where('is_active', true)->orderBy('name')->pluck('name', 'id'))->searchable()->required(),
+                        Forms\Components\TextInput::make('ownership_percentage')->label(__('Ownership %'))->numeric()->minValue(0.01)->maxValue(100)->required(),
+                    ])->minItems(1)->required(),
+                ])->action(function (array $data): void {
+                    try {
+                        app(UnitSetupService::class)->replaceOwnership(auth()->user(), $this->getOwnerRecord(), $data['allocations'], $data['start_date'], $data['notes'] ?? null);
+                        Notification::make()->success()->title(__('Ownership replaced'))->send();
+                    } catch (ValidationException $e) {
+                        Notification::make()->danger()->title(__('Cannot replace ownership'))->body(collect($e->errors())->flatten()->first())->send();
+                    }
+                }),
+        ])->actions([Tables\Actions\ViewAction::make()]);
     }
 }

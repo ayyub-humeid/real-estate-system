@@ -24,7 +24,7 @@ class CreateRole extends CreateRecord
         }
         $data['guard_name'] = 'web';
         if (! auth()->user()->isSuperAdmin() && ! $data['company_id']) {
-            throw ValidationException::withMessages(['company_id' => 'A company context is required.']);
+            throw ValidationException::withMessages(['company_id' => __('A company context is required.')]);
         }
         return Arr::only($data, ['name', 'guard_name', 'company_id']);
     }

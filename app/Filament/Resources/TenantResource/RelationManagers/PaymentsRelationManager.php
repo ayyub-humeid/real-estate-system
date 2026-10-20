@@ -49,7 +49,7 @@ class PaymentsRelationManager extends RelationManager
 
                 Tables\Columns\TextColumn::make('payment_date')
                     ->date()
-                    ->placeholder('Not paid'),
+                    ->placeholder(__('Not paid')),
 
                 Tables\Columns\TextColumn::make('status')
                     ->badge()

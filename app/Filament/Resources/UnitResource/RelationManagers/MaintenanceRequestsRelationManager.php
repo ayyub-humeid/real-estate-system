@@ -14,59 +14,70 @@ class MaintenanceRequestsRelationManager extends RelationManager
 {
     protected static string $relationship = 'maintenanceRequests';
 
+    public static function getTitle(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): string
+    {
+        return __('Maintenance Requests');
+    }
+
     public function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Maintenance Issue')
+                Forms\Components\Section::make(__('Maintenance Issue'))
                     ->schema([
                         Forms\Components\TextInput::make('title')
+                            ->label(__('Title'))
                             ->required()
                             ->maxLength(255),
                         Forms\Components\Textarea::make('description')
+                            ->label(__('Description'))
                             ->required()
                             ->rows(3),
                         
                         Forms\Components\Grid::make(2)
                             ->schema([
                                 Forms\Components\Select::make('status')
+                                    ->label(__('Status'))
                                     ->options([
-                                        'new' => 'New',
-                                        'pending' => 'Pending',
-                                        'in_progress' => 'In Progress',
-                                        'resolved' => 'Resolved',
-                                        'cancelled' => 'Cancelled',
+                                        'new' => __('New'),
+                                        'pending' => __('Pending'),
+                                        'in_progress' => __('In Progress'),
+                                        'resolved' => __('Resolved'),
+                                        'cancelled' => __('Cancelled'),
                                     ])
                                     ->default('new')
                                     ->required(),
                                 Forms\Components\Select::make('priority')
+                                    ->label(__('Priority'))
                                     ->options([
-                                        'low' => 'Low',
-                                        'medium' => 'Medium',
-                                        'high' => 'High',
-                                        'emergency' => 'Emergency',
+                                        'low' => __('Low'),
+                                        'medium' => __('Medium'),
+                                        'high' => __('High'),
+                                        'emergency' => __('Emergency'),
                                     ])
                                     ->default('medium')
                                     ->required(),
                             ]),
 
                         Forms\Components\Select::make('assigned_to_id')
-                            ->label('Assign Technician')
+                            ->label(__('Assign Technician'))
                             ->relationship('technician', 'name')
                             ->searchable()
                             ->preload(),
 
                         Forms\Components\Textarea::make('internal_notes')
-                            ->label('Technician Notes')
+                            ->label(__('Technician Notes'))
                             ->rows(3)
-                            ->placeholder('Observations and repair notes...'),
+                            ->placeholder(__('Observations and repair notes...')),
 
                         Forms\Components\Grid::make(2)
                             ->schema([
                                 Forms\Components\TextInput::make('estimated_cost')
+                                    ->label(__('Estimated Cost'))
                                     ->numeric()
                                     ->prefix('$'),
                                 Forms\Components\TextInput::make('actual_cost')
+                                    ->label(__('Actual Cost'))
                                     ->numeric()
                                     ->prefix('$'),
                             ]),
@@ -83,9 +94,11 @@ class MaintenanceRequestsRelationManager extends RelationManager
             ->recordTitleAttribute('title')
             ->columns([
                 Tables\Columns\TextColumn::make('title')
+                    ->label(__('Title'))
                     ->searchable()
                     ->wrap(),
                 Tables\Columns\TextColumn::make('status')
+                    ->label(__('Status'))
                     ->badge()
                     ->colors([
                         'gray' => 'new',
@@ -93,25 +106,58 @@ class MaintenanceRequestsRelationManager extends RelationManager
                         'info' => 'in_progress',
                         'success' => 'resolved',
                         'danger' => 'cancelled',
-                    ]),
+                    ])
+                    ->formatStateUsing(fn (?string $state): string => match ($state) {
+                        'new' => __('New'),
+                        'pending' => __('Pending'),
+                        'in_progress' => __('In Progress'),
+                        'resolved' => __('Resolved'),
+                        'cancelled' => __('Cancelled'),
+                        default => $state ?? '—',
+                    }),
                 Tables\Columns\TextColumn::make('priority')
+                    ->label(__('Priority'))
                     ->badge()
                     ->colors([
                         'gray' => 'low',
                         'info' => 'medium',
                         'warning' => 'high',
                         'danger' => 'emergency',
-                    ]),
+                    ])
+                    ->formatStateUsing(fn (?string $state): string => match ($state) {
+                        'low' => __('Low'),
+                        'medium' => __('Medium'),
+                        'high' => __('High'),
+                        'emergency' => __('Emergency'),
+                        default => $state ?? '—',
+                    }),
                 Tables\Columns\TextColumn::make('actual_cost')
+                    ->label(__('Actual Cost'))
                     ->money('USD'),
                 Tables\Columns\TextColumn::make('created_at')
+                    ->label(__('Created at'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('status'),
-                Tables\Filters\SelectFilter::make('priority'),
+                Tables\Filters\SelectFilter::make('status')
+                    ->label(__('Status'))
+                    ->options([
+                        'new' => __('New'),
+                        'pending' => __('Pending'),
+                        'in_progress' => __('In Progress'),
+                        'resolved' => __('Resolved'),
+                        'cancelled' => __('Cancelled'),
+                    ]),
+                Tables\Filters\SelectFilter::make('priority')
+                    ->label(__('Priority'))
+                    ->options([
+                        'low' => __('Low'),
+                        'medium' => __('Medium'),
+                        'high' => __('High'),
+                        'emergency' => __('Emergency'),
+                    ]),
             ])
             ->headerActions([
                 Tables\Actions\CreateAction::make()

@@ -37,7 +37,7 @@ class LeasesRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('end_date')
                     ->date()
                     ->sortable()
-                    ->placeholder('Open-ended'),
+                    ->placeholder(__('Open-ended')),
 
                 Tables\Columns\TextColumn::make('rent_amount')
                     ->money('USD')

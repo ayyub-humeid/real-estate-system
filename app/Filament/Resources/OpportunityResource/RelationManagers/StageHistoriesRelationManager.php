@@ -28,11 +28,11 @@ class StageHistoriesRelationManager extends RelationManager
             ->emptyStateDescription(__('crm.empty.stage_history.description'))
             ->emptyStateIcon('heroicon-o-clock')
             ->columns([
-                Tables\Columns\TextColumn::make('fromStage.label')->label(__('crm.fields.stage'))->placeholder('—')
+                Tables\Columns\TextColumn::make('fromStage.label')->label(__('crm.fields.stage'))->placeholder(__('—'))
                     ->formatStateUsing(fn ($state, $record) => $record->fromStage?->display_label ?? $state),
                 Tables\Columns\TextColumn::make('toStage.label')->label(__('crm.actions.move'))->weight('medium')
                     ->formatStateUsing(fn ($state, $record) => $record->toStage?->display_label ?? $state),
-                Tables\Columns\TextColumn::make('changedBy.name')->label(__('crm.fields.owner'))->placeholder('—'),
+                Tables\Columns\TextColumn::make('changedBy.name')->label(__('crm.fields.owner'))->placeholder(__('—')),
                 Tables\Columns\TextColumn::make('changed_at')->label(__('crm.fields.changed_at'))->dateTime(),
             ]);
     }

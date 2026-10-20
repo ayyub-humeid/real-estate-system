@@ -18,6 +18,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 class LeaseResource extends Resource
 {
+    use \App\Filament\Resources\Concerns\UsesLocalizedResourceLabels;
     protected static ?string $model = Lease::class;
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
     protected static ?string $navigationGroup = '💼 Operations';
@@ -55,7 +56,7 @@ class LeaseResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Lease Information')
+                Forms\Components\Section::make(__('Lease Information'))
                     ->schema([
                         self::companyField(),
 
@@ -66,7 +67,7 @@ class LeaseResource extends Resource
                             ->preload()
                             ->live()
                             ->requiredWithout('unit_id')
-                            ->helperText('Select if renting the entire property instead of a single unit.'),
+                            ->helperText(__('Select if renting the entire property instead of a single unit.')),
 
                         Forms\Components\Select::make('unit_id')
                             ->label('Unit (For Specific Unit Lease)')
@@ -90,7 +91,7 @@ class LeaseResource extends Resource
                                 fn($record) =>
                                 $record->property?->name . ' - Unit ' . $record->unit_number
                             )
-                            ->helperText('If renting a single unit, select it here.')
+                            ->helperText(__('If renting a single unit, select it here.'))
                             ->afterStateUpdated(fn(Forms\Get $get, Forms\Set $set) => self::recalculateRentAmount($get, $set)),
                         Forms\Components\Select::make('tenant_id')
                             ->label('Tenant')
@@ -115,7 +116,7 @@ class LeaseResource extends Resource
 
                         Forms\Components\DatePicker::make('end_date')
                             ->label('End Date (Optional)')
-                            ->helperText('Leave empty for open-ended lease')
+                            ->helperText(__('Leave empty for open-ended lease'))
                             ->native(false)
                             ->afterOrEqual('start_date')
                             ->live()
@@ -129,7 +130,7 @@ class LeaseResource extends Resource
                             ->minValue(0)
                             ->default(0)
                             ->readOnly()
-                            ->helperText('Auto-calculated from unit/property price × lease duration.'),
+                            ->helperText(__('Auto-calculated from unit/property price × lease duration.')),
 
                         Forms\Components\TextInput::make('deposit_amount')
                             ->numeric()
@@ -137,7 +138,7 @@ class LeaseResource extends Resource
                             ->step(0.01)
                             ->minValue(0)
                             ->default(0)
-                            ->helperText('A separate deposit record will be created. It does not affect installment amounts.'),
+                            ->helperText(__('A separate deposit record will be created. It does not affect installment amounts.')),
                         Forms\Components\Select::make('payment_frequency')
                             ->required()
                             ->options([
@@ -235,7 +236,7 @@ class LeaseResource extends Resource
                 Tables\Columns\TextColumn::make('end_date')
                     ->date()
                     ->sortable()
-                    ->placeholder('Open-ended')
+                    ->placeholder(__('Open-ended'))
                     ->color(fn($record) => $record->is_expired ? 'danger' : 'success')
                     ->toggleable(isToggledHiddenByDefault: true),
 

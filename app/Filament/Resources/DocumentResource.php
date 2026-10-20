@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Builder;
 /** Documents are logical records; immutable files live in DocumentVersion. */
 class DocumentResource extends Resource
 {
+    use \App\Filament\Resources\Concerns\UsesLocalizedResourceLabels;
     protected static ?string $model = Document::class;
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
     protected static bool $shouldRegisterNavigation = false;
@@ -53,7 +54,7 @@ class DocumentResource extends Resource
             Tables\Columns\TextColumn::make('documentable.name')->label('Design package')->searchable(),
             Tables\Columns\TextColumn::make('versions_count')->label('Versions')->badge()->alignCenter(),
             Tables\Columns\TextColumn::make('latestVersion.version_number')->label('Latest')->formatStateUsing(fn($state) => $state ? "V{$state}" : '—')->badge()->color('info'),
-            Tables\Columns\TextColumn::make('latestVersion.file_name')->label('Latest file')->placeholder('No version'),
+            Tables\Columns\TextColumn::make('latestVersion.file_name')->label('Latest file')->placeholder(__('No version')),
             Tables\Columns\TextColumn::make('createdBy.name')->label('Created by')->toggleable(),
             Tables\Columns\TextColumn::make('created_at')->dateTime()->since()->toggleable(),
         ])->actions([

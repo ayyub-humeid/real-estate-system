@@ -26,11 +26,11 @@ class ItemsRelationManager extends RelationManager
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('category.name')->label('Category')->searchable(),
-                Tables\Columns\TextColumn::make('code')->placeholder('—'),
+                Tables\Columns\TextColumn::make('code')->placeholder(__('—')),
                 Tables\Columns\TextColumn::make('name')->searchable(),
                 Tables\Columns\TextColumn::make('planned_amount')->money(fn (): string => $this->getOwnerRecord()->project->currency)->sortable(),
-                Tables\Columns\TextColumn::make('quantity')->placeholder('—'),
-                Tables\Columns\TextColumn::make('unit')->placeholder('—'),
+                Tables\Columns\TextColumn::make('quantity')->placeholder(__('—')),
+                Tables\Columns\TextColumn::make('unit')->placeholder(__('—')),
             ])
             ->headerActions([
                 Tables\Actions\CreateAction::make()

@@ -11,6 +11,11 @@ class LanguagePreferences extends Page
 
     protected static bool $shouldRegisterNavigation = false;
 
+    public static function getNavigationLabel(): string
+    {
+        return __('Language Preferences');
+    }
+
     public string $locale = 'en';
 
     public static function canAccess(): bool

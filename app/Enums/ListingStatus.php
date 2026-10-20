@@ -2,7 +2,9 @@
 
 namespace App\Enums;
 
-enum ListingStatus: string
+use Filament\Support\Contracts\HasLabel;
+
+enum ListingStatus: string implements HasLabel
 {
     case Draft = 'draft';
     case Published = 'published';
@@ -12,11 +14,21 @@ enum ListingStatus: string
     public static function options(): array
     {
         return [
-            self::Draft->value => 'Draft',
-            self::Published->value => 'Published',
-            self::Paused->value => 'Paused',
-            self::Archived->value => 'Archived',
+            self::Draft->value => self::Draft->getLabel(),
+            self::Published->value => self::Published->getLabel(),
+            self::Paused->value => self::Paused->getLabel(),
+            self::Archived->value => self::Archived->getLabel(),
         ];
+    }
+
+    public function getLabel(): ?string
+    {
+        return __(match ($this) {
+            self::Draft => 'Draft',
+            self::Published => 'Published',
+            self::Paused => 'Paused',
+            self::Archived => 'Archived',
+        });
     }
 
     public function canTransitionTo(self $target): bool

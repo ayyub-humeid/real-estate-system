@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class SubscriptionResource extends Resource
 {
+    use \App\Filament\Resources\Concerns\UsesLocalizedResourceLabels;
     protected static ?string $model = Subscription::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-calendar-days';
@@ -41,39 +42,46 @@ class SubscriptionResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Subscription Details')
+                Forms\Components\Section::make(__('Subscription Details'))
                     ->schema([
                         Forms\Components\Select::make('company_id')
+                            ->label(__('Company'))
                             ->relationship('company', 'name')
                             ->searchable()
                             ->preload()
                             ->required(),
                         Forms\Components\Select::make('plan_id')
+                            ->label(__('Plan'))
                             ->relationship('plan', 'name')
                             ->searchable()
                             ->preload()
                             ->required(),
                         Forms\Components\Select::make('status')
+                            ->label(__('Status'))
                             ->options([
-                                'active' => 'Active',
-                                'expired' => 'Expired',
-                                'canceled' => 'Canceled',
-                                'trailing' => 'Trailing',
-                                'past_due' => 'Past Due',
+                                'active' => __('Active'),
+                                'expired' => __('Expired'),
+                                'canceled' => __('Canceled'),
+                                'trailing' => __('Trailing'),
+                                'past_due' => __('Past Due'),
                             ])
                             ->required()
                             ->default('trailing'),
                     ])->columns(3),
 
-                Forms\Components\Section::make('Dates')
+                Forms\Components\Section::make(__('Dates'))
                     ->schema([
                         Forms\Components\DateTimePicker::make('starts_at')
+                            ->label(__('Starts At'))
                             ->nullable(),
                         Forms\Components\DateTimePicker::make('ends_at')
+                            ->label(__('Ends At'))
                             ->nullable(),
                         Forms\Components\DateTimePicker::make('trial_ends_at')
+                            ->label(__('Trial Ends At'))
                             ->nullable(),
                         Forms\Components\DateTimePicker::make('canceled_at')
+                            ->label(__('Canceled At'))
                             ->nullable(),
                     ])->columns(2),
             ]);
@@ -84,16 +92,27 @@ class SubscriptionResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('company.name')
+                    ->label(__('Company'))
                     ->searchable()
                     ->sortable()
                     ->weight('bold'),
                 Tables\Columns\TextColumn::make('plan.name')
+                    ->label(__('Plan'))
                     ->searchable()
                     ->sortable()
                     ->badge()
                     ->color('info'),
                 Tables\Columns\TextColumn::make('status')
+                    ->label(__('Status'))
                     ->badge()
+                    ->formatStateUsing(fn(string $state): string => match ($state) {
+                        'active' => __('Active'),
+                        'expired' => __('Expired'),
+                        'canceled' => __('Canceled'),
+                        'trailing' => __('Trailing'),
+                        'past_due' => __('Past Due'),
+                        default => __($state),
+                    })
                     ->color(fn(string $state): string => match ($state) {
                         'active' => 'success',
                         'trailing' => 'warning',
@@ -103,38 +122,46 @@ class SubscriptionResource extends Resource
                     })
                     ->searchable(),
                 Tables\Columns\TextColumn::make('starts_at')
+                    ->label(__('Starts At'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(),
                 Tables\Columns\TextColumn::make('ends_at')
+                    ->label(__('Ends At'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(),
                 Tables\Columns\TextColumn::make('trial_ends_at')
+                    ->label(__('Trial Ends At'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('created_at')
+                    ->label(__('Created At'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
+            ->emptyStateHeading(__('No subscriptions found'))
             ->filters([
                 Tables\Filters\SelectFilter::make('company')
+                    ->label(__('Company'))
                     ->relationship('company', 'name')
                     ->searchable()
                     ->preload(),
                 Tables\Filters\SelectFilter::make('plan')
+                    ->label(__('Plan'))
                     ->relationship('plan', 'name')
                     ->searchable()
                     ->preload(),
                 Tables\Filters\SelectFilter::make('status')
+                    ->label(__('Status'))
                     ->options([
-                        'active' => 'Active',
-                        'expired' => 'Expired',
-                        'canceled' => 'Canceled',
-                        'trailing' => 'Trailing',
-                        'past_due' => 'Past Due',
+                        'active' => __('Active'),
+                        'expired' => __('Expired'),
+                        'canceled' => __('Canceled'),
+                        'trailing' => __('Trailing'),
+                        'past_due' => __('Past Due'),
                     ]),
             ])
             ->actions([

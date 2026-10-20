@@ -19,10 +19,10 @@ class ViewListing extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            $this->workflowAction('publish', 'Publish', 'success'),
-            $this->workflowAction('pause', 'Pause', 'warning'),
-            $this->workflowAction('archive', 'Archive', 'danger'),
-            $this->workflowAction('restore', 'Restore to draft', 'gray'),
+            $this->workflowAction('publish', __('Publish'), 'success'),
+            $this->workflowAction('pause', __('Pause'), 'warning'),
+            $this->workflowAction('archive', __('Archive'), 'danger'),
+            $this->workflowAction('restore', __('Restore to draft'), 'gray'),
             Actions\EditAction::make(),
         ];
     }
@@ -43,11 +43,11 @@ class ViewListing extends ViewRecord
             ->action(function () use ($method, $label): void {
                 try {
                     $this->record = app(ListingService::class)->{$method}(auth()->user(), $this->record);
-                    Notification::make()->success()->title("Listing {$label}")->send();
+                    Notification::make()->success()->title(__('Listing action completed'))->send();
                 } catch (ValidationException $exception) {
-                    Notification::make()->danger()->title("Cannot {$label} Listing")->body(collect($exception->errors())->flatten()->first())->send();
+                    Notification::make()->danger()->title(__('Cannot execute Listing action'))->body(collect($exception->errors())->flatten()->first())->send();
                 } catch (AuthorizationException) {
-                    Notification::make()->danger()->title('Unauthorized')->send();
+                    Notification::make()->danger()->title(__('Unauthorized'))->body(__('You do not have permission for this Listing action.'))->send();
                 }
             });
     }

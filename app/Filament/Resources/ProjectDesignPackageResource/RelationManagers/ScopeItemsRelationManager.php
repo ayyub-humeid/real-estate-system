@@ -20,16 +20,16 @@ class ScopeItemsRelationManager extends RelationManager
             ->columns([
                 Tables\Columns\TextColumn::make('sort_order')->label('#')->sortable(),
                 Tables\Columns\TextColumn::make('title')->searchable()->weight('medium'),
-                Tables\Columns\TextColumn::make('code')->placeholder('—'),
+                Tables\Columns\TextColumn::make('code')->placeholder(__('—')),
                 Tables\Columns\TextColumn::make('status')->badge()->colors([
                     'gray' => 'not_started', 'info' => 'in_progress', 'success' => 'ready', 'danger' => 'cancelled',
                 ]),
-                Tables\Columns\TextColumn::make('target_date')->date()->placeholder('—'),
+                Tables\Columns\TextColumn::make('target_date')->date()->placeholder(__('—')),
             ])
             ->headerActions([
                 Tables\Actions\CreateAction::make()
                     ->label('Add scope item')->icon('heroicon-o-plus')
-                    ->tooltip('Add a required design scope item')
+                    ->tooltip(__('Add a required design scope item'))
                     ->form([
                         Forms\Components\TextInput::make('title')->required(),
                         Forms\Components\TextInput::make('code'),
@@ -50,13 +50,13 @@ class ScopeItemsRelationManager extends RelationManager
             ])
             ->actions([
                 Tables\Actions\Action::make('updateStatus')
-                    ->label('Update status')->icon('heroicon-o-arrow-path')->tooltip('Update scope item status')
+                    ->label('Update status')->icon('heroicon-o-arrow-path')->tooltip(__('Update scope item status'))
                     ->form([Forms\Components\Select::make('status')->options([
                         'in_progress' => 'Start work', 'ready' => 'Mark ready', 'cancelled' => 'Cancel',
                     ])->required()])
                     ->action(fn (DesignPackageScopeItem $record, array $data) => app(DesignEngineeringService::class)
                         ->transitionScopeItem(auth()->user(), $record, $data['status'])),
-                Tables\Actions\ViewAction::make()->tooltip('View scope item details'),
+                Tables\Actions\ViewAction::make()->tooltip(__('View scope item details')),
             ]);
     }
 

@@ -20,6 +20,7 @@ use Filament\Notifications\Notification;
 
 class EmployeeResource extends Resource
 {
+    use \App\Filament\Resources\Concerns\UsesLocalizedResourceLabels;
     protected static ?string $model = Employee::class;
     protected static ?string $navigationIcon = 'heroicon-o-briefcase';
     protected static ?string $navigationGroup = '👥 People';
@@ -39,8 +40,8 @@ class EmployeeResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Account Information')
-                    ->description('Login credentials for this employee')
+                Forms\Components\Section::make(__('Account Information'))
+                    ->description(__('Login credentials for this employee'))
                     ->schema([
                         Forms\Components\TextInput::make('user.name')
                             ->label('Full Name')
@@ -121,18 +122,18 @@ class EmployeeResource extends Resource
                     ])
                     ->columns(2),
 
-                Forms\Components\Section::make('Employment Details')
+                Forms\Components\Section::make(__('Employment Details'))
                     ->schema([
                         Forms\Components\TextInput::make('employee_id')
                             ->label('Employee ID')
-                            ->placeholder('EMP-001')
+                            ->placeholder(__('EMP-001'))
                             ->unique(ignoreRecord: true)
                             ->maxLength(255),
 
                         Forms\Components\TextInput::make('position')
                             ->label('Position / Job Title')
                             ->maxLength(255)
-                            ->placeholder('Property Manager, Accountant, etc.'),
+                            ->placeholder(__('Property Manager, Accountant, etc.')),
 
                         Forms\Components\Select::make('department')
                             ->options([
@@ -160,7 +161,7 @@ class EmployeeResource extends Resource
                     ])
                     ->columns(2),
 
-                Forms\Components\Section::make('Emergency Contact')
+                Forms\Components\Section::make(__('Emergency Contact'))
                     ->schema([
                         Forms\Components\TextInput::make('emergency_contact_name')
                             ->maxLength(255),
@@ -171,12 +172,12 @@ class EmployeeResource extends Resource
 
                         Forms\Components\TextInput::make('emergency_contact_relationship')
                             ->maxLength(255)
-                            ->placeholder('Father, Mother, Spouse, etc.'),
+                            ->placeholder(__('Father, Mother, Spouse, etc.')),
                     ])
                     ->columns(3)
                     ->collapsible(),
 
-                Forms\Components\Section::make('Additional Information')
+                Forms\Components\Section::make(__('Additional Information'))
                     ->schema([
                         Forms\Components\Select::make('status')
                             ->options([
@@ -230,7 +231,7 @@ class EmployeeResource extends Resource
                                 Infolists\Components\TextEntry::make('user.phone')
                                     ->label('Phone')
                                     ->icon('heroicon-m-phone')
-                                    ->placeholder('—')
+                                    ->placeholder(__('—'))
                                     ->copyable(),
 
                                 Infolists\Components\TextEntry::make('user.role')
@@ -249,17 +250,17 @@ class EmployeeResource extends Resource
                     ])
                     ->columnSpanFull(),
 
-                Infolists\Components\Section::make('Employment Details')
+                Infolists\Components\Section::make(__('Employment Details'))
                     ->schema([
                         Infolists\Components\TextEntry::make('employee_id')
                             ->label('Employee ID')
                             ->badge()
                             ->color('info')
-                            ->placeholder('—'),
+                            ->placeholder(__('—')),
 
                         Infolists\Components\TextEntry::make('position')
                             ->label('Position')
-                            ->placeholder('—'),
+                            ->placeholder(__('—')),
 
                         Infolists\Components\TextEntry::make('department')
                             ->badge()
@@ -284,26 +285,26 @@ class EmployeeResource extends Resource
                     ->columns(3)
                     ->collapsible(),
 
-                Infolists\Components\Section::make('Emergency Contact')
+                Infolists\Components\Section::make(__('Emergency Contact'))
                     ->schema([
                         Infolists\Components\TextEntry::make('emergency_contact_name')
                             ->label('Contact Name')
-                            ->placeholder('—'),
+                            ->placeholder(__('—')),
 
                         Infolists\Components\TextEntry::make('emergency_contact_phone')
                             ->label('Contact Phone')
-                            ->placeholder('—')
+                            ->placeholder(__('—'))
                             ->copyable(),
 
                         Infolists\Components\TextEntry::make('emergency_contact_relationship')
                             ->label('Relationship')
-                            ->placeholder('—'),
+                            ->placeholder(__('—')),
                     ])
                     ->columns(3)
                     ->collapsible()
                     ->collapsed(),
 
-                Infolists\Components\Section::make('Additional Information')
+                Infolists\Components\Section::make(__('Additional Information'))
                     ->schema([
                         Infolists\Components\TextEntry::make('status')
                             ->badge()
@@ -315,7 +316,7 @@ class EmployeeResource extends Resource
                             ]),
 
                         Infolists\Components\TextEntry::make('notes')
-                            ->placeholder('No notes added')
+                            ->placeholder(__('No notes added'))
                             ->columnSpanFull(),
                     ])
                     ->collapsible(),
@@ -353,7 +354,7 @@ class EmployeeResource extends Resource
                     ->searchable()
                     ->badge()
                     ->color('info')
-                    ->placeholder('—'),
+                    ->placeholder(__('—')),
 
                 Tables\Columns\TextColumn::make('position')
                     ->searchable()

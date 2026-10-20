@@ -14,21 +14,26 @@ class FeaturesRelationManager extends RelationManager
 {
     protected static string $relationship = 'features';
 
+    public static function getTitle(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): string
+    {
+        return __('Features');
+    }
+
     public function form(Form $form): Form
     {
         return $form
             ->schema([
                 Forms\Components\Select::make('feature_key')
-                    ->label('Common feature')
+                    ->label(__('Common feature'))
                     ->options(collect(\App\Services\UnitSetupService::FEATURE_CATALOGUE)->mapWithKeys(fn($v, $k) => [$k => $v[0]]))
                     ->live()
                     ->afterStateUpdated(fn(Forms\Set $set, $state) => $state ? $set('name', \App\Services\UnitSetupService::FEATURE_CATALOGUE[$state][0]) : null),
                 Forms\Components\TextInput::make('name')
-                    ->label('Feature Name')
+                    ->label(__('Feature Name'))
                     ->required()
                     ->maxLength(255),
                 Forms\Components\TextInput::make('value')
-                    ->label('Value / Detail')
+                    ->label(__('Value / Detail'))
                     ->maxLength(255),
             ]);
     }
@@ -39,12 +44,12 @@ class FeaturesRelationManager extends RelationManager
             ->recordTitleAttribute('name')
             ->columns([
                 Tables\Columns\TextColumn::make('name')
-                    ->label('Feature')
+                    ->label(__('Feature'))
                     ->weight('bold')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('value')
-                    ->label('Detail')
-                    ->placeholder('—'),
+                    ->label(__('Detail'))
+                    ->placeholder(__('—')),
             ])
             ->filters([
                 //

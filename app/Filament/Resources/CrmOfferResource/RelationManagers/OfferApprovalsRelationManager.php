@@ -35,18 +35,18 @@ class OfferApprovalsRelationManager extends RelationManager
                 ->formatStateUsing(fn($state) => __('crm.offers.revision_number', ['number' => $state])),
             Tables\Columns\TextColumn::make('requestedBy.name')
                 ->label(__('crm.offers.fields.requested_by'))
-                ->placeholder('—'),
+                ->placeholder(__('—')),
             Tables\Columns\TextColumn::make('assignedApprover.name')
                 ->label(__('crm.offers.fields.assigned_approver'))
-                ->placeholder('—'),
+                ->placeholder(__('—')),
             Tables\Columns\TextColumn::make('status')
                 ->label(__('crm.fields.status'))->badge()
                 ->formatStateUsing(fn($state) => $state instanceof OfferApprovalStatus ? $state->getLabel() : __('crm.offers.approval_statuses.' . $state))
                 ->color(fn($state) => $state instanceof OfferApprovalStatus ? $state->color() : OfferApprovalStatus::tryFrom((string) $state)?->color()),
             Tables\Columns\TextColumn::make('decidedBy.name')
                 ->label(__('crm.offers.fields.decided_by'))
-                ->placeholder('—'),
-            Tables\Columns\TextColumn::make('decided_at')->label(__('crm.offers.fields.decided_at'))->dateTime()->placeholder('—'),
+                ->placeholder(__('—')),
+            Tables\Columns\TextColumn::make('decided_at')->label(__('crm.offers.fields.decided_at'))->dateTime()->placeholder(__('—')),
         ])
             ->emptyStateHeading(__('crm.offer_empty.approvals_heading'))
             ->emptyStateDescription(__('crm.offer_empty.approvals_description'))

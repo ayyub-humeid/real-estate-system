@@ -6,6 +6,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 class FinancialCommitmentResource extends Resource
 {
+    use \App\Filament\Resources\Concerns\UsesLocalizedResourceLabels;
     protected static ?string $model = FinancialCommitment::class;
     protected static bool $shouldRegisterNavigation = false;
     protected static ?string $navigationIcon = 'heroicon-o-document-currency-dollar';

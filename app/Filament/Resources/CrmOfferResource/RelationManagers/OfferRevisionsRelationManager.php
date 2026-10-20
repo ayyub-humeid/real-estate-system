@@ -119,11 +119,11 @@ class OfferRevisionsRelationManager extends RelationManager
                     : ($state instanceof OfferRevisionStatus ? $state->color() : OfferRevisionStatus::tryFrom((string) $state)?->color())),
             Tables\Columns\TextColumn::make('recordedBy.name')
                 ->label(__('crm.offers.fields.recorded_by'))
-                ->placeholder('—'),
+                ->placeholder(__('—')),
             Tables\Columns\TextColumn::make('expires_at')
                 ->label(__('crm.offers.fields.expires_at'))
                 ->dateTime()
-                ->placeholder('—'),
+                ->placeholder(__('—')),
         ])
             ->emptyStateHeading(__('crm.offer_empty.revisions_heading'))
             ->emptyStateDescription(__('crm.offer_empty.revisions_description'))
@@ -145,7 +145,7 @@ class OfferRevisionsRelationManager extends RelationManager
                     Tables\Actions\ViewAction::make()->label(__('crm.actions.details'))->modalHeading(__('crm.offer_modals.view_revision'))->infolist([
                         Infolists\Components\TextEntry::make('revision_number')->label(__('crm.offers.fields.revision')),
                         Infolists\Components\TextEntry::make('amount')->label(__('crm.offers.fields.amount'))->money(fn(CrmOfferRevision $record) => $record->currency),
-                        Infolists\Components\TextEntry::make('notes')->label(__('crm.fields.notes'))->placeholder('—')->columnSpanFull(),
+                        Infolists\Components\TextEntry::make('notes')->label(__('crm.fields.notes'))->placeholder(__('—'))->columnSpanFull(),
                     ]),
                     Tables\Actions\EditAction::make()->label(__('crm.actions.edit'))->modalHeading(__('crm.offer_modals.edit_revision'))->visible(fn(CrmOfferRevision $record) => $record->status === OfferRevisionStatus::Draft && auth()->user()->can('update', $record))->using(fn(CrmOfferRevision $record, array $data) => app(OfferNegotiationService::class)->updateDraftRevision(auth()->user(), $record, $data)),
                     Tables\Actions\Action::make('submit')->label(__('crm.offer_finalize.action'))->modalHeading(__('crm.offer_finalize.action'))->modalDescription(__('crm.offer_finalize.description'))->icon('heroicon-o-paper-airplane')->color('info')->requiresConfirmation()->visible(fn(CrmOfferRevision $record) => $record->status === OfferRevisionStatus::Draft && auth()->user()->can('submit', $record))->action(fn(CrmOfferRevision $record) => $this->run(__('crm.offer_finalize.action'), fn() => app(OfferNegotiationService::class)->submitRevision(auth()->user(), $record))),

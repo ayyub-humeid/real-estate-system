@@ -13,6 +13,7 @@ use Filament\Tables\Table;
 
 class OpportunityResource extends Resource
 {
+    use \App\Filament\Resources\Concerns\UsesLocalizedResourceLabels;
     protected static ?string $model = Opportunity::class;
     protected static ?string $navigationIcon = 'heroicon-o-briefcase';
     protected static ?string $navigationGroup = '💼 CRM';
@@ -108,12 +109,12 @@ class OpportunityResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('lead.name')->label(__('crm.fields.lead'))->searchable(),
-                Tables\Columns\TextColumn::make('listing.title')->label(__('crm.fields.listing'))->placeholder('—'),
+                Tables\Columns\TextColumn::make('listing.title')->label(__('crm.fields.listing'))->placeholder(__('—')),
                 Tables\Columns\TextColumn::make('type')->label(__('crm.fields.type'))->badge()
                     ->formatStateUsing(fn ($state) => $state instanceof OpportunityType ? $state->getLabel() : __('crm.opportunity_types.' . $state)),
                 Tables\Columns\TextColumn::make('stage.label')->label(__('crm.fields.stage'))->badge()
                     ->formatStateUsing(fn ($state, Opportunity $record) => $record->stage?->display_label ?? $state),
-                Tables\Columns\TextColumn::make('assignedTo.name')->label(__('crm.fields.owner'))->placeholder('—'),
+                Tables\Columns\TextColumn::make('assignedTo.name')->label(__('crm.fields.owner'))->placeholder(__('—')),
                 Tables\Columns\TextColumn::make('source')->label(__('crm.fields.source'))->badge()
                     ->formatStateUsing(fn ($state) => $state instanceof CrmInquirySource ? $state->getLabel() : __('crm.sources.' . $state)),
             ])

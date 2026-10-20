@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class PlanResource extends Resource
 {
+    use \App\Filament\Resources\Concerns\UsesLocalizedResourceLabels;
     protected static ?string $model = Plan::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-currency-dollar';
@@ -35,94 +36,96 @@ class PlanResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Plan Details')
+                Forms\Components\Section::make(__('Plan Details'))
                     ->schema([
                         Forms\Components\TextInput::make('name')
+                            ->label(__('Plan Name'))
                             ->required()
                             ->maxLength(191)
                             ->live(onBlur: true)
                             ->afterStateUpdated(fn (string $operation, $state, Forms\Set $set) => $operation === 'create' ? $set('slug', \Illuminate\Support\Str::slug($state)) : null),
-                             Forms\Components\TextInput::make('slug')
+                        Forms\Components\TextInput::make('slug')
+                            ->label(__('Slug'))
                             ->disabled()
                             ->dehydrated()
                             ->maxLength(191)
                             ->unique(Plan::class, 'slug', ignoreRecord: true)
-                            ->helperText('Auto-generated from the plan name. Cannot be changed manually.')
-                            ->placeholder('Will be generated after you type a name...'),
+                            ->helperText(__('Auto-generated from the plan name. Cannot be changed manually.'))
+                            ->placeholder(__('Will be generated after you type a name...')),
                         Forms\Components\Textarea::make('description')
+                            ->label(__('Description'))
                             ->columnSpanFull()
                             ->rows(3),
                         Forms\Components\TextInput::make('price')
+                            ->label(__('Price'))
                             ->required()
                             ->numeric()
                             ->prefix('$')
                             ->step(0.01),
                         Forms\Components\Select::make('billing_cycle')
+                            ->label(__('Billing Cycle'))
                             ->required()
                             ->options([
-                                'monthly' => 'Monthly',
-                                'yearly' => 'Yearly',
+                                'monthly' => __('Monthly'),
+                                'yearly' => __('Yearly'),
                             ])
                             ->default('monthly'),
                         Forms\Components\Toggle::make('is_active')
-                        
-                            ->label('Active State')
-                           
+                            ->label(__('Active State'))
                             ->default(true)
                             ->columnSpanFull(),
                     ])->columns(2),
 
-                Forms\Components\Section::make('Features & Limits')
-                    ->description('Set the precise limits and capabilities for this plan. Leave limits empty for "unlimited".')
+                Forms\Components\Section::make(__('Features & Limits'))
+                    ->description(__('Set the precise limits and capabilities for this plan. Leave limits empty for "unlimited".'))
                     ->schema([
                         Forms\Components\Group::make()
                             ->statePath('features')
                             ->schema([
-                                Forms\Components\Fieldset::make('Resource Limits (Count)')
+                                Forms\Components\Fieldset::make(__('Resource Limits (Count)'))
                                     ->schema([
                                         Forms\Components\TextInput::make('max_properties')
-                                            ->label('Max Properties')
+                                            ->label(__('Max Properties'))
                                             ->numeric()
-                                            ->placeholder('Unlimited'),
+                                            ->placeholder(__('Unlimited')),
                                         Forms\Components\TextInput::make('max_units')
-                                            ->label('Max Units')
+                                            ->label(__('Max Units'))
                                             ->numeric()
-                                            ->placeholder('Unlimited'),
+                                            ->placeholder(__('Unlimited')),
                                         Forms\Components\TextInput::make('max_employees')
-                                            ->label('Max Employees')
+                                            ->label(__('Max Employees'))
                                             ->numeric()
-                                            ->placeholder('Unlimited'),
+                                            ->placeholder(__('Unlimited')),
                                         Forms\Components\TextInput::make('max_users')
-                                            ->label('Max Admin Users')
+                                            ->label(__('Max Admin Users'))
                                             ->numeric()
-                                            ->placeholder('Unlimited'),
+                                            ->placeholder(__('Unlimited')),
                                     ])->columns(2),
 
-                                Forms\Components\Fieldset::make('Feature Flags (Access)')
+                                Forms\Components\Fieldset::make(__('Feature Flags (Access)'))
                                     ->schema([
                                         Forms\Components\Toggle::make('maintenance_tracking')
-                                            ->label('Maintenance Tracking')
+                                            ->label(__('Maintenance Tracking'))
                                             ->default(false),
                                         Forms\Components\Toggle::make('rental_requests')
-                                            ->label('Rental Requests Portal')
+                                            ->label(__('Rental Requests Portal'))
                                             ->default(false),
                                         Forms\Components\Toggle::make('expense_tracking')
-                                            ->label('Expense Tracking')
+                                            ->label(__('Expense Tracking'))
                                             ->default(false),
                                         Forms\Components\Toggle::make('document_management')
-                                            ->label('Document Management')
+                                            ->label(__('Document Management'))
                                             ->default(false),
                                         Forms\Components\Toggle::make('advanced_reports')
-                                            ->label('Analytics & Reports')
+                                            ->label(__('Analytics & Reports'))
                                             ->default(false),
                                         Forms\Components\Toggle::make('export_data')
-                                            ->label('Data Exporting (PDF/Excel)')
+                                            ->label(__('Data Exporting (PDF/Excel)'))
                                             ->default(false),
                                     ])->columns(3),
                             ]),
                     ]),
             ]);
-
     }
 
     public static function table(Table $table): Table
@@ -130,37 +133,45 @@ class PlanResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('name')
+                    ->label(__('Plan Name'))
                     ->searchable()
                     ->weight('bold'),
                 Tables\Columns\TextColumn::make('slug')
+                    ->label(__('Slug'))
                     ->searchable()
                     ->color('gray'),
                 Tables\Columns\TextColumn::make('price')
+                    ->label(__('Price'))
                     ->money()
                     ->sortable()
                     ->badge()
                     ->color('success'),
                 Tables\Columns\TextColumn::make('billing_cycle')
+                    ->label(__('Billing Cycle'))
                     ->searchable()
-                    ->badge(),
+                    ->badge()
+                    ->formatStateUsing(fn ($state) => $state === 'monthly' ? __('Monthly') : ($state === 'yearly' ? __('Yearly') : __($state))),
                 Tables\Columns\IconColumn::make('is_active')
-                    ->boolean()
-                    ->label('Active status'),
+                    ->label(__('Active State'))
+                    ->boolean(),
                 Tables\Columns\TextColumn::make('created_at')
+                    ->label(__('Created At'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('updated_at')
+                    ->label(__('Updated At'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
+            ->emptyStateHeading(__('No plans found'))
             ->filters([
                 Tables\Filters\TernaryFilter::make('is_active')
-                    ->label('Status')
-                    ->placeholder('All Plans')
-                    ->trueLabel('Active')
-                    ->falseLabel('Inactive'),
+                    ->label(__('Status'))
+                    ->placeholder(__('All Plans'))
+                    ->trueLabel(__('Active'))
+                    ->falseLabel(__('Inactive')),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),

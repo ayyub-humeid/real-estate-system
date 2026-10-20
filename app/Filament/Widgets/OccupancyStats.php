@@ -42,20 +42,20 @@ class OccupancyStats extends BaseWidget
         $occupancyRate = $totalUnits > 0 ? ($occupiedUnits / $totalUnits) * 100 : 0;
 
         return [
-            Stat::make('Occupancy Rate', number_format($occupancyRate, 1) . '%')
-                ->description('Percentage of occupied units')
+            Stat::make(__('Occupancy Rate'), number_format($occupancyRate, 1) . '%')
+                ->description(__('Percentage of occupied units'))
                 ->descriptionIcon('heroicon-m-home-modern')
                 ->color($occupancyRate > 80 ? 'success' : ($occupancyRate > 50 ? 'warning' : 'danger')),
-            Stat::make('Occupied Units', $occupiedUnits)
-                ->description('Total rented units')
+            Stat::make(__('Occupied Units'), $occupiedUnits)
+                ->description(__('Total rented units'))
                 ->descriptionIcon('heroicon-m-check-circle')
                 ->color('success'),
-            Stat::make('Vacant Units', $vacantUnits)
-                ->description('Ready for rent')
+            Stat::make(__('Vacant Units'), $vacantUnits)
+                ->description(__('Ready for rent'))
                 ->descriptionIcon('heroicon-m-plus-circle')
                 ->color('info'),
-            Stat::make('Maintenance', $maintenanceUnits)
-                ->description('Units under repair')
+            Stat::make(__('Maintenance'), $maintenanceUnits)
+                ->description(__('Units under repair'))
                 ->descriptionIcon('heroicon-m-wrench-screwdriver')
                 ->color('warning'),
         ];

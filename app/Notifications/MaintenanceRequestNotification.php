@@ -50,7 +50,7 @@ class MaintenanceRequestNotification extends Notification implements ShouldQueue
     public function toArray(object $notifiable): array
     {
         return \Filament\Notifications\Notification::make()
-            ->title('New Maintenance Request')
+            ->title(__('New Maintenance Request'))
             ->body("Unit {$this->maintenanceRequest->unit->name} requires attention.")
             ->icon('heroicon-o-wrench-screwdriver')
             ->iconColor('warning')
@@ -68,7 +68,7 @@ class MaintenanceRequestNotification extends Notification implements ShouldQueue
     public function toBroadcast(object $notifiable): \Illuminate\Notifications\Messages\BroadcastMessage
     {
         return \Filament\Notifications\Notification::make()
-            ->title('New Maintenance Request')
+            ->title(__('New Maintenance Request'))
             ->body("Unit {$this->maintenanceRequest->unit->name} requires attention.")
             ->icon('heroicon-o-wrench-screwdriver')
             ->iconColor('warning')

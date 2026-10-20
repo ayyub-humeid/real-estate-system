@@ -19,6 +19,11 @@ class AcquisitionPartiesRelationManager extends RelationManager
 {
     protected static string $relationship = 'acquisitionParties';
 
+    public static function getTitle(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): string
+    {
+        return __('Parties');
+    }
+
     private function externalPartyOptions(): array
     {
         $company = Company::query()->findOrFail($this->getOwnerRecord()->company_id);
@@ -34,26 +39,27 @@ class AcquisitionPartiesRelationManager extends RelationManager
     {
         return $form->schema([
             Forms\Components\Select::make('party_id')
-                ->label('Party')
+                ->label(__('Party'))
                 ->options(fn (): array => $this->externalPartyOptions())
                 ->searchable()
                 ->preload()
                 ->required(),
 
             Forms\Components\Select::make('role')
+                ->label(__('Role'))
                 ->options([
-                    'seller' => 'Seller',
-                    'buyer' => 'Buyer',
-                    'broker' => 'Broker',
-                    'investor' => 'Investor',
-                    'guarantor' => 'Guarantor',
-                    'other' => 'Other',
+                    'seller' => __('Seller'),
+                    'buyer' => __('Buyer'),
+                    'broker' => __('Broker'),
+                    'investor' => __('Investor'),
+                    'guarantor' => __('Guarantor'),
+                    'other' => __('Other'),
                 ])
                 ->required()
                 ->live(),
 
             Forms\Components\TextInput::make('share_percentage')
-                ->label('Share Percentage (%)')
+                ->label(__('Share Percentage (%)'))
                 ->numeric()
                 ->minValue(0)
                 ->maxValue(100)
@@ -105,7 +111,7 @@ class AcquisitionPartiesRelationManager extends RelationManager
                     },
                 ]),
 
-            Forms\Components\Textarea::make('notes'),
+            Forms\Components\Textarea::make('notes')->label(__('Notes')),
         ]);
     }
 
@@ -114,29 +120,39 @@ class AcquisitionPartiesRelationManager extends RelationManager
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('party.name')
-                    ->label('Party'),
+                    ->label(__('Party')),
                 Tables\Columns\TextColumn::make('role')
-                    ->badge(),
+                    ->label(__('Role'))
+                    ->badge()
+                    ->formatStateUsing(fn (?string $state): string => match ($state) {
+                        'seller' => __('Seller'),
+                        'buyer' => __('Buyer'),
+                        'broker' => __('Broker'),
+                        'investor' => __('Investor'),
+                        'guarantor' => __('Guarantor'),
+                        'other' => __('Other'),
+                        default => $state ?? '—',
+                    }),
                 Tables\Columns\TextColumn::make('share_percentage')
-                    ->label('Share %')
+                    ->label(__('Share %'))
                     ->suffix('%'),
             ])
             ->headerActions([
                 Tables\Actions\Action::make('addParty')
-                    ->label('Add Party')
+                    ->label(__('Add Party'))
                     ->visible(fn (): bool => auth()->user()->can('create_acquisition_party'))
                     ->form([
                         Forms\Components\Select::make('party_source')
-                            ->label('Party Source')
+                            ->label(__('Party Source'))
                             ->options([
-                                'existing_party' => 'Existing Party',
-                                'current_company' => 'Current Company',
+                                'existing_party' => __('Existing Party'),
+                                'current_company' => __('Current Company'),
                             ])
                             ->default('existing_party')
                             ->live()
                             ->required(),
                         Forms\Components\Select::make('party_id')
-                            ->label('Party')
+                            ->label(__('Party'))
                             ->options(fn (): array => $this->externalPartyOptions())
                             ->searchable()
                             ->preload()
@@ -154,19 +170,20 @@ class AcquisitionPartiesRelationManager extends RelationManager
                             ]),
 
                         Forms\Components\Select::make('role')
+                            ->label(__('Role'))
                             ->options([
-                                'seller' => 'Seller',
-                                'buyer' => 'Buyer',
-                                'broker' => 'Broker',
-                                'investor' => 'Investor',
-                                'guarantor' => 'Guarantor',
-                                'other' => 'Other',
+                                'seller' => __('Seller'),
+                                'buyer' => __('Buyer'),
+                                'broker' => __('Broker'),
+                                'investor' => __('Investor'),
+                                'guarantor' => __('Guarantor'),
+                                'other' => __('Other'),
                             ])
                             ->required()
                             ->live(),
 
                         Forms\Components\TextInput::make('share_percentage')
-                            ->label('Share Percentage (%)')
+                            ->label(__('Share Percentage (%)'))
                             ->numeric()
                             ->minValue(0)
                             ->maxValue(100)
@@ -218,7 +235,7 @@ class AcquisitionPartiesRelationManager extends RelationManager
                                 },
                             ]),
 
-                        Forms\Components\Textarea::make('notes'),
+                        Forms\Components\Textarea::make('notes')->label(__('Notes')),
                     ])
                     ->action(function (array $data) {
                         try {
@@ -227,7 +244,7 @@ class AcquisitionPartiesRelationManager extends RelationManager
                             if (($data['party_source'] ?? 'existing_party') === 'existing_party'
                                 && (int) ($data['party_id'] ?? 0) === (int) $company->self_party_id) {
                                 throw ValidationException::withMessages([
-                                    'party_id' => 'Select Current Company to add your company to this acquisition.',
+                                    'party_id' => __('Select Current Company to add your company to this acquisition.'),
                                 ]);
                             }
                             $party = ($data['party_source'] ?? 'existing_party') === 'current_company'
@@ -246,7 +263,7 @@ class AcquisitionPartiesRelationManager extends RelationManager
                         } catch (ValidationException $e) {
                             Notification::make()
                                 ->danger()
-                                ->title('Cannot Add Party')
+                                ->title(__('Cannot Add Party'))
                                 ->body(collect($e->errors())->flatten()->first())
                                 ->send();
 
@@ -254,8 +271,8 @@ class AcquisitionPartiesRelationManager extends RelationManager
                         } catch (AuthorizationException) {
                             Notification::make()
                                 ->danger()
-                                ->title('Unauthorized')
-                                ->body('You do not have permission to add parties to this acquisition.')
+                                ->title(__('Unauthorized'))
+                                ->body(__('You do not have permission to add parties to this acquisition.'))
                                 ->send();
 
                             return null;
@@ -264,35 +281,36 @@ class AcquisitionPartiesRelationManager extends RelationManager
             ])
             ->actions([
                 Tables\Actions\Action::make('editParty')
-                    ->label('Edit')
+                    ->label(__('Edit'))
                     ->visible(fn (): bool => auth()->user()->can('update_acquisition_party'))
                     ->fillForm(fn (AcquisitionParty $record): array => $record->only(['role', 'share_percentage', 'notes']))
                     ->form([
                         Forms\Components\Select::make('role')
+                            ->label(__('Role'))
                             ->options([
-                                'seller' => 'Seller', 'buyer' => 'Buyer', 'broker' => 'Broker',
-                                'investor' => 'Investor', 'guarantor' => 'Guarantor', 'other' => 'Other',
+                                'seller' => __('Seller'), 'buyer' => __('Buyer'), 'broker' => __('Broker'),
+                                'investor' => __('Investor'), 'guarantor' => __('Guarantor'), 'other' => __('Other'),
                             ])
                             ->required()
                             ->live(),
                         Forms\Components\TextInput::make('share_percentage')
-                            ->label('Share Percentage (%)')
+                            ->label(__('Share Percentage (%)'))
                             ->numeric()
                             ->minValue(0)
                             ->maxValue(100)
                             ->suffix('%'),
-                        Forms\Components\Textarea::make('notes'),
+                        Forms\Components\Textarea::make('notes')->label(__('Notes')),
                     ])
                     ->action(function (AcquisitionParty $record, array $data) {
                         try {
                             return app(PropertyAcquisitionService::class)->updateAcquisitionParty(auth()->user(), $record, $data);
                         } catch (ValidationException $e) {
-                            Notification::make()->danger()->title('Cannot Update Party')
+                            Notification::make()->danger()->title(__('Cannot Update Party'))
                                 ->body(collect($e->errors())->flatten()->first())->send();
                             return null;
                         } catch (AuthorizationException) {
-                            Notification::make()->danger()->title('Unauthorized')
-                                ->body('You do not have permission to update parties in this acquisition.')->send();
+                            Notification::make()->danger()->title(__('Unauthorized'))
+                                ->body(__('You do not have permission to update parties in this acquisition.'))->send();
                             return null;
                         }
                     }),

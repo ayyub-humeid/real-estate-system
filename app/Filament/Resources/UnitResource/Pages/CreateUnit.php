@@ -18,7 +18,7 @@ class CreateUnit extends CreateRecord
 
         if (!$user->isSuperAdmin() && !$user->company?->canAddUnit()) {
             Notification::make()
-                ->title('Limit Reached')
+                ->title(__('Limit Reached'))
                 ->body('Your plan does not allow adding more units.')
                 ->danger()
                 ->persistent()

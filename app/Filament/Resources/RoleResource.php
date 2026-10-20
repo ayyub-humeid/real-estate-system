@@ -19,6 +19,26 @@ use Illuminate\Validation\Rules\Unique;
 
 class RoleResource extends ShieldRoleResource
 {
+    public static function getModelLabel(): string
+    {
+        return __('Role');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('Roles');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('Roles');
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('filament-shield::filament-shield.nav.group');
+    }
+
     /** Resources administered by the SaaS platform, never delegated through a Company role. */
     private const PLATFORM_RESOURCE_CLASSES = [
         CompanyResource::class,
@@ -36,11 +56,12 @@ class RoleResource extends ShieldRoleResource
                 && in_array($entity['fqcn'] ?? null, self::PLATFORM_RESOURCE_CLASSES, true))
             ->sortKeys()
             ->map(function (array $entity) {
-                $label = static::shield()->hasLocalizedPermissionLabels()
-                    ? FilamentShield::getLocalizedResourceLabel($entity['fqcn'])
-                    : $entity['model'];
+                $resourceClass = $entity['fqcn'];
+                $modelLabel = method_exists($resourceClass, 'getModelLabel')
+                    ? $resourceClass::getModelLabel()
+                    : __($entity['model']);
 
-                return Forms\Components\Section::make((string) $label)
+                return Forms\Components\Section::make((string) $modelLabel)
                     ->description(fn () => new HtmlString('<span style="word-break: break-word;">'.Utils::showModelPath($entity['fqcn']).'</span>'))
                     ->compact()
                     ->schema([static::getCheckBoxListComponentForResource($entity)])
@@ -48,6 +69,111 @@ class RoleResource extends ShieldRoleResource
                     ->collapsible();
             })
             ->toArray();
+    }
+
+    public static function getResourcePermissionOptions(array $entity): array
+    {
+        return collect(Utils::getResourcePermissionPrefixes($entity['fqcn']))
+            ->flatMap(function ($permission) use ($entity) {
+                $name = $permission . '_' . $entity['resource'];
+                $labelKey = 'filament-shield::filament-shield.resource_permission_prefixes_labels.' . $permission;
+                $label = __($labelKey);
+
+                if ($label === $labelKey) {
+                    $label = __($permission);
+                }
+
+                return [
+                    $name => $label,
+                ];
+            })
+            ->toArray();
+    }
+
+    public static function getPageOptions(): array
+    {
+        return collect(FilamentShield::getPages())
+            ->flatMap(function ($page) {
+                $label = null;
+                $class = $page['class'];
+
+                if (method_exists($class, 'getNavigationLabel')) {
+                    $ref = new \ReflectionMethod($class, 'getNavigationLabel');
+                    if ($ref->isStatic() && $ref->isPublic()) {
+                        $label = $class::getNavigationLabel();
+                    }
+                }
+
+                if (! $label && method_exists($class, 'getTitle')) {
+                    $ref = new \ReflectionMethod($class, 'getTitle');
+                    if ($ref->isStatic() && $ref->isPublic()) {
+                        $label = $class::getTitle();
+                    } elseif ($ref->isPublic() && ! $ref->getNumberOfRequiredParameters()) {
+                        $label = (new $class())->getTitle();
+                    }
+                }
+
+                if (! $label) {
+                    $label = __($page['permission']);
+                    if ($label === $page['permission']) {
+                        $label = str($page['permission'])->replace('page_', '')->headline()->toString();
+                        $label = __($label);
+                    }
+                }
+
+                return [
+                    $page['permission'] => (string) $label,
+                ];
+            })
+            ->toArray();
+    }
+
+    public static function getWidgetOptions(): array
+    {
+        return collect(FilamentShield::getWidgets())
+            ->flatMap(function ($widget) {
+                $class = $widget['class'];
+                $label = null;
+
+                if ($class === \App\Filament\Widgets\FinancialOverviewStats::class) {
+                    $label = __('Financial Overview');
+                } elseif ($class === \App\Filament\Widgets\OccupancyStats::class) {
+                    $label = __('Occupancy Statistics');
+                } elseif ($class === \App\Filament\Widgets\FinancialTrendChart::class) {
+                    $label = __('Project Financial Activity (Monthly)');
+                } elseif (method_exists($class, 'getHeading')) {
+                    $ref = new \ReflectionMethod($class, 'getHeading');
+                    if ($ref->isPublic() && ! $ref->getNumberOfRequiredParameters()) {
+                        $label = (new $class())->getHeading();
+                    }
+                }
+
+                if (! $label) {
+                    $label = __($widget['permission']);
+                    if ($label === $widget['permission']) {
+                        $label = str($widget['permission'])->replace('widget_', '')->headline()->toString();
+                        $label = __($label);
+                    }
+                }
+
+                return [
+                    $widget['permission'] => (string) $label,
+                ];
+            })
+            ->toArray();
+    }
+
+    public static function getShieldFormComponents(): Component
+    {
+        return Forms\Components\Tabs::make(__('Permissions'))
+            ->contained()
+            ->tabs([
+                static::getTabFormComponentForResources(),
+                static::getTabFormComponentForPage(),
+                static::getTabFormComponentForWidget(),
+                static::getTabFormComponentForCustomPermissions(),
+            ])
+            ->columnSpan('full');
     }
 
     /**
@@ -140,6 +266,19 @@ class RoleResource extends ShieldRoleResource
             'Listing lifecycle' => ['exact:publish_listing', 'exact:pause_listing', 'exact:archive_listing'],
             'Listing pricing' => ['exact:change_listing_price'],
         ],
+        'Contracts & Agreements' => [
+            'Version workflow' => [
+                'exact:update_contract_version', 'exact:submit_contract_version', 'exact:approve_contract_version',
+                'exact:request_contract_revision', 'exact:create_contract_revision',
+            ],
+            'Legal documents and signatures' => [
+                'exact:attach_contract_document', 'exact:record_contract_signature', 'exact:activate_contract',
+            ],
+            'Amendments and audit' => [
+                'exact:create_contract_amendment', 'exact:view_contract_approval', 'exact:view_contract_signature',
+                'exact:view_contract_amendment', 'exact:view_contract_status_history',
+            ],
+        ],
     ];
 
     /** @return array{0: array<string, array<string, array<string, string>>>, 1: array<string, string>} */
@@ -187,7 +326,7 @@ class RoleResource extends ShieldRoleResource
             $domains['other_custom_permissions'] = ['uncategorized' => $other];
         }
 
-        return Forms\Components\Tabs\Tab::make('custom')
+        return Forms\Components\Tabs\Tab::make(__('custom'))
             ->label(__('filament-shield::filament-shield.custom'))
             ->visible(fn (): bool => $domains !== [])
             ->badge(count($options))
@@ -230,7 +369,7 @@ class RoleResource extends ShieldRoleResource
             return $exactLabel;
         }
 
-        foreach (['view_any', 'view_own', 'complete_any', 'force_delete_any', 'force_delete', 'delete_any', 'restore_any', 'create', 'update', 'delete', 'view', 'approve', 'cancel', 'complete', 'manage', 'attach', 'detach', 'clear', 'waive', 'change', 'assign', 'replace', 'submit', 'review', 'request', 'close', 'reject', 'commit', 'release', 'record', 'allocate', 'void', 'start', 'resolve', 'correct', 'reactivate', 'publish', 'pause', 'archive', 'move', 'finalize', 'withdraw', 'expire'] as $action) {
+        foreach (['view_any', 'view_own', 'complete_any', 'force_delete_any', 'force_delete', 'delete_any', 'restore_any', 'create', 'update', 'delete', 'view', 'approve', 'cancel', 'complete', 'manage', 'attach', 'detach', 'clear', 'waive', 'change', 'assign', 'replace', 'submit', 'review', 'request', 'close', 'reject', 'commit', 'release', 'record', 'allocate', 'void', 'start', 'resolve', 'correct', 'reactivate', 'publish', 'pause', 'archive', 'move', 'finalize', 'withdraw', 'expire', 'activate', 'confirm'] as $action) {
             $prefix = $action.'_';
 
             if (str_starts_with($permission, $prefix)) {
@@ -248,7 +387,15 @@ class RoleResource extends ShieldRoleResource
 
     private static function rolePermissionGroupLabel(string $group): string
     {
-        return __('permissions.groups.'.str($group)->slug('_'));
+        $slug = str($group)->slug('_')->toString();
+        $key = 'permissions.groups.'.$slug;
+        $label = __($key);
+
+        if ($label === $key) {
+            $label = __($group);
+        }
+
+        return $label;
     }
     /** Keep platform permissions out of a company role form as well as rejecting forged input in the service. */
     public static function getCheckboxListFormComponent(string $name, array $options, bool $searchable = true, array|int|string|null $columns = null, array|int|string|null $columnSpan = null): Component
@@ -282,18 +429,20 @@ class RoleResource extends ShieldRoleResource
     public static function form(Form $form): Form
     {
         return $form->schema([
-            Forms\Components\Section::make('Role details')
+            Forms\Components\Section::make(__('Role details'))
                 ->schema([
                     Forms\Components\TextInput::make('name')
+                        ->label(__('Role Name'))
                         ->required()->maxLength(255)
                         ->unique(ignoreRecord: true, modifyRuleUsing: fn (Unique $rule, Forms\Get $get) => $rule->where('company_id', auth()->user()?->isSuperAdmin() ? $get('company_id') : auth()->user()?->company_id)),
                     Forms\Components\TextInput::make('guard_name')
+                        ->label(__('Guard name'))
                         ->default('web')->required()->maxLength(255)->disabled()->dehydrated(),
                     Forms\Components\Select::make('company_id')
-                        ->label('Owning company')
+                        ->label(__('Owning company'))
                         ->options(Company::withoutGlobalScopes()->orderBy('name')->pluck('name', 'id'))
                         ->searchable()->preload()->nullable()
-                        ->helperText('Empty means a platform role. Only Super Admin can create platform roles.')
+                        ->helperText(__('Empty means a platform role. Only Super Admin can create platform roles.'))
                         ->live()
                         ->visible(fn () => auth()->user()?->isSuperAdmin()),
                     Forms\Components\Hidden::make('company_id')->default(fn () => auth()->user()?->company_id)->dehydrated(fn () => ! auth()->user()?->isSuperAdmin()),
@@ -305,11 +454,13 @@ class RoleResource extends ShieldRoleResource
     public static function table(Table $table): Table
     {
         return $table->columns([
-            Tables\Columns\TextColumn::make('name')->weight('font-medium')->searchable(),
-            Tables\Columns\TextColumn::make('company.name')->label('Scope')->badge()->default('Platform')->color(fn ($state) => $state ? 'primary' : 'gray')->visible(fn () => auth()->user()?->isSuperAdmin()),
-            Tables\Columns\TextColumn::make('permissions_count')->counts('permissions')->badge(),
-            Tables\Columns\TextColumn::make('updated_at')->dateTime()->since(),
-        ])->actions([Tables\Actions\ViewAction::make(), Tables\Actions\EditAction::make(), Tables\Actions\DeleteAction::make()]);
+            Tables\Columns\TextColumn::make('name')->label(__('Role Name'))->weight('font-medium')->searchable(),
+            Tables\Columns\TextColumn::make('company.name')->label(__('Scope'))->badge()->default(__('Platform'))->color(fn ($state) => $state ? 'primary' : 'gray')->visible(fn () => auth()->user()?->isSuperAdmin()),
+            Tables\Columns\TextColumn::make('permissions_count')->label(__('Permissions count'))->counts('permissions')->badge(),
+            Tables\Columns\TextColumn::make('updated_at')->label(__('Updated At'))->dateTime()->since(),
+        ])
+        ->emptyStateHeading(__('No roles found'))
+        ->actions([Tables\Actions\ViewAction::make(), Tables\Actions\EditAction::make(), Tables\Actions\DeleteAction::make()]);
     }
 
     public static function getPages(): array

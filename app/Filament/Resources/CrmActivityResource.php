@@ -13,6 +13,7 @@ use Filament\Tables\Table;
 
 class CrmActivityResource extends Resource
 {
+    use \App\Filament\Resources\Concerns\UsesLocalizedResourceLabels;
     protected static ?string $model = CrmActivity::class;
     protected static ?string $navigationIcon = 'heroicon-o-clock';
     public static function getNavigationGroup(): ?string { return '💼 ' . __('crm.navigation.crm'); }
@@ -31,7 +32,7 @@ class CrmActivityResource extends Resource
     public static function table(Table $table): Table { return $table->modifyQueryUsing(fn($query)=>$query->with(['lead','opportunity','performedBy']))->columns([
         Tables\Columns\TextColumn::make('type')->label(__('crm.activities.fields.type'))->badge()->formatStateUsing(fn($state)=>$state instanceof CrmActivityType?$state->getLabel():__('crm.activities.types.'.$state)),
         Tables\Columns\TextColumn::make('outcome')->label(__('crm.activities.fields.outcome'))->badge()->formatStateUsing(fn($state)=>$state instanceof CrmActivityOutcome?$state->getLabel():($state?__('crm.activities.outcomes.'.$state):'—')),
-        Tables\Columns\TextColumn::make('lead.name')->label(__('crm.fields.lead'))->placeholder('—'),
+        Tables\Columns\TextColumn::make('lead.name')->label(__('crm.fields.lead'))->placeholder(__('—')),
         Tables\Columns\TextColumn::make('performedBy.name')->label(__('crm.activities.fields.performed_by')),
         Tables\Columns\TextColumn::make('occurred_at')->label(__('crm.activities.fields.occurred_at'))->dateTime(),
     ])->actions([Tables\Actions\ViewAction::make()]); }

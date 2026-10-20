@@ -16,7 +16,7 @@ class ViewProperty extends ViewRecord
 
     public function getContentTabLabel(): ?string
     {
-        return 'Overview';
+        return __('Overview');
     }
 
     public function infolist(Infolist $infolist): Infolist
@@ -39,50 +39,53 @@ class ViewProperty extends ViewRecord
                 Infolists\Components\Grid::make(3)
                     ->schema([
                         Infolists\Components\Group::make([
-                            Infolists\Components\Section::make('Basic Information')
+                            Infolists\Components\Section::make(__('Basic Information'))
                                 ->schema([
                                     Infolists\Components\TextEntry::make('name')
+                                        ->label(__('Name'))
                                         ->size(Infolists\Components\TextEntry\TextEntrySize::Large)
                                         ->weight('bold')
                                         ->icon('heroicon-m-home'),
                                     
                                     Infolists\Components\TextEntry::make('company.name')
-                                        ->label('Owner Company')
+                                        ->label(__('Owner Company'))
                                         ->icon('heroicon-m-building-office')
                                         ->color('primary'),
 
                                     Infolists\Components\TextEntry::make('location.name')
-                                        ->label('Location')
+                                        ->label(__('Location'))
                                         ->icon('heroicon-m-map-pin'),
 
                                     Infolists\Components\TextEntry::make('address')
+                                        ->label(__('Address'))
                                         ->icon('heroicon-m-map'),
                                 ])->columns(1),
                         ])->columnSpan(2),
 
                         Infolists\Components\Group::make([
-                            Infolists\Components\Section::make('Quick Stats')
+                            Infolists\Components\Section::make(__('Quick Stats'))
                                 ->schema([
                                     Infolists\Components\TextEntry::make('units_count')
-                                        ->label('Total Units')
+                                        ->label(__('Total Units'))
                                         ->state(fn($record) => $record->units()->count())
                                         ->badge()
                                         ->color('success')
                                         ->icon('heroicon-m-home-modern'),
 
                                     Infolists\Components\TextEntry::make('created_at')
-                                        ->label('Date Added')
+                                        ->label(__('Date Added'))
                                         ->date()
                                         ->icon('heroicon-m-calendar'),
                                 ])->columns(1),
                         ])->columnSpan(1),
                     ]),
 
-                Infolists\Components\Section::make('About Property')
+                Infolists\Components\Section::make(__('About Property'))
                     ->schema([
                         Infolists\Components\TextEntry::make('description')
+                            ->label(__('Description'))
                             ->markdown()
-                            ->placeholder('No description provided.'),
+                            ->placeholder(__('No description provided.')),
                     ])->collapsible(),
             ]);
     }

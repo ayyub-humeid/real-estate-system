@@ -145,8 +145,8 @@ class UsersRelationManager extends RelationManager
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ])
-            ->emptyStateHeading('No users yet')
-            ->emptyStateDescription('Add your first user to this company.')
+            ->emptyStateHeading(__('No users yet'))
+            ->emptyStateDescription(__('Add your first user to this company.'))
             ->emptyStateIcon('heroicon-o-users');
     }
 

@@ -18,7 +18,11 @@ use Illuminate\Validation\ValidationException;
 class DueDiligenceCasesRelationManager extends RelationManager
 {
     protected static string $relationship = 'dueDiligenceCases';
-    protected static ?string $title = 'Due Diligence Cases';
+
+    public static function getTitle(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): string
+    {
+        return __('Due Diligence Cases');
+    }
 
     /**
      * Due-diligence is managed from the Acquisition's View page as well as Edit.
@@ -38,9 +42,10 @@ class DueDiligenceCasesRelationManager extends RelationManager
     private function caseFormSchema(bool $saveItemsRelationship): array
     {
         $items = Forms\Components\Repeater::make('items')
+            ->label(__('Checklist Items'))
             ->schema($this->checklistItemSchema())
             ->defaultItems(0)
-            ->addActionLabel('Add checklist item')
+            ->addActionLabel(__('Add checklist item'))
             ->columnSpanFull();
 
         // EditAction saves an existing Case's items through Eloquent. Create Case is a
@@ -55,7 +60,7 @@ class DueDiligenceCasesRelationManager extends RelationManager
 
         return [
             Forms\Components\Select::make('property_id')
-                ->label('Property')
+                ->label(__('Property'))
                 ->options(fn (): array => Property::withoutGlobalScopes()
                     ->whereIn('id', $this->getOwnerRecord()->acquisitionProperties()->select('property_id'))
                     ->pluck('name', 'id')
@@ -68,11 +73,11 @@ class DueDiligenceCasesRelationManager extends RelationManager
                             ->whereKey($value)
                             ->whereIn('id', $this->getOwnerRecord()->acquisitionProperties()->select('property_id'))
                             ->exists()) {
-                            $fail('The selected property must be attached to this acquisition.');
+                            $fail(__('The selected property must be attached to this acquisition.'));
                         }
                     };
                 }),
-            Forms\Components\Textarea::make('summary'),
+            Forms\Components\Textarea::make('summary')->label(__('Summary')),
             $items,
         ];
     }
@@ -80,18 +85,20 @@ class DueDiligenceCasesRelationManager extends RelationManager
     private function checklistItemSchema(): array
     {
         return [
-            Forms\Components\TextInput::make('title')->required(),
-            Forms\Components\TextInput::make('category'),
-            Forms\Components\Textarea::make('description'),
-            Forms\Components\Toggle::make('is_required')->default(true),
+            Forms\Components\TextInput::make('title')->label(__('Title'))->required(),
+            Forms\Components\TextInput::make('category')->label(__('Category')),
+            Forms\Components\Textarea::make('description')->label(__('Description')),
+            Forms\Components\Toggle::make('is_required')->label(__('Required'))->default(true),
             Forms\Components\Select::make('status')
+                ->label(__('Status'))
                 ->options([
-                    'pending' => 'Pending',
-                    'passed'  => 'Passed',
-                    'failed'  => 'Failed',
+                    'pending' => __('Pending'),
+                    'passed'  => __('Passed'),
+                    'failed'  => __('Failed'),
                 ])
                 ->default('pending'),
             Forms\Components\TextInput::make('sort_order')
+                ->label(__('Sort Order'))
                 ->numeric()
                 ->default(0),
         ];
@@ -110,13 +117,22 @@ class DueDiligenceCasesRelationManager extends RelationManager
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('status')->badge(),
-                Tables\Columns\TextColumn::make('property.name'),
-                Tables\Columns\TextColumn::make('items_count')->counts('items'),
+                Tables\Columns\TextColumn::make('status')
+                    ->label(__('Status'))
+                    ->badge()
+                    ->formatStateUsing(fn (?string $state): string => match ($state) {
+                        'pending' => __('Pending'),
+                        'passed'  => __('Passed'),
+                        'failed'  => __('Failed'),
+                        'cleared' => __('Cleared'),
+                        default   => $state ?? '—',
+                    }),
+                Tables\Columns\TextColumn::make('property.name')->label(__('Property')),
+                Tables\Columns\TextColumn::make('items_count')->counts('items')->label(__('Items Count')),
             ])
             ->headerActions([
                 Tables\Actions\Action::make('createCase')
-                    ->label('Create Case')
+                    ->label(__('Create Case'))
                     ->visible(fn (): bool => auth()->user()->can('create', \App\Models\DueDiligenceCase::class)
                         && ! in_array($this->getOwnerRecord()->status, ['completed', 'cancelled'], true))
                     ->form($this->caseFormSchema(saveItemsRelationship: false))
@@ -127,40 +143,40 @@ class DueDiligenceCasesRelationManager extends RelationManager
                                 $this->getOwnerRecord(),
                                 $data,
                             );
-                            Notification::make()->success()->title('Due Diligence Case Created')->send();
+                            Notification::make()->success()->title(__('Due Diligence Case Created'))->send();
                         } catch (ValidationException $exception) {
-                            $this->sendValidationNotification('Cannot Create Case', $exception);
+                            $this->sendValidationNotification(__('Cannot Create Case'), $exception);
                         } catch (AuthorizationException) {
-                            $this->sendUnauthorizedNotification('create due-diligence cases');
+                            $this->sendUnauthorizedNotification(__('create due-diligence cases'));
                         }
                     }),
             ])
             ->actions([
                 Tables\Actions\Action::make('addItem')
-                    ->label('Add checklist item')
+                    ->label(__('Add checklist item'))
                     ->visible(fn (): bool => auth()->user()->can('create', DueDiligenceItem::class)
                         && ! in_array($this->getOwnerRecord()->status, ['completed', 'cancelled'], true))
                     ->form($this->checklistItemSchema())
                     ->action(function (DueDiligenceCase $record, array $data) {
                         try {
                             app(PropertyAcquisitionService::class)->createDueDiligenceItem(auth()->user(), $record, $data);
-                            Notification::make()->success()->title('Checklist Item Added')->send();
+                            Notification::make()->success()->title(__('Checklist Item Added'))->send();
                         } catch (ValidationException $exception) {
-                            $this->sendValidationNotification('Cannot Add Checklist Item', $exception);
+                            $this->sendValidationNotification(__('Cannot Add Checklist Item'), $exception);
                         } catch (AuthorizationException) {
-                            $this->sendUnauthorizedNotification('add checklist items');
+                            $this->sendUnauthorizedNotification(__('add checklist items'));
                         }
                     }),
                 Tables\Actions\Action::make('waiveItem')
-                    ->label('Waive item')
+                    ->label(__('Waive item'))
                     ->form([
                         Forms\Components\Select::make('item_id')
-                            ->label('Checklist item')
+                            ->label(__('Checklist item'))
                             ->options(fn ($record) => $record->items()
                                 ->whereNotIn('status', ['passed', 'waived'])
                                 ->pluck('title', 'id'))
                             ->required(),
-                        Forms\Components\Textarea::make('notes'),
+                        Forms\Components\Textarea::make('notes')->label(__('Notes')),
                     ])
                     ->action(function ($record, array $data) {
                         try {
@@ -169,14 +185,15 @@ class DueDiligenceCasesRelationManager extends RelationManager
                                 $record->items()->findOrFail($data['item_id']),
                                 $data['notes'] ?? null,
                             );
-                            Notification::make()->success()->title('Checklist Item Waived')->send();
+                            Notification::make()->success()->title(__('Checklist Item Waived'))->send();
                         } catch (ValidationException $exception) {
-                            $this->sendValidationNotification('Cannot Waive Checklist Item', $exception);
+                            $this->sendValidationNotification(__('Cannot Waive Checklist Item'), $exception);
                         } catch (AuthorizationException) {
-                            $this->sendUnauthorizedNotification('waive checklist items');
+                            $this->sendUnauthorizedNotification(__('waive checklist items'));
                         }
                     }),
                 Tables\Actions\Action::make('clear')
+                    ->label(__('Clear Case'))
                     ->authorize('clear')
                     ->requiresConfirmation()
                     ->action(function ($record) {
@@ -184,12 +201,12 @@ class DueDiligenceCasesRelationManager extends RelationManager
                             app(PropertyAcquisitionService::class)->clearCase(auth()->user(), $record);
                             Notification::make()
                                 ->success()
-                                ->title('Case Cleared')
+                                ->title(__('Case Cleared'))
                                 ->send();
                         } catch (ValidationException $exception) {
-                            $this->sendValidationNotification('Cannot Clear Case', $exception);
+                            $this->sendValidationNotification(__('Cannot Clear Case'), $exception);
                         } catch (AuthorizationException) {
-                            $this->sendUnauthorizedNotification('clear due-diligence cases');
+                            $this->sendUnauthorizedNotification(__('clear due-diligence cases'));
                         }
                     }),
                 Tables\Actions\ViewAction::make(),
@@ -205,8 +222,8 @@ class DueDiligenceCasesRelationManager extends RelationManager
 
     private function sendUnauthorizedNotification(string $action): void
     {
-        Notification::make()->danger()->title('Unauthorized')
-            ->body("You do not have permission to {$action}.")->send();
+        Notification::make()->danger()->title(__('Unauthorized'))
+            ->body(__('You do not have permission to :action.', ['action' => $action]))->send();
     }
 }
 

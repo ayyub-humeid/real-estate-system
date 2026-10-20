@@ -14,13 +14,17 @@ class ImagesRelationManager extends RelationManager
     // Uses the morphMany('images') on the Unit model.
     // Filament scopes automatically by imageable_type=Unit + imageable_id.
     protected static string $relationship = 'images';
-    protected static ?string $title = 'Unit Gallery';
+
+    public static function getTitle(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): string
+    {
+        return __('Unit Gallery');
+    }
 
     public function form(Form $form): Form
     {
         return $form->schema([
             Forms\Components\FileUpload::make('path')
-                ->label('Image')
+                ->label(__('Image'))
                 ->image()
                 ->directory('images/units')
                 ->imageEditor()
@@ -29,8 +33,8 @@ class ImagesRelationManager extends RelationManager
                 ->columnSpanFull(),
 
             Forms\Components\Toggle::make('is_primary')
-                ->label('Primary Image')
-                ->helperText('Set as the main display image for this unit')
+                ->label(__('Primary Image'))
+                ->helperText(__('Set as the main display image for this unit'))
                 ->default(false)
                 ->rules([
                     fn(Forms\Components\Toggle $component) => function (string $attribute, $value, \Closure $fail) use ($component) {
@@ -42,14 +46,14 @@ class ImagesRelationManager extends RelationManager
                                 ->exists();
 
                             if ($existingPrimary) {
-                                $fail('This unit already has a primary image. Please unset the current primary image first.');
+                                $fail(__('This unit already has a primary image. Please unset the current primary image first.'));
                             }
                         }
                     }
                 ]),
 
             Forms\Components\TextInput::make('order')
-                ->label('Display Order')
+                ->label(__('Display Order'))
                 ->numeric()
                 ->default(0)
                 ->minValue(0),
@@ -64,23 +68,23 @@ class ImagesRelationManager extends RelationManager
             ->reorderable('order')
             ->columns([
                 Tables\Columns\ImageColumn::make('path')
-                    ->label('Preview')
+                    ->label(__('Preview'))
                     ->height(60)
                     ->width(80),
 
                 Tables\Columns\IconColumn::make('is_primary')
-                    ->label('Primary')
+                    ->label(__('Primary'))
                     ->boolean()
                     ->trueIcon('heroicon-o-star')
                     ->falseIcon('heroicon-o-minus')
                     ->trueColor('warning'),
 
                 Tables\Columns\TextColumn::make('order')
-                    ->label('Order')
+                    ->label(__('Order'))
                     ->sortable(),
             ])
             ->headerActions([
-                Tables\Actions\CreateAction::make()->label('Upload Image'),
+                Tables\Actions\CreateAction::make()->label(__('Upload Image')),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
@@ -91,12 +95,12 @@ class ImagesRelationManager extends RelationManager
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ])
-            ->emptyStateHeading('No images yet')
-            ->emptyStateDescription('Upload images for this unit.')
+            ->emptyStateHeading(__('No images yet'))
+            ->emptyStateDescription(__('Upload images for this unit.'))
             ->emptyStateIcon('heroicon-o-photo')
             ->emptyStateActions([
                 Tables\Actions\CreateAction::make()
-                    ->label('Upload Image')
+                    ->label(__('Upload Image'))
                     ->icon('heroicon-m-plus'),
             ]);
     }

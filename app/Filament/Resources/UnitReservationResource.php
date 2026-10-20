@@ -18,6 +18,7 @@ use Illuminate\Validation\ValidationException;
 
 class UnitReservationResource extends Resource
 {
+    use \App\Filament\Resources\Concerns\UsesLocalizedResourceLabels;
     protected static ?string $model = UnitReservation::class;
     protected static ?string $navigationIcon = 'heroicon-o-bookmark-square';
     protected static ?int $navigationSort = 6;
@@ -60,7 +61,7 @@ class UnitReservationResource extends Resource
             Tables\Columns\TextColumn::make('transaction_type')->label(__('reservations.fields.transaction_type'))->badge()->formatStateUsing(fn ($state) => $state instanceof OpportunityType ? $state->getLabel() : __('crm.opportunity_types.'.$state)),
             Tables\Columns\TextColumn::make('agreed_amount')->label(__('reservations.fields.agreed_amount'))->money(fn (UnitReservation $record) => $record->currency),
             Tables\Columns\TextColumn::make('status')->label(__('crm.fields.status'))->badge()->formatStateUsing(fn ($state) => $state instanceof ReservationStatus ? $state->getLabel() : __('reservations.statuses.'.$state))->color(fn ($state) => $state instanceof ReservationStatus ? $state->color() : ReservationStatus::tryFrom((string) $state)?->color()),
-            Tables\Columns\TextColumn::make('valid_until')->label(__('reservations.fields.valid_until'))->dateTime()->placeholder('—'),
+            Tables\Columns\TextColumn::make('valid_until')->label(__('reservations.fields.valid_until'))->dateTime()->placeholder(__('—')),
         ])->filters([Tables\Filters\SelectFilter::make('status')->label(__('crm.fields.status'))->options(ReservationStatus::options()), Tables\Filters\SelectFilter::make('source')->label(__('reservations.fields.source'))->options(ReservationSource::options())])->actions([
             Tables\Actions\ViewAction::make()->label(__('crm.actions.details')),
             Tables\Actions\EditAction::make()->label(__('crm.actions.edit'))->visible(fn (UnitReservation $record) => $record->status === ReservationStatus::Draft),
@@ -77,8 +78,8 @@ class UnitReservationResource extends Resource
         ])->defaultSort('created_at', 'desc');
     }
     public static function infolist(Infolist $infolist): Infolist { return $infolist->schema([
-        Components\Section::make(__('reservations.sections.overview'))->schema([Components\TextEntry::make('reservation_number')->label(__('reservations.fields.number'))->weight('bold'), Components\TextEntry::make('status')->label(__('crm.fields.status'))->badge()->formatStateUsing(fn ($state) => $state instanceof ReservationStatus ? $state->getLabel() : __('reservations.statuses.'.$state))->color(fn ($state) => $state instanceof ReservationStatus ? $state->color() : ReservationStatus::tryFrom((string) $state)?->color()), Components\TextEntry::make('customer.name')->label(__('reservations.fields.customer')), Components\TextEntry::make('unit.unit_number')->label(__('reservations.fields.unit')), Components\TextEntry::make('valid_until')->label(__('reservations.fields.valid_until'))->dateTime()->placeholder('—')])->columns(3),
-        Components\Section::make(__('reservations.sections.commercial_terms'))->schema([Components\TextEntry::make('transaction_type')->label(__('reservations.fields.transaction_type'))->formatStateUsing(fn ($state) => $state instanceof OpportunityType ? $state->getLabel() : __('crm.opportunity_types.'.$state)), Components\TextEntry::make('agreed_amount')->label(__('reservations.fields.agreed_amount'))->money(fn (UnitReservation $record) => $record->currency), Components\TextEntry::make('payment_method')->label(__('reservations.fields.payment_method'))->placeholder('—'), Components\TextEntry::make('rent_frequency')->label(__('reservations.fields.rent_frequency'))->placeholder('—')])->columns(4),
+        Components\Section::make(__('reservations.sections.overview'))->schema([Components\TextEntry::make('reservation_number')->label(__('reservations.fields.number'))->weight('bold'), Components\TextEntry::make('status')->label(__('crm.fields.status'))->badge()->formatStateUsing(fn ($state) => $state instanceof ReservationStatus ? $state->getLabel() : __('reservations.statuses.'.$state))->color(fn ($state) => $state instanceof ReservationStatus ? $state->color() : ReservationStatus::tryFrom((string) $state)?->color()), Components\TextEntry::make('customer.name')->label(__('reservations.fields.customer')), Components\TextEntry::make('unit.unit_number')->label(__('reservations.fields.unit')), Components\TextEntry::make('valid_until')->label(__('reservations.fields.valid_until'))->dateTime()->placeholder(__('—'))])->columns(3),
+        Components\Section::make(__('reservations.sections.commercial_terms'))->schema([Components\TextEntry::make('transaction_type')->label(__('reservations.fields.transaction_type'))->formatStateUsing(fn ($state) => $state instanceof OpportunityType ? $state->getLabel() : __('crm.opportunity_types.'.$state)), Components\TextEntry::make('agreed_amount')->label(__('reservations.fields.agreed_amount'))->money(fn (UnitReservation $record) => $record->currency), Components\TextEntry::make('payment_method')->label(__('reservations.fields.payment_method'))->placeholder(__('—')), Components\TextEntry::make('rent_frequency')->label(__('reservations.fields.rent_frequency'))->placeholder(__('—'))])->columns(4),
         Components\Section::make(__('reservations.sections.snapshot'))->visible(fn (UnitReservation $record) => $record->snapshot !== null)->schema([
             Components\TextEntry::make('snapshot.created_at')->label(__('reservations.fields.snapshot_created_at'))->dateTime(),
             Components\Section::make(__('reservations.sections.unit_at_activation'))->schema([
@@ -91,7 +92,7 @@ class UnitReservationResource extends Resource
                 static::snapshotEntry('snapshot_actual_area', 'unit_data', 'actual_area', 'actual_area')->suffix(fn (UnitReservation $record) => ' '.(data_get($record->snapshot?->unit_data, 'area_unit') ?? '')),
                 static::snapshotEntry('snapshot_bedrooms', 'unit_data', 'bedrooms', 'bedrooms'),
                 static::snapshotEntry('snapshot_bathrooms', 'unit_data', 'bathrooms', 'bathrooms'),
-                static::snapshotEntry('snapshot_features', 'unit_data', 'features', 'features')->formatStateUsing(fn ($state) => collect($state ?? [])->map(fn (array $feature) => filled($feature['value'] ?? null) ? "{$feature['name']}: ".static::snapshotPlainValue($feature['value']) : ($feature['name'] ?? null))->filter()->implode(', '))->placeholder('—')->columnSpanFull(),
+                static::snapshotEntry('snapshot_features', 'unit_data', 'features', 'features')->formatStateUsing(fn ($state) => collect($state ?? [])->map(fn (array $feature) => filled($feature['value'] ?? null) ? "{$feature['name']}: ".static::snapshotPlainValue($feature['value']) : ($feature['name'] ?? null))->filter()->implode(', '))->placeholder(__('—'))->columnSpanFull(),
             ])->columns(3)->columnSpanFull(),
             Components\Section::make(__('reservations.sections.commercial_terms_at_activation'))->schema([
                 static::snapshotEntry('snapshot_transaction_type', 'commercial_terms', 'transaction_type', 'transaction_type')->formatStateUsing(fn ($state) => OpportunityType::tryFrom((string) $state)?->getLabel() ?? '—'),
@@ -109,7 +110,7 @@ class UnitReservationResource extends Resource
             ])->columns(3)->columnSpanFull(),
         ])->columns(3),
     ]); }
-    public static function getRelations(): array { return [RelationManagers\ReservationStatusHistoriesRelationManager::class]; }
+    public static function getRelations(): array { return [RelationManagers\ReservationStatusHistoriesRelationManager::class, RelationManagers\ContractsRelationManager::class]; }
     public static function getPages(): array { return ['index' => Pages\ListUnitReservations::route('/'), 'create' => Pages\CreateUnitReservation::route('/create'), 'view' => Pages\ViewUnitReservation::route('/{record}'), 'edit' => Pages\EditUnitReservation::route('/{record}/edit')]; }
     public static function companyId(Forms\Get $get): ?int { return auth()->user()?->isSuperAdmin() ? ($get('company_id') ?: null) : auth()->user()?->company_id; }
     public static function acceptedOfferOptions(?int $companyId): array
@@ -175,7 +176,7 @@ class UnitReservationResource extends Resource
         return Components\TextEntry::make($name)
             ->label(__('reservations.fields.'.$label))
             ->state(fn (UnitReservation $record) => data_get($record->snapshot?->{$group} ?? [], $key))
-            ->placeholder('—');
+            ->placeholder(__('—'));
     }
 
     private static function snapshotPlainValue(mixed $value): string

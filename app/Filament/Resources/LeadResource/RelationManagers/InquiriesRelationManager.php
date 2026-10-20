@@ -52,7 +52,7 @@ class InquiriesRelationManager extends RelationManager
             ->columns([
                 Tables\Columns\TextColumn::make('source')->label(__('crm.fields.source'))->badge()
                     ->formatStateUsing(fn($state) => $state instanceof CrmInquirySource ? $state->getLabel() : __('crm.sources.' . $state)),
-                Tables\Columns\TextColumn::make('listing.title')->label(__('crm.fields.listing'))->placeholder('—'),
+                Tables\Columns\TextColumn::make('listing.title')->label(__('crm.fields.listing'))->placeholder(__('—')),
                 Tables\Columns\TextColumn::make('contact_result')->label(__('crm.fields.contact_result')),
                 Tables\Columns\TextColumn::make('created_at')->label(__('crm.fields.created_at'))->dateTime(),
             ])

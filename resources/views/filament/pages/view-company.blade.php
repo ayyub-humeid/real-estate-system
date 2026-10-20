@@ -25,11 +25,11 @@
                     <div class="mt-2">
                         @if($company->is_active)
                             <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20 dark:bg-green-500/10 dark:text-green-400 dark:ring-green-500/20">
-                                Active Company
+                                {{ __('Active Company') }}
                             </span>
                         @else
                             <span class="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/20 dark:bg-red-500/10 dark:text-red-400 dark:ring-red-500/20">
-                                Inactive
+                                {{ __('Inactive') }}
                             </span>
                         @endif
                     </div>
@@ -39,11 +39,11 @@
             <x-filament::section>
                 <div class="text-sm text-gray-500 dark:text-gray-400">
                     <div class="flex justify-between py-2 border-b dark:border-gray-700">
-                        <span>Registered At:</span>
+                        <span>{{ __('Registered At:') }}</span>
                         <span class="font-medium text-gray-900 dark:text-white">{{ $company->created_at->format('d M, Y') }}</span>
                     </div>
                     <div class="flex justify-between py-2">
-                        <span>Last Update:</span>
+                        <span>{{ __('Last Update:') }}</span>
                         <span class="font-medium text-gray-900 dark:text-white">{{ $company->updated_at->diffForHumans() }}</span>
                     </div>
                 </div>
@@ -53,11 +53,11 @@
         <div class="col-span-1 lg:col-span-2">
             <x-filament::section>
                 <x-slot name="heading">
-                    Company Details
+                    {{ __('Company Details') }}
                 </x-slot>
                 
                 <x-slot name="description">
-                    Contact information and location details.
+                    {{ __('Contact information and location details.') }}
                 </x-slot>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
@@ -69,7 +69,7 @@
                             </svg>
                         </div>
                         <div>
-                            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Email Address</p>
+                            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Email Address') }}</p>
                             <p class="text-base font-semibold text-gray-900 dark:text-white">
                                 <a href="mailto:{{ $company->email }}" class="hover:underline">{{ $company->email }}</a>
                             </p>
@@ -83,9 +83,9 @@
                             </svg>
                         </div>
                         <div>
-                            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Phone Number</p>
+                            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Phone Number') }}</p>
                             <p class="text-base font-semibold text-gray-900 dark:text-white">
-                                {{ $company->phone ?? 'N/A' }}
+                                {{ $company->phone ?? __('N/A') }}
                             </p>
                         </div>
                     </div>
@@ -98,9 +98,9 @@
                             </svg>
                         </div>
                         <div>
-                            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Main Address</p>
+                            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Main Address') }}</p>
                             <p class="text-base text-gray-900 dark:text-white leading-relaxed">
-                                {{ $company->address ?? 'No address provided.' }}
+                                {{ $company->address ?? __('No address provided.') }}
                             </p>
                         </div>
                     </div>
@@ -110,8 +110,8 @@
             
             <div class="mt-6">
                  <x-filament::section collapsible collapsed>
-                    <x-slot name="heading">Internal Notes</x-slot>
-                    <p class="text-gray-500 italic">No internal notes for this company.</p>
+                    <x-slot name="heading">{{ __('Internal Notes') }}</x-slot>
+                    <p class="text-gray-500 italic">{{ __('No internal notes for this company.') }}</p>
                  </x-filament::section>
             </div>
         </div>

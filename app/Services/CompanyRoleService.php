@@ -129,11 +129,11 @@ class CompanyRoleService
     public function assignRole(User $user, Role $role): void
     {
         if ($role->company_id && (int) $role->company_id !== (int) $user->company_id) {
-            throw ValidationException::withMessages(['role_id' => 'The selected role belongs to another company.']);
+            throw ValidationException::withMessages(['role_id' => __('The selected role belongs to another company.')]);
         }
 
         if (! $role->company_id) {
-            throw ValidationException::withMessages(['role_id' => 'This platform role cannot be assigned to this user.']);
+            throw ValidationException::withMessages(['role_id' => __('This platform role cannot be assigned to this user.')]);
         }
 
         $user->syncRoles([$role]);
@@ -157,13 +157,13 @@ class CompanyRoleService
 
         if ($role->company_id && $names->contains(fn(string $name) => $this->isPlatformPermission($name))) {
             throw ValidationException::withMessages([
-                'permissions' => 'Company roles cannot receive platform administration permissions.',
+                'permissions' => __('Company roles cannot receive platform administration permissions.'),
             ]);
         }
 
         $permissions = Permission::whereIn('name', $names)->where('guard_name', $role->guard_name)->get();
         if ($permissions->count() !== $names->count()) {
-            throw ValidationException::withMessages(['permissions' => 'One or more selected permissions do not exist.']);
+            throw ValidationException::withMessages(['permissions' => __('One or more selected permissions do not exist.')]);
         }
 
         $role->syncPermissions($permissions);
@@ -172,7 +172,7 @@ class CompanyRoleService
     public function assertRoleManageable(User $actor, Role $role): void
     {
         if (! $actor->isSuperAdmin() && (! $actor->company_id || ! $role->company_id || (int) $actor->company_id !== (int) $role->company_id)) {
-            throw ValidationException::withMessages(['role' => 'You may only manage roles owned by your current company.']);
+            throw ValidationException::withMessages(['role' => __('You may only manage roles owned by your current company.')]);
         }
     }
 

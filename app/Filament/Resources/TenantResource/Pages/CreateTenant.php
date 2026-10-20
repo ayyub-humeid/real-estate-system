@@ -70,7 +70,7 @@ class CreateTenant extends CreateRecord
         } catch (\Exception $e) {
             // ✅ Show error to user
             Notification::make()
-                ->title('Error creating tenant')
+                ->title(__('Error creating tenant'))
                 ->body($e->getMessage())
                 ->danger()
                 ->send();

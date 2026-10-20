@@ -18,6 +18,7 @@ use Filament\Notifications\Notification;
 
 class UserResource extends Resource
 {
+    use \App\Filament\Resources\Concerns\UsesLocalizedResourceLabels;
     protected static ?string $model = User::class;
     protected static ?string $navigationIcon = 'heroicon-o-users';
     protected static ?string $navigationGroup = '🏢 Core';
@@ -54,7 +55,7 @@ class UserResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('User Information')
+                Forms\Components\Section::make(__('User Information'))
                     ->schema([
                         self::companyField(),
                         

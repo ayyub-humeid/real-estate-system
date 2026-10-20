@@ -38,7 +38,7 @@ class CreateUser extends CreateRecord
 
         if (!$user->isSuperAdmin() && !$user->company?->canAddUser()) {
             Notification::make()
-                ->title('Limit Reached')
+                ->title(__('Limit Reached'))
                 ->body('Your plan does not allow adding more users.')
                 ->danger()
                 ->persistent()

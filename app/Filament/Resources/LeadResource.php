@@ -13,6 +13,7 @@ use Filament\Tables\Table;
 
 class LeadResource extends Resource
 {
+    use \App\Filament\Resources\Concerns\UsesLocalizedResourceLabels;
     protected static ?string $model = Lead::class;
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
     protected static ?string $navigationGroup = '💼 CRM';
@@ -77,7 +78,7 @@ class LeadResource extends Resource
                 Tables\Columns\TextColumn::make('name')->label(__('crm.fields.name'))->searchable(),
                 Tables\Columns\TextColumn::make('phone')->label(__('crm.fields.phone'))->searchable(),
                 Tables\Columns\TextColumn::make('email')->label(__('crm.fields.email'))->searchable(),
-                Tables\Columns\TextColumn::make('assignedTo.name')->label(__('crm.fields.owner'))->placeholder('—'),
+                Tables\Columns\TextColumn::make('assignedTo.name')->label(__('crm.fields.owner'))->placeholder(__('—')),
                 Tables\Columns\TextColumn::make('first_source')->label(__('crm.fields.source'))->badge()
                     ->formatStateUsing(fn($state) => $state instanceof CrmInquirySource ? $state->getLabel() : __('crm.sources.' . $state)),
                 Tables\Columns\TextColumn::make('status')->label(__('crm.fields.status'))->badge()

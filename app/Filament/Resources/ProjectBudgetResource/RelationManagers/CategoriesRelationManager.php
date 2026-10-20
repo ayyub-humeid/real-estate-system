@@ -29,7 +29,7 @@ class CategoriesRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('name')->searchable()->description(
                     fn (BudgetCategory $record): string => $record->parent?->name ? "Under: {$record->parent->name}" : 'Top-level category'
                 ),
-                Tables\Columns\TextColumn::make('code')->placeholder('—'),
+                Tables\Columns\TextColumn::make('code')->placeholder(__('—')),
                 Tables\Columns\TextColumn::make('items_count')->counts('items')->label('Items'),
                 Tables\Columns\TextColumn::make('items_sum_planned_amount')
                     ->sum('items', 'planned_amount')
@@ -59,7 +59,7 @@ class CategoriesRelationManager extends RelationManager
                 Tables\Actions\Action::make('addItem')
                     ->label('Add item')
                     ->icon('heroicon-o-plus-circle')
-                    ->tooltip('Add a planned cost line')
+                    ->tooltip(__('Add a planned cost line'))
                     ->visible(fn (): bool => $this->getOwnerRecord()->status === 'draft')
                     ->form($this->itemForm())
                     ->action(fn (BudgetCategory $record, array $data) => app(BudgetingService::class)->addItem(auth()->user(), $record, $data)),

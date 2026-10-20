@@ -21,13 +21,13 @@ class EditUnit extends EditRecord
         return [
             // ── AI Description Generator (header shortcut) ────────────────
             Action::make('generateAiDescription')
-                ->label('✨ AI Description')
+                ->label(__('✨ AI Description'))
                 ->icon('heroicon-o-sparkles')
                 ->color('warning')
                 ->hidden(fn () => ! empty($this->getRecord()->description))
                 ->requiresConfirmation(false)
-                ->modalHeading('AI-Generated Description')
-                ->modalDescription('Review the description below. Click "Approve & Save" to use it, or "Cancel" to keep the existing description.')
+                ->modalHeading(__('AI-Generated Description'))
+                ->modalDescription(__('Review the description below. Click "Approve & Save" to use it, or "Cancel" to keep the existing description.'))
                 ->modalWidth('2xl')
                 ->form(function (): array {
                     /** @var \App\Models\Unit $unit */
@@ -38,7 +38,7 @@ class EditUnit extends EditRecord
                         $generated = $service->generate($unit);
                     } catch (\Throwable $e) {
                         Notification::make()
-                            ->title('AI Error')
+                            ->title(__('AI Error'))
                             ->body($e->getMessage())
                             ->danger()
                             ->send();
@@ -48,20 +48,20 @@ class EditUnit extends EditRecord
                     return [
                         Forms\Components\Placeholder::make('ai_preview_label')
                             ->label('')
-                            ->content('The AI generated the following description based on the unit details and amenities:'),
+                            ->content(__('The AI generated the following description based on the unit details and amenities:')),
 
                         Forms\Components\Textarea::make('ai_description')
-                            ->label('Generated Description')
+                            ->label(__('Generated Description'))
                             ->default($generated)
                             ->rows(7)
                             ->columnSpanFull()
                             ->readOnly(),
                     ];
                 })
-                ->modalSubmitActionLabel('✅ Approve & Save')
+                ->modalSubmitActionLabel(__('✅ Approve & Save'))
                 ->action(function (array $data): void {
                     if (empty($data['ai_description'])) {
-                        Notification::make()->title('Nothing to save')->warning()->send();
+                        Notification::make()->title(__('Nothing to save'))->warning()->send();
                         return;
                     }
 
@@ -74,8 +74,8 @@ class EditUnit extends EditRecord
                     $this->fillForm();
 
                     Notification::make()
-                        ->title('Description saved!')
-                        ->body('AI-generated description has been applied.')
+                        ->title(__('Description saved!'))
+                        ->body(__('AI-generated description has been applied.'))
                         ->success()
                         ->send();
                 }),

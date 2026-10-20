@@ -17,36 +17,39 @@ class ViewPropertyAcquisition extends ViewRecord
     {
         return [
             Actions\Action::make('startDueDiligence')
-                ->label('Start due diligence')
+                ->label(__('Start due diligence'))
                 ->visible(fn() => $this->record->status === 'draft')
                 ->authorize('update')
                 ->action(function() {
-                    $this->performTransition('under_due_diligence', 'Due Diligence Started');
+                    $this->performTransition('under_due_diligence', __('Due Diligence Started'));
                 }),
 
             Actions\Action::make('approve')
+                ->label(__('Approve acquisition'))
                 ->visible(fn() => $this->record->status === 'under_due_diligence')
                 ->authorize('approve')
                 ->action(function() {
-                    $this->performTransition('approved', 'Acquisition Approved');
+                    $this->performTransition('approved', __('Acquisition Approved'));
                 }),
 
             Actions\Action::make('complete')
+                ->label(__('Complete acquisition'))
                 ->visible(fn() => $this->record->status === 'approved')
                 ->authorize('complete')
                 ->action(function() {
-                    $this->performTransition('completed', 'Acquisition Completed');
+                    $this->performTransition('completed', __('Acquisition Completed'));
                 }),
 
             Actions\Action::make('cancel')
+                ->label(__('Cancel acquisition'))
                 ->visible(fn() => !in_array($this->record->status, ['cancelled', 'completed']))
                 ->requiresConfirmation()
                 ->form([
-                    \Filament\Forms\Components\Textarea::make('reason')->required()
+                    \Filament\Forms\Components\Textarea::make('reason')->label(__('Cancellation Reason'))->required()
                 ])
                 ->authorize('cancel')
                 ->action(function(array $data) {
-                    $this->performTransition('cancelled', 'Acquisition Cancelled', $data['reason']);
+                    $this->performTransition('cancelled', __('Acquisition Cancelled'), $data['reason']);
                 })
         ];
     }
@@ -64,19 +67,19 @@ class ViewPropertyAcquisition extends ViewRecord
             Notification::make()
                 ->success()
                 ->title($successTitle)
-                ->body('Current status: '.str_replace('_', ' ', $this->record->status).'.')
+                ->body(__('Current status: :status', ['status' => __($this->record->status)]))
                 ->send();
         } catch (ValidationException $exception) {
             Notification::make()
                 ->danger()
-                ->title('Cannot change acquisition status')
+                ->title(__('Cannot change acquisition status'))
                 ->body(collect($exception->errors())->flatten()->first())
                 ->send();
         } catch (AuthorizationException) {
             Notification::make()
                 ->danger()
-                ->title('Unauthorized')
-                ->body('You do not have permission for this action.')
+                ->title(__('Unauthorized'))
+                ->body(__('You do not have permission for this action.'))
                 ->send();
         }
     }

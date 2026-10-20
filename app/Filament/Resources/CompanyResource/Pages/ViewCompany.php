@@ -29,7 +29,7 @@ class ViewCompany extends ViewRecord
         return $infolist
             ->schema([
                 // Company Information section
-                Infolists\Components\Section::make('Company Information')
+                Infolists\Components\Section::make(__('Company Information'))
                     ->collapsible()
                     ->schema([
                         Infolists\Components\ImageEntry::make('logo')
@@ -53,11 +53,11 @@ class ViewCompany extends ViewRecord
 
                         Infolists\Components\TextEntry::make('phone')
                             ->icon('heroicon-m-phone')
-                            ->placeholder('—'),
+                            ->placeholder(__('—')),
 
                         Infolists\Components\TextEntry::make('address')
                             ->columnSpanFull()
-                            ->placeholder('—'),
+                            ->placeholder(__('—')),
 
                         Infolists\Components\IconEntry::make('is_active')
                             ->label('Status')
@@ -70,7 +70,7 @@ class ViewCompany extends ViewRecord
                     ->columns(2),
 
               // 🔥 Statistics with fallback
-            Infolists\Components\Section::make('Statistics')
+            Infolists\Components\Section::make(__('Statistics'))
                 ->schema([
                     Infolists\Components\TextEntry::make('users_count')
                         ->label('Total Users')

@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Builder;
 
 class ExpenseResource extends Resource
 {
+    use \App\Filament\Resources\Concerns\UsesLocalizedResourceLabels;
     protected static ?string $model = Expense::class;
     protected static ?string $navigationIcon = 'heroicon-o-currency-dollar';
     protected static ?string $navigationGroup = '💼 Operations';
@@ -69,7 +70,7 @@ public static function canViewAny(): bool
                 // ── Left column (2/3) ────────────────────────────────────
                 Forms\Components\Group::make([
 
-                    Forms\Components\Section::make('Expense Details')
+                    Forms\Components\Section::make(__('Expense Details'))
                         ->schema([
                             Forms\Components\TextInput::make('title')
                                 ->required()
@@ -94,7 +95,7 @@ public static function canViewAny(): bool
 
                             Forms\Components\TextInput::make('reference_number')
                                 ->maxLength(100)
-                                ->placeholder('Invoice or reference #'),
+                                ->placeholder(__('Invoice or reference #')),
 
                             Forms\Components\Textarea::make('description')
                                 ->rows(3)
@@ -105,8 +106,8 @@ public static function canViewAny(): bool
                                 ->columnSpanFull(),
                         ])->columns(2),
 
-                    Forms\Components\Section::make('Property / Unit (Optional)')
-                        ->description('Link this expense to a specific property or unit')
+                    Forms\Components\Section::make(__('Property / Unit (Optional)'))
+                        ->description(__('Link this expense to a specific property or unit'))
                         ->schema([
                             Forms\Components\Select::make('property_id')
                                 ->relationship('property', 'name')
@@ -129,7 +130,7 @@ public static function canViewAny(): bool
                 // ── Right column (1/3) ───────────────────────────────────
                 Forms\Components\Group::make([
 
-                    Forms\Components\Section::make('Payment Info')
+                    Forms\Components\Section::make(__('Payment Info'))
                         ->schema([
                             Forms\Components\Select::make('status')
                                 ->options([
@@ -208,7 +209,7 @@ public static function canViewAny(): bool
 
                 Tables\Columns\TextColumn::make('property.name')
                     ->label('Property')
-                    ->placeholder('—')
+                    ->placeholder(__('—'))
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('expense_date')

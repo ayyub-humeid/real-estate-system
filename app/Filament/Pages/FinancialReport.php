@@ -24,6 +24,16 @@ class FinancialReport extends Page implements HasForms
 {
     use HasPageShield, InteractsWithForms;
 
+    public static function getNavigationLabel(): string
+    {
+        return __('Financial Report');
+    }
+
+    public function getTitle(): string
+    {
+        return __('Financial Report');
+    }
+
     public ?array $data = [];
 
     public function mount(): void
@@ -42,12 +52,12 @@ class FinancialReport extends Page implements HasForms
     {
         return $form
             ->schema([
-                Section::make('Filters')
+                Section::make(__('Filters'))
                     ->schema([
                         Select::make('property_id')
                             ->label('Property')
                             ->options(Property::pluck('name', 'id'))
-                            ->placeholder('All Properties')
+                            ->placeholder(__('All Properties'))
                             ->searchable()
                             ->live(),
                         DatePicker::make('start_date')

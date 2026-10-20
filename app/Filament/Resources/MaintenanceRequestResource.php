@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class MaintenanceRequestResource extends Resource
 {
+    use \App\Filament\Resources\Concerns\UsesLocalizedResourceLabels;
     protected static ?string $model = MaintenanceRequest::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-wrench-screwdriver';
@@ -65,7 +66,7 @@ public static function canViewAny(): bool
                 Forms\Components\Grid::make(3)
                     ->schema([
                         Forms\Components\Group::make([
-                            Forms\Components\Section::make('Issue Details')
+                            Forms\Components\Section::make(__('Issue Details'))
                                 ->schema([
                                     self::companyField(),
                                     
@@ -91,18 +92,18 @@ public static function canViewAny(): bool
                                         ->columnSpanFull(),
                                 ])->columns(1),
 
-                            Forms\Components\Section::make('Technician Notes')
-                                ->description('Internal details and findings')
+                            Forms\Components\Section::make(__('Technician Notes'))
+                                ->description(__('Internal details and findings'))
                                 ->schema([
                                     Forms\Components\Textarea::make('internal_notes')
                                         ->label('Repair Progress / Notes')
                                         ->rows(4)
-                                        ->placeholder('Notes for internal use or technician findings...')
+                                        ->placeholder(__('Notes for internal use or technician findings...'))
                                         ->columnSpanFull(),
                                 ]),
 
-                            Forms\Components\Section::make('Evidence')
-                                ->description('Upload photos of the issue')
+                            Forms\Components\Section::make(__('Evidence'))
+                                ->description(__('Upload photos of the issue'))
                                 ->schema([
                                     Forms\Components\Repeater::make('images')
                                         ->relationship('images')
@@ -123,7 +124,7 @@ public static function canViewAny(): bool
                         ])->columnSpan(2),
 
                         Forms\Components\Group::make([
-                            Forms\Components\Section::make('Status & Assignment')
+                            Forms\Components\Section::make(__('Status & Assignment'))
                                 ->schema([
                                     Forms\Components\Select::make('status')
                                         ->options([
@@ -153,13 +154,13 @@ public static function canViewAny(): bool
                                         ->relationship('technician', 'name')
                                         ->searchable()
                                         ->preload()
-                                        ->placeholder('Select a user...'),
+                                        ->placeholder(__('Select a user...')),
 
                                     Forms\Components\Hidden::make('reported_by_id')
                                         ->default(fn () => auth()->id()),
                                 ]),
 
-                            Forms\Components\Section::make('Financials')
+                            Forms\Components\Section::make(__('Financials'))
                                 ->schema([
                                     Forms\Components\TextInput::make('estimated_cost')
                                         ->numeric()
@@ -169,7 +170,7 @@ public static function canViewAny(): bool
                                         ->prefix('$'),
                                 ]),
 
-                            Forms\Components\Section::make('Scheduling')
+                            Forms\Components\Section::make(__('Scheduling'))
                                 ->schema([
                                     Forms\Components\DateTimePicker::make('scheduled_at'),
                                     Forms\Components\DateTimePicker::make('completed_at'),
@@ -198,7 +199,7 @@ public static function canViewAny(): bool
                 Tables\Columns\TextColumn::make('technician.name')
                     ->label('Assigned To')
                     ->sortable()
-                    ->placeholder('Unassigned')
+                    ->placeholder(__('Unassigned'))
                     ->badge()
                     ->color('info'),
                 Tables\Columns\TextColumn::make('status')

@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\Storage;
 
 class CompanyResource extends Resource
 {
+    use \App\Filament\Resources\Concerns\UsesLocalizedResourceLabels;
     protected static ?string $model = Company::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
@@ -51,8 +52,8 @@ class CompanyResource extends Resource
     {
         return $form
             ->schema([
-                Section::make('Company Information')
-                    ->description('Basic company details and contact information')
+                Section::make(__('Company Information'))
+                    ->description(__('Basic company details and contact information'))
                     ->schema([
                         TextInput::make('name')
                             ->required()
@@ -144,7 +145,7 @@ class CompanyResource extends Resource
                     ->searchable()
                     ->icon('heroicon-m-envelope')
                     ->copyable()
-                    ->tooltip('Click to copy'),
+                    ->tooltip(__('Click to copy')),
 
                 Tables\Columns\TextColumn::make('phone')
                     ->searchable()
@@ -187,7 +188,7 @@ class CompanyResource extends Resource
             ->filters([
                 Tables\Filters\TernaryFilter::make('is_active')
                     ->label('Status')
-                    ->placeholder('All companies')
+                    ->placeholder(__('All companies'))
                     ->trueLabel('Active only')
                     ->falseLabel('Inactive only')
                     ->native(false),
@@ -202,8 +203,8 @@ class CompanyResource extends Resource
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ])
-            ->emptyStateHeading('No companies yet')
-            ->emptyStateDescription('Create your first company to get started.')
+            ->emptyStateHeading(__('No companies yet'))
+            ->emptyStateDescription(__('Create your first company to get started.'))
             ->emptyStateIcon('heroicon-o-building-office')
             ->poll('30s');
     }

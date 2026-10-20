@@ -38,8 +38,8 @@ class ViewTenant extends ViewRecord
             Actions\DeleteAction::make()
                 ->icon('heroicon-o-trash')
                 ->requiresConfirmation()
-                ->modalHeading('Delete Tenant')
-                ->modalDescription('Are you sure you want to delete this tenant? This will also delete their user account.')
+                ->modalHeading(__('Delete Tenant'))
+                ->modalDescription(__('Are you sure you want to delete this tenant? This will also delete their user account.'))
                 ->successNotificationTitle('Tenant deleted successfully'),
         ];
     }
@@ -82,7 +82,7 @@ class ViewTenant extends ViewRecord
                                 Infolists\Components\TextEntry::make('user.phone')
                                     ->label('Phone')
                                     ->icon('heroicon-m-phone')
-                                    ->placeholder('—')
+                                    ->placeholder(__('—'))
                                     ->copyable(),
 
                                 Infolists\Components\IconEntry::make('status')
@@ -99,7 +99,7 @@ class ViewTenant extends ViewRecord
                     ->columnSpanFull(),
 
                 // 🔥 SECTION 2: Statistics Cards
-                Infolists\Components\Section::make('Tenancy Overview')
+                Infolists\Components\Section::make(__('Tenancy Overview'))
                     ->schema([
                         Infolists\Components\Split::make([
                             // Card 1: Total Leases
@@ -175,7 +175,7 @@ class ViewTenant extends ViewRecord
                     ->columnSpanFull(),
 
                 // 🔥 SECTION 3: Personal Information
-                Infolists\Components\Section::make('Personal Information')
+                Infolists\Components\Section::make(__('Personal Information'))
                     ->schema([
                         Infolists\Components\TextEntry::make('company.name')
                             ->label('Company')
@@ -186,7 +186,7 @@ class ViewTenant extends ViewRecord
                         Infolists\Components\TextEntry::make('move_in_date')
                             ->label('Move-in Date')
                             ->date()
-                            ->placeholder('—')
+                            ->placeholder(__('—'))
                             ->icon('heroicon-m-calendar-days'),
 
                         Infolists\Components\TextEntry::make('number_of_occupants')
@@ -205,7 +205,7 @@ class ViewTenant extends ViewRecord
 
                         Infolists\Components\TextEntry::make('pet_details')
                             ->label('Pet Details')
-                            ->placeholder('—')
+                            ->placeholder(__('—'))
                             ->columnSpanFull()
                             ->visible(fn($record) => $record->has_pets),
                     ])
@@ -213,17 +213,17 @@ class ViewTenant extends ViewRecord
                     ->collapsible(),
 
                 // 🔥 SECTION 4: Employment Information
-                Infolists\Components\Section::make('Employment Information')
+                Infolists\Components\Section::make(__('Employment Information'))
                     ->schema([
                         Infolists\Components\TextEntry::make('employer_name')
                             ->label('Employer')
                             ->icon('heroicon-m-building-office-2')
-                            ->placeholder('—'),
+                            ->placeholder(__('—')),
 
                         Infolists\Components\TextEntry::make('job_title')
                             ->label('Job Title')
                             ->icon('heroicon-m-briefcase')
-                            ->placeholder('—'),
+                            ->placeholder(__('—')),
 
                         Infolists\Components\TextEntry::make('monthly_income')
                             ->label('Monthly Income')
@@ -231,23 +231,23 @@ class ViewTenant extends ViewRecord
                             ->icon('heroicon-m-banknotes')
                             ->badge()
                             ->color('success')
-                            ->placeholder('—'),
+                            ->placeholder(__('—')),
 
                         Infolists\Components\TextEntry::make('employment_start_date')
                             ->label('Employment Start')
                             ->date()
                             ->icon('heroicon-m-calendar')
-                            ->placeholder('—'),
+                            ->placeholder(__('—')),
 
                         Infolists\Components\TextEntry::make('employer_phone')
                             ->label('Employer Phone')
                             ->icon('heroicon-m-phone')
-                            ->placeholder('—')
+                            ->placeholder(__('—'))
                             ->copyable(),
 
                         Infolists\Components\TextEntry::make('employer_address')
                             ->label('Employer Address')
-                            ->placeholder('—')
+                            ->placeholder(__('—'))
                             ->columnSpanFull(),
                     ])
                     ->columns(3)
@@ -255,56 +255,56 @@ class ViewTenant extends ViewRecord
                     ->collapsed(),
 
                 // 🔥 SECTION 5: Emergency Contact
-                Infolists\Components\Section::make('Emergency Contact')
+                Infolists\Components\Section::make(__('Emergency Contact'))
                     ->schema([
                         Infolists\Components\TextEntry::make('emergency_contact_name')
                             ->label('Contact Name')
                             ->icon('heroicon-m-user')
-                            ->placeholder('—'),
+                            ->placeholder(__('—')),
 
                         Infolists\Components\TextEntry::make('emergency_contact_phone')
                             ->label('Contact Phone')
                             ->icon('heroicon-m-phone')
-                            ->placeholder('—')
+                            ->placeholder(__('—'))
                             ->copyable(),
 
                         Infolists\Components\TextEntry::make('emergency_contact_relationship')
                             ->label('Relationship')
                             ->icon('heroicon-m-heart')
-                            ->placeholder('—'),
+                            ->placeholder(__('—')),
                     ])
                     ->columns(3)
                     ->collapsible()
                     ->collapsed(),
 
                 // 🔥 SECTION 6: Previous Address
-                Infolists\Components\Section::make('Previous Rental History')
+                Infolists\Components\Section::make(__('Previous Rental History'))
                     ->schema([
                         Infolists\Components\TextEntry::make('previous_address')
                             ->label('Previous Address')
-                            ->placeholder('—')
+                            ->placeholder(__('—'))
                             ->columnSpanFull(),
 
                         Infolists\Components\TextEntry::make('previous_landlord_name')
                             ->label('Previous Landlord')
                             ->icon('heroicon-m-user')
-                            ->placeholder('—'),
+                            ->placeholder(__('—')),
 
                         Infolists\Components\TextEntry::make('previous_landlord_phone')
                             ->label('Landlord Phone')
                             ->icon('heroicon-m-phone')
-                            ->placeholder('—')
+                            ->placeholder(__('—'))
                             ->copyable(),
 
                         Infolists\Components\TextEntry::make('previous_tenancy_start')
                             ->label('Tenancy Start')
                             ->date()
-                            ->placeholder('—'),
+                            ->placeholder(__('—')),
 
                         Infolists\Components\TextEntry::make('previous_tenancy_end')
                             ->label('Tenancy End')
                             ->date()
-                            ->placeholder('—'),
+                            ->placeholder(__('—')),
 
                         Infolists\Components\TextEntry::make('previous_duration')
                             ->label('Duration')
@@ -322,23 +322,23 @@ class ViewTenant extends ViewRecord
                     ->collapsed(),
 
                 // 🔥 SECTION 7: Identification
-                Infolists\Components\Section::make('Identification')
+                Infolists\Components\Section::make(__('Identification'))
                     ->schema([
                         Infolists\Components\TextEntry::make('id_type')
                             ->label('ID Type')
                             ->badge()
                             ->formatStateUsing(fn($state) => str_replace('_', ' ', ucwords($state, '_')))
-                            ->placeholder('—'),
+                            ->placeholder(__('—')),
 
                         Infolists\Components\TextEntry::make('id_number')
                             ->label('ID Number')
-                            ->placeholder('—')
+                            ->placeholder(__('—'))
                             ->copyable(),
 
                         Infolists\Components\TextEntry::make('id_expiry_date')
                             ->label('Expiry Date')
                             ->date()
-                            ->placeholder('—')
+                            ->placeholder(__('—'))
                             ->color(fn($record) => 
                                 $record->id_expiry_date && $record->id_expiry_date->isPast() 
                                     ? 'danger' 
@@ -350,7 +350,7 @@ class ViewTenant extends ViewRecord
                     ->collapsed(),
 
                 // 🔥 SECTION 8: References
-                Infolists\Components\Section::make('References')
+                Infolists\Components\Section::make(__('References'))
                     ->schema([
                         Infolists\Components\RepeatableEntry::make('references')
                             ->label('')
@@ -374,7 +374,7 @@ class ViewTenant extends ViewRecord
                                     ->label('Email')
                                     ->icon('heroicon-m-envelope')
                                     ->copyable()
-                                    ->placeholder('—'),
+                                    ->placeholder(__('—')),
                             ])
                             ->columns(4)
                             ->grid(1)
@@ -385,7 +385,7 @@ class ViewTenant extends ViewRecord
                     ->visible(fn($record) => !empty($record->references)),
 
                 // 🔥 SECTION 9: Background Check
-                Infolists\Components\Section::make('Background Check')
+                Infolists\Components\Section::make(__('Background Check'))
                     ->schema([
                         Infolists\Components\TextEntry::make('background_check_status')
                             ->label('Status')
@@ -401,11 +401,11 @@ class ViewTenant extends ViewRecord
                         Infolists\Components\TextEntry::make('background_check_date')
                             ->label('Check Date')
                             ->date()
-                            ->placeholder('—'),
+                            ->placeholder(__('—')),
 
                         Infolists\Components\TextEntry::make('background_check_notes')
                             ->label('Notes')
-                            ->placeholder('—')
+                            ->placeholder(__('—'))
                             ->columnSpanFull(),
                     ])
                     ->columns(2)
@@ -413,11 +413,11 @@ class ViewTenant extends ViewRecord
                     ->collapsed(),
 
                 // 🔥 SECTION 10: Internal Notes
-                Infolists\Components\Section::make('Internal Notes')
+                Infolists\Components\Section::make(__('Internal Notes'))
                     ->schema([
                         Infolists\Components\TextEntry::make('notes')
                             ->label('')
-                            ->placeholder('No notes added')
+                            ->placeholder(__('No notes added'))
                             ->markdown()
                             ->columnSpanFull(),
                     ])

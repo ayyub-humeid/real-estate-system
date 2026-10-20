@@ -36,7 +36,7 @@ class WelcomeNotification extends Notification implements ShouldQueue
     public function toArray(object $notifiable): array
     {
         return \Filament\Notifications\Notification::make()
-            ->title('Welcome Aboard!')
+            ->title(__('Welcome Aboard!'))
             ->body("We are glad to have you in our system.")
             ->icon('heroicon-o-sparkles')
             ->iconColor('success')

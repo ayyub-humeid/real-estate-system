@@ -36,7 +36,7 @@ class PaymentOverdueNotification extends Notification implements ShouldQueue
     public function toArray(object $notifiable): array
     {
         return \Filament\Notifications\Notification::make()
-            ->title('Payment Overdue')
+            ->title(__('Payment Overdue'))
             ->body("A payment of {$this->payment->amount} for Unit {$this->payment->lease->unit->name} is overdue.")
             ->icon('heroicon-o-exclamation-circle')
             ->iconColor('danger')

@@ -28,8 +28,8 @@ class ViewLead extends ViewRecord
         return $infolist->schema([
             Infolists\Components\Section::make()->schema([
                 Infolists\Components\TextEntry::make('name')->label(__('crm.fields.name'))->weight('bold'),
-                Infolists\Components\TextEntry::make('phone')->label(__('crm.fields.phone'))->placeholder('—'),
-                Infolists\Components\TextEntry::make('email')->label(__('crm.fields.email'))->placeholder('—'),
+                Infolists\Components\TextEntry::make('phone')->label(__('crm.fields.phone'))->placeholder(__('—')),
+                Infolists\Components\TextEntry::make('email')->label(__('crm.fields.email'))->placeholder(__('—')),
                 Infolists\Components\TextEntry::make('assignedTo.name')->label(__('crm.fields.owner'))->placeholder(__('crm.kanban.unassigned')),
                 Infolists\Components\TextEntry::make('first_source')->label(__('crm.fields.source'))->badge()
                     ->formatStateUsing(fn ($state) => $state instanceof \App\Enums\CrmInquirySource ? $state->getLabel() : __('crm.sources.' . $state)),

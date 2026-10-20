@@ -78,12 +78,12 @@ class OpportunitiesRelationManager extends RelationManager
             ->emptyStateDescription(__('crm.empty.opportunities.description'))
             ->emptyStateIcon('heroicon-o-briefcase')
             ->columns([
-                Tables\Columns\TextColumn::make('listing.title')->label(__('crm.fields.listing'))->placeholder('—'),
+                Tables\Columns\TextColumn::make('listing.title')->label(__('crm.fields.listing'))->placeholder(__('—')),
                 Tables\Columns\TextColumn::make('type')->label(__('crm.fields.type'))->badge()
                     ->formatStateUsing(fn ($state) => $state instanceof OpportunityType ? $state->getLabel() : __('crm.opportunity_types.' . $state)),
                 Tables\Columns\TextColumn::make('stage.label')->label(__('crm.fields.stage'))->badge()
                     ->formatStateUsing(fn ($state, Opportunity $record) => $record->stage?->display_label ?? $state),
-                Tables\Columns\TextColumn::make('assignedTo.name')->label(__('crm.fields.owner'))->placeholder('—'),
+                Tables\Columns\TextColumn::make('assignedTo.name')->label(__('crm.fields.owner'))->placeholder(__('—')),
             ])
             ->headerActions([
                 Tables\Actions\CreateAction::make()

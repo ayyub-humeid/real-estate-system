@@ -13,6 +13,7 @@ use Illuminate\Validation\Rules\Unique;
 
 class CrmPipelineResource extends Resource
 {
+    use \App\Filament\Resources\Concerns\UsesLocalizedResourceLabels;
     protected static ?string $model = CrmPipeline::class;
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
     protected static ?string $navigationGroup = '💼 CRM';

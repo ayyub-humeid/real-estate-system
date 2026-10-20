@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Builder;
 
 class RentalRequestResource extends Resource
 {
+    use \App\Filament\Resources\Concerns\UsesLocalizedResourceLabels;
     protected static ?string $model = RentalRequest::class;
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';
     protected static ?string $navigationGroup = '💼 Operations';
@@ -74,7 +75,7 @@ public static function canViewAny(): bool
                 // ── Left column (2/3 width) ──────────────────────────────
                 Forms\Components\Group::make([
 
-                    Forms\Components\Section::make('Request Details')
+                    Forms\Components\Section::make(__('Request Details'))
                         ->schema([
                             Forms\Components\TextInput::make('title')
                                 ->required()
@@ -85,8 +86,8 @@ public static function canViewAny(): bool
                                 ->columnSpanFull(),
                         ])->columns(1),
 
-                    Forms\Components\Section::make('Preferred Unit')
-                        ->description('What is the tenant looking for?')
+                    Forms\Components\Section::make(__('Preferred Unit'))
+                        ->description(__('What is the tenant looking for?'))
                         ->schema([
                             Forms\Components\Select::make('preferred_type')
                                 ->options(function (Forms\Get $get) {
@@ -97,7 +98,7 @@ public static function canViewAny(): bool
                                         ->toArray();
                                 })
                                 ->searchable()
-                                ->placeholder('Select unit type')
+                                ->placeholder(__('Select unit type'))
                                 ->native(false),
 
                             Forms\Components\TextInput::make('max_budget')
@@ -115,7 +116,7 @@ public static function canViewAny(): bool
                                 ->minValue(1),
                         ])->columns(2),
 
-                    Forms\Components\Section::make('Admin Response')
+                    Forms\Components\Section::make(__('Admin Response'))
                         ->schema([
                             Forms\Components\Select::make('unit_id')
                                 ->label('Assigned Unit (Optional)')
@@ -127,7 +128,7 @@ public static function canViewAny(): bool
                                 })
                                 ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->property->name} - Unit {$record->unit_number}")
                                 ->searchable()
-                                ->placeholder('Select a unit'),
+                                ->placeholder(__('Select a unit')),
 
                             Forms\Components\Textarea::make('admin_notes')
                                 ->label('Admin Notes / Response')
@@ -140,7 +141,7 @@ public static function canViewAny(): bool
                 // ── Right column (1/3 width) ─────────────────────────────
                 Forms\Components\Group::make([
 
-                    Forms\Components\Section::make('Assignment')
+                    Forms\Components\Section::make(__('Assignment'))
                         ->schema([
                             Forms\Components\Select::make('tenant_id')
                                 ->label('Tenant')
@@ -148,7 +149,7 @@ public static function canViewAny(): bool
                                 ->getOptionLabelFromRecordUsing(fn ($record) => ($record->user->name ?? 'N/A') . ' (' . ($record->user->email ?? '') . ')')
                                 ->required()
                                 ->searchable()
-                                ->placeholder('Select a tenant'),
+                                ->placeholder(__('Select a tenant')),
 
                             Forms\Components\Select::make('status')
                                 ->options([
@@ -197,7 +198,7 @@ public static function canViewAny(): bool
 
                 Tables\Columns\TextColumn::make('unit.unit_number')
                     ->label('Assigned Unit')
-                    ->placeholder('None')
+                    ->placeholder(__('None'))
                     ->badge()
                     ->color('info'),
 

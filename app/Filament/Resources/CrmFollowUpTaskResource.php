@@ -16,6 +16,7 @@ use Illuminate\Validation\ValidationException;
 
 class CrmFollowUpTaskResource extends Resource
 {
+    use \App\Filament\Resources\Concerns\UsesLocalizedResourceLabels;
     protected static ?string $model = CrmFollowUpTask::class;
     protected static ?string $navigationIcon = 'heroicon-o-check-circle';
     public static function getNavigationGroup(): ?string { return '💼 ' . __('crm.navigation.crm'); }

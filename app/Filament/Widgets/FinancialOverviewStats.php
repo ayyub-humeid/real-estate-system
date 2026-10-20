@@ -23,14 +23,14 @@ class FinancialOverviewStats extends BaseWidget
     protected function getStats(): array
     {
         return [
-            Stat::make('Current budget baselines', ProjectBudget::query()->where('status','approved')->count())
-                ->description('One current baseline per project')->descriptionIcon('heroicon-m-calculator')->color('info'),
-            Stat::make('Active commitments', FinancialCommitment::query()->where('status','committed')->count())
-                ->description('Commercial obligations, not cash')->descriptionIcon('heroicon-m-document-currency-dollar')->color('warning'),
-            Stat::make('Approved actual costs', ActualCost::query()->where('status','approved')->count())
-                ->description('Recognized supplier costs')->descriptionIcon('heroicon-m-receipt-percent')->color('success'),
-            Stat::make('Completed project payments', Payment::query()->where('status','completed')->where('direction','outgoing')->count())
-                ->description('Cash movements; totals are per project currency')->descriptionIcon('heroicon-m-banknotes')->color('primary'),
+            Stat::make(__('Current budget baselines'), ProjectBudget::query()->where('status','approved')->count())
+                ->description(__('One current baseline per project'))->descriptionIcon('heroicon-m-calculator')->color('info'),
+            Stat::make(__('Active commitments'), FinancialCommitment::query()->where('status','committed')->count())
+                ->description(__('Commercial obligations, not cash'))->descriptionIcon('heroicon-m-document-currency-dollar')->color('warning'),
+            Stat::make(__('Approved actual costs'), ActualCost::query()->where('status','approved')->count())
+                ->description(__('Recognized supplier costs'))->descriptionIcon('heroicon-m-receipt-percent')->color('success'),
+            Stat::make(__('Completed project payments'), Payment::query()->where('status','completed')->where('direction','outgoing')->count())
+                ->description(__('Cash movements; totals are per project currency'))->descriptionIcon('heroicon-m-banknotes')->color('primary'),
         ];
     }
 }

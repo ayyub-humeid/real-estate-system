@@ -11,6 +11,7 @@ use Filament\Tables\Table;
 
 class ProjectConstructionResource extends Resource
 {
+    use \App\Filament\Resources\Concerns\UsesLocalizedResourceLabels;
     protected static ?string $model = ProjectConstruction::class;
     protected static bool $shouldRegisterNavigation = false;
     protected static ?string $navigationIcon = 'heroicon-o-wrench-screwdriver';

@@ -37,7 +37,7 @@ class RentalRequestNotification extends Notification implements ShouldQueue
     public function toArray(object $notifiable): array
     {
         return \Filament\Notifications\Notification::make()
-            ->title('New Rental Inquiry')
+            ->title(__('New Rental Inquiry'))
             ->body("New request from {$this->rentalRequest->name} for Unit {$this->rentalRequest->unit->name}")
             ->icon('heroicon-o-home')
             ->iconColor('success')

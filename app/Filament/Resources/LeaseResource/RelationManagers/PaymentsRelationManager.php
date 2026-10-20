@@ -121,7 +121,7 @@ class PaymentsRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('payment_date')
                     ->label('Paid On')
                     ->date()
-                    ->placeholder('—'),
+                    ->placeholder(__('—')),
 
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
@@ -138,7 +138,7 @@ class PaymentsRelationManager extends RelationManager
 
                 Tables\Columns\TextColumn::make('reference_number')
                     ->label('Ref #')
-                    ->placeholder('—')
+                    ->placeholder(__('—'))
                     ->copyable()
                     ->toggleable(),
 
@@ -176,7 +176,7 @@ class PaymentsRelationManager extends RelationManager
                     ->icon('heroicon-o-calendar')
                     ->color('info')
                     ->requiresConfirmation()
-                    ->modalHeading('Generate Payment Schedule')
+                    ->modalHeading(__('Generate Payment Schedule'))
                     ->modalDescription(
                         fn() =>
                             'This will create ' .
@@ -188,7 +188,7 @@ class PaymentsRelationManager extends RelationManager
                         $this->getOwnerRecord()->generatePaymentSchedule();
 
                         \Filament\Notifications\Notification::make()
-                            ->title('Payment schedule generated')
+                            ->title(__('Payment schedule generated'))
                             ->success()
                             ->send();
                     }),
@@ -234,7 +234,7 @@ class PaymentsRelationManager extends RelationManager
                         );
 
                         \Filament\Notifications\Notification::make()
-                            ->title('Payment recorded')
+                            ->title(__('Payment recorded'))
                             ->success()
                             ->send();
                     }),
@@ -244,8 +244,8 @@ class PaymentsRelationManager extends RelationManager
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ])
-            ->emptyStateHeading('No installments yet')
-            ->emptyStateDescription('Click "Generate Schedule" to auto-create installments based on the lease terms.')
+            ->emptyStateHeading(__('No installments yet'))
+            ->emptyStateDescription(__('Click "Generate Schedule" to auto-create installments based on the lease terms.'))
             ->emptyStateIcon('heroicon-o-banknotes')
             ->emptyStateActions([
                 Tables\Actions\Action::make('generate')
@@ -256,7 +256,7 @@ class PaymentsRelationManager extends RelationManager
                         $this->getOwnerRecord()->generatePaymentSchedule();
 
                         \Filament\Notifications\Notification::make()
-                            ->title('Payment schedule generated')
+                            ->title(__('Payment schedule generated'))
                             ->success()
                             ->send();
                     }),

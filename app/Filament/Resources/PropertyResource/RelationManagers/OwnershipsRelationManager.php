@@ -15,7 +15,11 @@ class OwnershipsRelationManager extends RelationManager
 {
     protected static bool $isLazy = true;
     protected static string $relationship = 'ownerships';
-    protected static ?string $title = 'Ownership History';
+
+    public static function getTitle(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): string
+    {
+        return __('Ownership History');
+    }
 
     public function form(Form $form): Form
     {
@@ -25,23 +29,25 @@ class OwnershipsRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table->columns([
-            Tables\Columns\TextColumn::make('party.name'),
-            Tables\Columns\TextColumn::make('ownership_percentage')->suffix('%'),
-            Tables\Columns\TextColumn::make('start_date')->date(),
-            Tables\Columns\TextColumn::make('end_date')->date()->placeholder('Active'),
+            Tables\Columns\TextColumn::make('party.name')->label(__('Owner')),
+            Tables\Columns\TextColumn::make('ownership_percentage')->label(__('Ownership %'))->suffix('%'),
+            Tables\Columns\TextColumn::make('start_date')->label(__('Start Date'))->date(),
+            Tables\Columns\TextColumn::make('end_date')->label(__('End Date'))->date()->placeholder(__('Active')),
         ])->headerActions([
             Tables\Actions\Action::make('createOwnership')
-                ->label('Create ownership')
+                ->label(__('Create ownership'))
                 ->visible(fn (): bool => auth()->user()->can('create', \App\Models\PropertyOwnership::class))
                 ->form([
-                    Forms\Components\DatePicker::make('start_date')->required(),
-                    Forms\Components\Repeater::make('owners')->schema([
+                    Forms\Components\DatePicker::make('start_date')->label(__('Start Date'))->required(),
+                    Forms\Components\Repeater::make('owners')->label(__('Owners'))->schema([
                         Forms\Components\Select::make('owner_type')
-                            ->options(['party' => 'Party', 'company' => 'Company'])
+                            ->label(__('Owner Type'))
+                            ->options(['party' => __('Party'), 'company' => __('Company')])
                             ->default('party')
                             ->live()
                             ->required(),
                         Forms\Components\Select::make('party_id')
+                            ->label(__('Party'))
                             ->options(fn (): array => Party::withoutGlobalScopes()
                                 ->where('company_id', $this->getOwnerRecord()->company_id)
                                 ->pluck('name', 'id')
@@ -51,11 +57,12 @@ class OwnershipsRelationManager extends RelationManager
                             ->visible(fn (Forms\Get $get): bool => $get('owner_type') === 'party')
                             ->required(fn (Forms\Get $get): bool => $get('owner_type') === 'party'),
                         Forms\Components\Select::make('company_id')
+                            ->label(__('Company'))
                             ->options(fn (): array => Company::query()->whereKey($this->getOwnerRecord()->company_id)->pluck('name', 'id')->all())
                             ->visible(fn (Forms\Get $get): bool => $get('owner_type') === 'company')
                             ->required(fn (Forms\Get $get): bool => $get('owner_type') === 'company'),
-                        Forms\Components\TextInput::make('percentage')->numeric()->minValue(0.01)->maxValue(100)->required(),
-                        Forms\Components\Textarea::make('notes'),
+                        Forms\Components\TextInput::make('percentage')->label(__('Percentage'))->numeric()->minValue(0.01)->maxValue(100)->required(),
+                        Forms\Components\Textarea::make('notes')->label(__('Notes')),
                     ])->required(),
                 ])
                 ->action(function (array $data) {

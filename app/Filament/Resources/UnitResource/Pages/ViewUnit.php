@@ -14,7 +14,7 @@ class ViewUnit extends ViewRecord
 
     public function getContentTabLabel(): ?string
     {
-        return 'Overview';
+        return __('Overview');
     }
 
     public function infolist(Infolist $infolist): Infolist
@@ -37,52 +37,54 @@ class ViewUnit extends ViewRecord
                 Infolists\Components\Grid::make(3)
                     ->schema([
                         Infolists\Components\Group::make([
-                            Infolists\Components\Section::make('Unit Information')
+                            Infolists\Components\Section::make(__('Unit Information'))
                                 ->schema([
                                     Infolists\Components\TextEntry::make('unit_number')
-                                        ->label('Unit Number')
+                                        ->label(__('Unit Number'))
                                         ->size(Infolists\Components\TextEntry\TextEntrySize::Large)
                                         ->weight('bold')
                                         ->icon('heroicon-m-hashtag'),
 
                                     Infolists\Components\TextEntry::make('maintenance_status')
-                                        ->label('Maintenance Alerts')
+                                        ->label(__('Maintenance Alerts'))
                                         ->default(function ($record) {
                                             $count = $record->maintenanceRequests
                                                 ->whereIn('priority', ['high', 'emergency'])
                                                 ->whereNotIn('status', ['resolved', 'cancelled'])
                                                 ->count();
-                                            return $count > 0 ? "$count Urgent Request(s)" : "No Urgent Issues";
+                                            return $count > 0 ? __(':count Urgent Request(s)', ['count' => $count]) : __('No Urgent Issues');
                                         })
-                                        ->color(fn ($state) => str_contains($state, 'Urgent') ? 'danger' : 'success')
-                                        ->icon(fn ($state) => str_contains($state, 'Urgent') ? 'heroicon-m-exclamation-triangle' : 'heroicon-m-check-badge')
+                                        ->color(fn ($state) => str_contains($state, 'Urgent') || str_contains($state, 'عاجل') ? 'danger' : 'success')
+                                        ->icon(fn ($state) => str_contains($state, 'Urgent') || str_contains($state, 'عاجل') ? 'heroicon-m-exclamation-triangle' : 'heroicon-m-check-badge')
                                         ->visible(fn ($record) => $record->maintenanceRequests()->exists()),
                                     
                                     Infolists\Components\TextEntry::make('property.name')
-                                        ->label('Property')
+                                        ->label(__('Property'))
                                         ->icon('heroicon-m-building-office-2')
                                         ->color('primary')
                                         ->url(fn($record) => route('filament.admin.resources.properties.view', $record->property_id)),
 
                                     Infolists\Components\TextEntry::make('type')
+                                        ->label(__('Type'))
                                         ->badge()
-                                        ->color('gray'),
+                                        ->color('gray')
+                                        ->formatStateUsing(fn (?string $state) => $state ? UnitType::tryFrom($state)?->getLabel() ?? $state : __('—')),
                                 ])->columns(1),
 
-                            Infolists\Components\Section::make('Description')
+                            Infolists\Components\Section::make(__('Description'))
                                 ->schema([
                                     Infolists\Components\TextEntry::make('description')
                                         ->label('')
-                                        ->placeholder('No description has been added or generated yet.'),
+                                        ->placeholder(__('No description has been added or generated yet.')),
                                 ])
                                 ->collapsible(),
                         ])->columnSpan(2),
 
                         Infolists\Components\Group::make([
-                            Infolists\Components\Section::make('Financials & Status')
+                            Infolists\Components\Section::make(__('Financials & Status'))
                                 ->schema([
                                     Infolists\Components\TextEntry::make('rent_price')
-                                        ->label('Legacy rent reference')
+                                        ->label(__('Legacy rent reference'))
                                         ->money('USD')
                                         ->size(Infolists\Components\TextEntry\TextEntrySize::Large)
                                         ->color('success')
@@ -90,17 +92,19 @@ class ViewUnit extends ViewRecord
                                         ->visible(fn ($record): bool => $record->rent_price !== null),
 
                                     Infolists\Components\TextEntry::make('status')
+                                        ->label(__('Status'))
                                         ->badge()
                                         ->colors([
                                             'gray' => 'draft',
                                             'success' => 'ready',
                                             'warning' => 'maintenance',
                                             'danger' => 'inactive',
-                                        ]),
+                                        ])
+                                        ->formatStateUsing(fn (?string $state) => $state ? UnitStatus::tryFrom($state)?->getLabel() ?? $state : __('—')),
                                 ])->columns(1),
 
-                            Infolists\Components\Section::make('Amenities')
-                                ->description('Unit-specific features')
+                            Infolists\Components\Section::make(__('Amenities'))
+                                ->description(__('Unit-specific features'))
                                 ->schema([
                                     Infolists\Components\RepeatableEntry::make('features')
                                         ->label('')

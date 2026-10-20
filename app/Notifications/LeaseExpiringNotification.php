@@ -36,7 +36,7 @@ class LeaseExpiringNotification extends Notification implements ShouldQueue
     public function toArray(object $notifiable): array
     {
         return \Filament\Notifications\Notification::make()
-            ->title('Lease Expiring Soon')
+            ->title(__('Lease Expiring Soon'))
             ->body("Lease for Unit {$this->lease->unit->name} ends in 30 days.")
             ->icon('heroicon-o-clock')
             ->iconColor('danger')

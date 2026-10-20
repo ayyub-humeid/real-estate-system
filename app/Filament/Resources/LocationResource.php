@@ -13,6 +13,7 @@ use Filament\Tables\Table;
 
 class LocationResource extends Resource
 {
+    use \App\Filament\Resources\Concerns\UsesLocalizedResourceLabels;
     protected static ?string $model = Location::class;
     protected static ?string $navigationIcon = 'heroicon-o-map-pin';
     protected static ?string $navigationGroup = '🏢 Core';
@@ -22,8 +23,8 @@ class LocationResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Location Details')
-                    ->description('Define hierarchical location structure')
+                Forms\Components\Section::make(__('Location Details'))
+                    ->description(__('Define hierarchical location structure'))
                     ->schema([
                         Forms\Components\Select::make('type')
                             ->label('Location Type')
@@ -83,7 +84,7 @@ class LocationResource extends Resource
                                     ->step(0.00000001)
                                     ->minValue(-90)
                                     ->maxValue(90)
-                                    ->placeholder('31.95522260')
+                                    ->placeholder(__('31.95522260'))
                                     ->live(debounce: 500)
                                     ->suffixIcon('heroicon-m-map-pin'),
                                 
@@ -92,7 +93,7 @@ class LocationResource extends Resource
                                     ->step(0.00000001)
                                     ->minValue(-180)
                                     ->maxValue(180)
-                                    ->placeholder('35.30732750')
+                                    ->placeholder(__('35.30732750'))
                                     ->live(debounce: 500)
                                     ->suffixIcon('heroicon-m-map-pin'),
                             ]),
@@ -165,13 +166,13 @@ class LocationResource extends Resource
                 
                 Tables\Columns\TextColumn::make('latitude')
                     ->toggleable()
-                    ->placeholder('—')
+                    ->placeholder(__('—'))
                     ->copyable()
                     ->icon('heroicon-m-map-pin'),
                 
                 Tables\Columns\TextColumn::make('longitude')
                     ->toggleable()
-                    ->placeholder('—')
+                    ->placeholder(__('—'))
                     ->copyable()
                     ->icon('heroicon-m-map-pin'),
                 
@@ -216,8 +217,8 @@ class LocationResource extends Resource
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ])
-            ->emptyStateHeading('No locations yet')
-            ->emptyStateDescription('Start by creating a country, then add cities and districts.')
+            ->emptyStateHeading(__('No locations yet'))
+            ->emptyStateDescription(__('Start by creating a country, then add cities and districts.'))
             ->emptyStateIcon('heroicon-o-map-pin')
             ->defaultSort('name', 'asc');
     }

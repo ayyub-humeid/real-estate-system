@@ -17,11 +17,16 @@ class AcquisitionPropertiesRelationManager extends RelationManager
 {
     protected static string $relationship = 'acquisitionProperties';
 
+    public static function getTitle(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): string
+    {
+        return __('Properties');
+    }
+
     public function form(Form $form): Form
     {
         return $form->schema([
             Forms\Components\Select::make('property_id')
-                ->label('Property')
+                ->label(__('Property'))
                 ->options(function () {
                     $companyId = $this->getOwnerRecord()->company_id;
 
@@ -34,17 +39,18 @@ class AcquisitionPropertiesRelationManager extends RelationManager
                 ->required(),
 
             Forms\Components\TextInput::make('share_percentage')
-                ->label('Share Percentage (%)')
+                ->label(__('Share Percentage (%)'))
                 ->numeric()
                 ->minValue(0)
                 ->maxValue(100)
                 ->suffix('%'),
 
             Forms\Components\TextInput::make('allocated_value')
+                ->label(__('Allocated Value'))
                 ->numeric()
                 ->prefix('$'),
 
-            Forms\Components\Textarea::make('notes'),
+            Forms\Components\Textarea::make('notes')->label(__('Notes')),
         ]);
     }
 
@@ -53,21 +59,21 @@ class AcquisitionPropertiesRelationManager extends RelationManager
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('property.name')
-                    ->label('Property'),
+                    ->label(__('Property')),
                 Tables\Columns\TextColumn::make('share_percentage')
-                    ->label('Share %')
+                    ->label(__('Share %'))
                     ->suffix('%'),
                 Tables\Columns\TextColumn::make('allocated_value')
-                    ->label('Allocated Value')
+                    ->label(__('Allocated Value'))
                     ->money('USD'),
             ])
             ->headerActions([
                 Tables\Actions\Action::make('addProperty')
-                    ->label('Add Property')
+                    ->label(__('Add Property'))
                     ->visible(fn(): bool => auth()->user()->can('create_acquisition_property'))
                     ->form([
                         Forms\Components\Select::make('property_id')
-                            ->label('Property')
+                            ->label(__('Property'))
                             ->options(function () {
                                 $companyId = $this->getOwnerRecord()->company_id;
                                 return Property::withoutGlobalScopes()
@@ -81,21 +87,22 @@ class AcquisitionPropertiesRelationManager extends RelationManager
                                 function () {
                                     return function (string $attribute, $value, \Closure $fail) {
                                         if ($this->getOwnerRecord()->acquisitionProperties()->where('property_id', $value)->exists()) {
-                                            $fail('This property is already attached to this acquisition.');
+                                            $fail(__('This property is already attached to this acquisition.'));
                                         }
                                     };
                                 }
                             ]),
                         Forms\Components\TextInput::make('share_percentage')
-                            ->label('Share Percentage (%)')
+                            ->label(__('Share Percentage (%)'))
                             ->numeric()
                             ->minValue(0)
                             ->maxValue(100)
                             ->suffix('%'),
                         Forms\Components\TextInput::make('allocated_value')
+                            ->label(__('Allocated Value'))
                             ->numeric()
                             ->prefix('$'),
-                        Forms\Components\Textarea::make('notes'),
+                        Forms\Components\Textarea::make('notes')->label(__('Notes')),
                     ])
                     ->action(function (array $data) {
                         try {
@@ -110,7 +117,7 @@ class AcquisitionPropertiesRelationManager extends RelationManager
                         } catch (ValidationException $e) {
                             Notification::make()
                                 ->danger()
-                                ->title('Cannot Add Property')
+                                ->title(__('Cannot Add Property'))
                                 ->body(collect($e->errors())->flatten()->first())
                                 ->send();
 
@@ -118,8 +125,8 @@ class AcquisitionPropertiesRelationManager extends RelationManager
                         } catch (AuthorizationException) {
                             Notification::make()
                                 ->danger()
-                                ->title('Unauthorized')
-                                ->body('You do not have permission to add properties to this acquisition.')
+                                ->title(__('Unauthorized'))
+                                ->body(__('You do not have permission to add properties to this acquisition.'))
                                 ->send();
 
                             return null;

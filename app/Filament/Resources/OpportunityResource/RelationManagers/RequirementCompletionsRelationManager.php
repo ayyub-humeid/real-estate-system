@@ -35,12 +35,12 @@ class RequirementCompletionsRelationManager extends RelationManager
             ->columns([
                 Tables\Columns\TextColumn::make('requirement.stage.label')->label(__('crm.fields.stage'))
                     ->formatStateUsing(fn ($state, $record) => $record->requirement?->stage?->display_label ?? $state)
-                    ->placeholder('—'),
+                    ->placeholder(__('—')),
                 Tables\Columns\TextColumn::make('requirement.label')->label(__('crm.navigation.requirements'))->weight('medium')
                     ->formatStateUsing(fn ($state, $record) => $record->requirement?->display_label ?? $state),
-                Tables\Columns\TextColumn::make('completedBy.name')->label(__('crm.fields.owner'))->placeholder('—'),
+                Tables\Columns\TextColumn::make('completedBy.name')->label(__('crm.fields.owner'))->placeholder(__('—')),
                 Tables\Columns\TextColumn::make('completed_at')->label(__('crm.actions.complete'))->dateTime(),
-                Tables\Columns\TextColumn::make('notes')->label(__('crm.fields.notes'))->limit(60)->placeholder('—'),
+                Tables\Columns\TextColumn::make('notes')->label(__('crm.fields.notes'))->limit(60)->placeholder(__('—')),
             ])
             ->emptyStateHeading(__('crm.help.requirement_completions_empty_heading'))
             ->emptyStateDescription(fn (): string => $this->checklistRequirements()->isEmpty()

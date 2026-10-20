@@ -13,31 +13,36 @@ class UnitsRelationManager extends RelationManager
 {
     protected static bool $isLazy = true;
     protected static string $relationship = 'units';
-    protected static ?string $title = 'Units';
+
+    public static function getTitle(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): string
+    {
+        return __('Units');
+    }
 
     public function form(Form $form): Form
     {
         return $form->schema([
             Forms\Components\TextInput::make('unit_number')
+                ->label(__('Unit #'))
                 ->required()
                 ->maxLength(50)
                 ->prefixIcon('heroicon-m-hashtag'),
 
             Forms\Components\Select::make('type')
-                ->label('Type')
+                ->label(__('Type'))
                 ->options(UnitType::options())
                 ->searchable()
                 ->native(false),
 
             Forms\Components\Select::make('status')
-                ->label('Physical status')
+                ->label(__('Physical status'))
                 ->options(\App\Enums\UnitStatus::options())
                 ->default('draft')
                 ->disabled()
                 ->dehydrated(false)
-                ->helperText('Use the Unit Change status action after setup is saved.'),
-            Forms\Components\TextInput::make('actual_area')->numeric()->minValue(0),
-            Forms\Components\Select::make('area_unit')->options(['m2' => 'm²', 'sqft' => 'sq ft']),
+                ->helperText(__('Use the Unit Change status action after setup is saved.')),
+            Forms\Components\TextInput::make('actual_area')->label(__('Actual Area'))->numeric()->minValue(0),
+            Forms\Components\Select::make('area_unit')->label(__('Area Unit'))->options(['m2' => 'm²', 'sqft' => 'sq ft']),
         ]);
     }
 
@@ -47,23 +52,25 @@ class UnitsRelationManager extends RelationManager
             ->recordTitleAttribute('unit_number')
             ->columns([
                 Tables\Columns\TextColumn::make('unit_number')
-                    ->label('Unit #')
+                    ->label(__('Unit #'))
                     ->searchable()
                     ->sortable()
                     ->weight('bold'),
 
                 Tables\Columns\TextColumn::make('type')
+                    ->label(__('Type'))
                     ->badge()
                     ->color('gray')
-                    ->formatStateUsing(fn (?string $state) => $state ? ucfirst($state) : '—'),
+                    ->formatStateUsing(fn (?string $state) => $state ? UnitType::tryFrom($state)?->getLabel() ?? $state : __('—')),
 
                 Tables\Columns\TextColumn::make('rent_price')
-                    ->label('Legacy rent')
+                    ->label(__('Legacy rent'))
                     ->money('USD')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('status')
+                    ->label(__('Status'))
                     ->badge()
                     ->colors([
                         'gray' => 'draft',
@@ -71,15 +78,13 @@ class UnitsRelationManager extends RelationManager
                         'warning' => 'maintenance',
                         'danger' => 'inactive',
                     ])
-                    ->formatStateUsing(fn (string $state): string => ucfirst($state)),
+                    ->formatStateUsing(fn (string $state): string => \App\Enums\UnitStatus::tryFrom($state)?->getLabel() ?? $state),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
+                    ->label(__('Status'))
                     ->options([
-                        'draft' => 'Draft',
-                        'ready' => 'Ready',
-                        'maintenance' => 'Maintenance',
-                        'inactive' => 'Inactive',
+                        ...\App\Enums\UnitStatus::options(),
                     ]),
             ])
             ->headerActions([
@@ -99,8 +104,8 @@ class UnitsRelationManager extends RelationManager
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ])
-            ->emptyStateHeading('No units yet')
-            ->emptyStateDescription('Add units to this property.')
+            ->emptyStateHeading(__('No units yet'))
+            ->emptyStateDescription(__('Add units to this property.'))
             ->emptyStateIcon('heroicon-o-home');
     }
 

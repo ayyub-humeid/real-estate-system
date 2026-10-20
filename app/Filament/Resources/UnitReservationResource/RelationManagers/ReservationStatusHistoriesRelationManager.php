@@ -35,8 +35,8 @@ class ReservationStatusHistoriesRelationManager extends RelationManager
                     ->formatStateUsing(fn ($state) => $state instanceof ReservationStatus ? $state->getLabel() : __('reservations.statuses.'.$state))
                     ->color(fn ($state) => $state instanceof ReservationStatus ? $state->color() : ReservationStatus::tryFrom((string) $state)?->color()),
                 Tables\Columns\TextColumn::make('action')->label(__('reservations.fields.action'))->formatStateUsing(fn (string $state) => __('reservations.history_actions.'.$state)),
-                Tables\Columns\TextColumn::make('changedBy.name')->label(__('reservations.fields.changed_by'))->placeholder('—'),
-                Tables\Columns\TextColumn::make('reason')->label(__('reservations.fields.reason'))->limit(50)->placeholder('—'),
+                Tables\Columns\TextColumn::make('changedBy.name')->label(__('reservations.fields.changed_by'))->placeholder(__('—')),
+                Tables\Columns\TextColumn::make('reason')->label(__('reservations.fields.reason'))->limit(50)->placeholder(__('—')),
                 Tables\Columns\TextColumn::make('created_at')->label(__('reservations.fields.changed_at'))->dateTime()->sortable(),
             ])
             ->emptyStateHeading(__('reservations.empty.history_heading'))

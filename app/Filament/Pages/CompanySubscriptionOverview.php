@@ -13,9 +13,20 @@ class CompanySubscriptionOverview extends Page
 
     protected static ?int $navigationSort = 2;
 
-    protected static ?string $title = 'Company Subscription';
+    public static function getNavigationGroup(): ?string
+    {
+        return filled(static::$navigationGroup) ? __(static::$navigationGroup) : null;
+    }
 
-    protected static ?string $navigationLabel = 'Subscription Overview';
+    public static function getNavigationLabel(): string
+    {
+        return __('Subscription Overview');
+    }
+
+    public function getTitle(): string | \Illuminate\Contracts\Support\Htmlable
+    {
+        return __('Company Subscription');
+    }
 
     protected static string $view = 'filament.pages.company-subscription-overview';
 
@@ -86,18 +97,18 @@ class CompanySubscriptionOverview extends Page
 
         return [
             'company_name' => $this->company->name,
-            'plan_name' => $plan?->name ?? 'No active plan',
-            'plan_price' => $plan ? '$' . number_format((float) $plan->price, 2) : 'N/A',
+            'plan_name' => $plan?->name ?? __('No active plan'),
+            'plan_price' => $plan ? '$' . number_format((float) $plan->price, 2) : __('N/A'),
             'plan_limits' => $this->formatLimits($plan?->features),
-            'subscription_status' => $subscription?->status ? ucfirst($subscription->status) : 'No subscription',
-            'expiry_date' => $subscription?->ends_at?->toFormattedDateString() ?? 'N/A',
+            'subscription_status' => $subscription?->status ? __($subscription->status) : __('No subscription'),
+            'expiry_date' => $subscription?->ends_at?->toFormattedDateString() ?? __('N/A'),
         ];
     }
 
     protected function formatLimits(?array $features): string
     {
         if (empty($features)) {
-            return 'N/A';
+            return __('N/A');
         }
 
         $limits = [];
@@ -107,22 +118,22 @@ class CompanySubscriptionOverview extends Page
                 continue;
             }
 
-            $label = ucfirst(str_replace('_', ' ', str_replace('max_', '', $key)));
-            $limits[] = sprintf('%s: %s', $label, $value ?? 'Unlimited');
+            $label = __(ucfirst(str_replace('_', ' ', str_replace('max_', '', $key))));
+            $limits[] = sprintf('%s: %s', $label, $value ?? __('Unlimited'));
         }
 
-        return empty($limits) ? 'N/A' : implode(' | ', $limits);
+        return empty($limits) ? __('N/A') : implode(' | ', $limits);
     }
 
     protected function emptyOverview(): array
     {
         return [
-            'company_name' => 'N/A',
-            'plan_name' => 'No active plan',
-            'plan_price' => 'N/A',
-            'plan_limits' => 'N/A',
-            'subscription_status' => 'No subscription',
-            'expiry_date' => 'N/A',
+            'company_name' => __('N/A'),
+            'plan_name' => __('No active plan'),
+            'plan_price' => __('N/A'),
+            'plan_limits' => __('N/A'),
+            'subscription_status' => __('No subscription'),
+            'expiry_date' => __('N/A'),
         ];
     }
 
@@ -136,19 +147,19 @@ class CompanySubscriptionOverview extends Page
 
         $usageMap = [
             'max_users' => [
-                'label' => 'Users',
+                'label' => __('Users'),
                 'used' => (int) ($this->company->users_count ?? 0),
             ],
             'max_employees' => [
-                'label' => 'Employees',
+                'label' => __('Employees'),
                 'used' => (int) ($this->company->employees_count ?? 0),
             ],
             'max_properties' => [
-                'label' => 'Properties',
+                'label' => __('Properties'),
                 'used' => (int) ($this->company->properties_count ?? 0),
             ],
             'max_units' => [
-                'label' => 'Units',
+                'label' => __('Units'),
                 'used' => (int) ($this->company->units_count ?? 0),
             ],
         ];
@@ -181,18 +192,18 @@ class CompanySubscriptionOverview extends Page
     protected function resolveUsageStatus(?int $max, ?int $remaining, ?int $usagePercent): string
     {
         if ($max === null) {
-            return 'Unlimited';
+            return __('Unlimited');
         }
 
         if ($remaining === 0) {
-            return 'Limit reached';
+            return __('Limit reached');
         }
 
         if (($usagePercent ?? 0) >= 80) {
-            return 'Near limit';
+            return __('Near limit');
         }
 
-        return 'Healthy';
+        return __('Healthy');
     }
 
     protected function resolveStatusLevel(?int $max, ?int $remaining, ?int $usagePercent): string

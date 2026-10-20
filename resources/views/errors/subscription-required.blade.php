@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" dir="{{ app()->getLocale() === 'ar' ? 'rtl' : 'ltr' }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Subscription Required - Real Estate System</title>
+    <title>{{ __('Subscription Required') }} - {{ config('app.name', 'Real Estate System') }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { font-family: 'Outfit', sans-serif; }
+        body { font-family: {{ app()->getLocale() === 'ar' ? "'Tajawal', sans-serif" : "'Outfit', sans-serif" }}; }
         .glass {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
@@ -31,28 +31,28 @@
                 </svg>
             </div>
 
-            <h1 class="text-3xl font-bold text-slate-800 mb-4 tracking-tight">Access Restricted</h1>
+            <h1 class="text-3xl font-bold text-slate-800 mb-4 tracking-tight">{{ __('Access Restricted') }}</h1>
             
             <p class="text-slate-600 mb-10 leading-relaxed">
-                {{ $message ?? 'Your company requires an active subscription to access the management dashboard.' }}
+                {{ $message ?? __('Your company requires an active subscription to access the management dashboard.') }}
             </p>
 
             <div class="space-y-4">
                 <button onclick="window.location.reload()" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-semibold py-4 rounded-2xl transition-all shadow-lg hover:shadow-xl active:scale-[0.98]">
-                    Refresh Status
+                    {{ __('Refresh Status') }}
                 </button>
                 
                 <form action="{{ route('filament.admin.auth.logout') }}" method="POST">
                     @csrf
                     <button type="submit" class="w-full text-slate-500 hover:text-slate-800 font-medium py-2 transition-colors">
-                        Sign Out
+                        {{ __('Sign Out') }}
                     </button>
                 </form>
             </div>
 
             <div class="mt-10 pt-8 border-t border-slate-100">
                 <p class="text-sm text-slate-400">
-                    Need help? Contact your administrator or <a href="#" class="text-amber-600 hover:underline">Support Team</a>.
+                    {{ __('Need help? Contact your administrator or') }} <a href="#" class="text-amber-600 hover:underline">{{ __('Support Team') }}</a>.
                 </p>
             </div>
         </div>

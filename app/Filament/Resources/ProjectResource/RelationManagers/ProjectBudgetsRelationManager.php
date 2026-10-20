@@ -18,6 +18,11 @@ class ProjectBudgetsRelationManager extends RelationManager
 
     protected static ?string $title = 'Budget Planning';
 
+    public static function getTitle(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): string
+    {
+        return __('Budget Planning');
+    }
+
     public function isReadOnly(): bool
     {
         return false;
@@ -27,66 +32,74 @@ class ProjectBudgetsRelationManager extends RelationManager
     {
         return $table
             ->defaultSort('version_number', 'desc')
-            ->emptyStateHeading('Create the project budget')
-            ->emptyStateDescription('Create a budget version, then manage its categories and planned cost items directly from this Project page.')
+            ->emptyStateHeading(__('Create the project budget'))
+            ->emptyStateDescription(__('Create a budget version, then manage its categories and planned cost items directly from this Project page.'))
             ->columns([
-                Tables\Columns\TextColumn::make('version_number')->label('Version')->badge(),
-                Tables\Columns\TextColumn::make('name')->placeholder('Unnamed budget')->searchable(),
-                Tables\Columns\TextColumn::make('status')->badge()->colors([
+                Tables\Columns\TextColumn::make('version_number')->label(__('Version'))->badge(),
+                Tables\Columns\TextColumn::make('name')->label(__('Name'))->placeholder(__('Unnamed budget'))->searchable(),
+                Tables\Columns\TextColumn::make('status')->label(__('Status'))->badge()->colors([
                     'gray' => ['draft', 'superseded', 'closed'],
                     'warning' => 'pending_approval',
                     'success' => 'approved',
                     'danger' => 'cancelled',
-                ]),
-                Tables\Columns\TextColumn::make('categories_count')->counts('categories')->label('Categories')->alignCenter(),
-                Tables\Columns\TextColumn::make('items_count')->counts('items')->label('Items')->alignCenter(),
+                ])->formatStateUsing(fn ($state) => match ($state) {
+                    'draft' => __('Draft'),
+                    'superseded' => __('Superseded'),
+                    'closed' => __('Closed'),
+                    'pending_approval' => __('Pending Approval'),
+                    'approved' => __('Approved'),
+                    'cancelled' => __('Cancelled'),
+                    default => $state,
+                }),
+                Tables\Columns\TextColumn::make('categories_count')->counts('categories')->label(__('Categories'))->alignCenter(),
+                Tables\Columns\TextColumn::make('items_count')->counts('items')->label(__('Items'))->alignCenter(),
                 Tables\Columns\TextColumn::make('items_sum_planned_amount')
                     ->sum('items', 'planned_amount')
-                    ->label('Planned')
+                    ->label(__('Planned'))
                     ->money(fn (): string => $this->getOwnerRecord()->currency),
-                Tables\Columns\TextColumn::make('approved_at')->dateTime()->placeholder('—'),
+                Tables\Columns\TextColumn::make('approved_at')->label(__('Approved At'))->dateTime()->placeholder(__('—')),
             ])
             ->headerActions([
                 Tables\Actions\Action::make('createBudget')
-                    ->label('Create budget')
+                    ->label(__('Create budget'))
                     ->icon('heroicon-o-plus')
                     ->form([
-                        Forms\Components\TextInput::make('name')->label('Budget name'),
-                        Forms\Components\Textarea::make('notes'),
+                        Forms\Components\TextInput::make('name')->label(__('Budget name')),
+                        Forms\Components\Textarea::make('notes')->label(__('Notes')),
                     ])
                     ->action(function (array $data): void {
                         $this->run(function () use ($data): void {
                             app(BudgetingService::class)->createBudget(auth()->user(), $this->getOwnerRecord(), $data);
-                            Notification::make()->success()->title('Budget created')->body('Add categories and planned cost items from this Project page.')->send();
+                            Notification::make()->success()->title(__('Budget created'))->body(__('Add categories and planned cost items from this Project page.'))->send();
                         });
                     }),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make()
-                    ->label('Details')
+                    ->label(__('Details'))
                     ->icon('heroicon-o-eye')
-                    ->tooltip('View budget version, categories, and planned items')
+                    ->tooltip(__('View budget version, categories, and planned items'))
                     ->modalWidth('6xl')
                     ->infolist($this->budgetInfolist()),
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\Action::make('addCategory')
-                        ->label('Add category')
+                        ->label(__('Add category'))
                         ->icon('heroicon-o-plus')
                         ->visible(fn (ProjectBudget $record): bool => $record->status === 'draft')
                         ->form(fn (ProjectBudget $record): array => $this->categoryForm($record))
                         ->action(function (ProjectBudget $record, array $data): void {
                             $this->run(function () use ($record, $data): void {
                                 app(BudgetingService::class)->addCategory(auth()->user(), $record, $data);
-                                Notification::make()->success()->title('Budget category added')->send();
+                                Notification::make()->success()->title(__('Budget category added'))->send();
                             });
                         }),
                     Tables\Actions\Action::make('editCategory')
-                        ->label('Edit category')
+                        ->label(__('Edit category'))
                         ->icon('heroicon-o-pencil-square')
                         ->visible(fn (ProjectBudget $record): bool => $record->status === 'draft' && $record->categories()->exists())
                         ->form(fn (ProjectBudget $record): array => array_merge([
                             Forms\Components\Select::make('category_id')
-                                ->label('Category')
+                                ->label(__('Category'))
                                 ->options($this->categoryOptions($record))
                                 ->required()
                                 ->searchable()
@@ -109,49 +122,49 @@ class ProjectBudgetsRelationManager extends RelationManager
                                 $category = $this->categoryForBudget($record, $data['category_id']);
                                 unset($data['category_id']);
                                 app(BudgetingService::class)->updateCategory(auth()->user(), $record, $category, $data);
-                                Notification::make()->success()->title('Budget category updated')->send();
+                                Notification::make()->success()->title(__('Budget category updated'))->send();
                             });
                         }),
                     Tables\Actions\Action::make('deleteCategory')
-                        ->label('Delete category')
+                        ->label(__('Delete category'))
                         ->icon('heroicon-o-trash')
                         ->color('danger')
                         ->visible(fn (ProjectBudget $record): bool => $record->status === 'draft' && $record->categories()->exists())
                         ->form(fn (ProjectBudget $record): array => [
-                            Forms\Components\Select::make('category_id')->label('Category')->options($this->categoryOptions($record))->required()->searchable(),
+                            Forms\Components\Select::make('category_id')->label(__('Category'))->options($this->categoryOptions($record))->required()->searchable(),
                         ])
                         ->requiresConfirmation()
-                        ->modalDescription('A category can be deleted only after its child categories and budget items are removed.')
+                        ->modalDescription(__('A category can be deleted only after its child categories and budget items are removed.'))
                         ->action(function (ProjectBudget $record, array $data): void {
                             $this->run(function () use ($record, $data): void {
                                 app(BudgetingService::class)->deleteCategory(auth()->user(), $record, $this->categoryForBudget($record, $data['category_id']));
-                                Notification::make()->success()->title('Budget category deleted')->send();
+                                Notification::make()->success()->title(__('Budget category deleted'))->send();
                             });
                         }),
-                ])->label('Categories')->icon('heroicon-o-folder')->tooltip('Manage budget categories'),
+                ])->label(__('Categories'))->icon('heroicon-o-folder')->tooltip(__('Manage budget categories')),
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\Action::make('addItem')
-                        ->label('Add budget item')
+                        ->label(__('Add budget item'))
                         ->icon('heroicon-o-plus')
                         ->visible(fn (ProjectBudget $record): bool => $record->status === 'draft' && $record->categories()->exists())
                         ->form(fn (ProjectBudget $record): array => array_merge([
-                            Forms\Components\Select::make('category_id')->label('Category')->options($this->categoryOptions($record))->required()->searchable(),
+                            Forms\Components\Select::make('category_id')->label(__('Category'))->options($this->categoryOptions($record))->required()->searchable(),
                         ], $this->itemForm()))
                         ->action(function (ProjectBudget $record, array $data): void {
                             $this->run(function () use ($record, $data): void {
                                 $category = $this->categoryForBudget($record, $data['category_id']);
                                 unset($data['category_id']);
                                 app(BudgetingService::class)->addItem(auth()->user(), $category, $data);
-                                Notification::make()->success()->title('Budget item added')->send();
+                                Notification::make()->success()->title(__('Budget item added'))->send();
                             });
                         }),
                     Tables\Actions\Action::make('editItem')
-                        ->label('Edit budget item')
+                        ->label(__('Edit budget item'))
                         ->icon('heroicon-o-pencil-square')
                         ->visible(fn (ProjectBudget $record): bool => $record->status === 'draft' && $record->items()->exists())
                         ->form(fn (ProjectBudget $record): array => array_merge([
                             Forms\Components\Select::make('budget_item_id')
-                                ->label('Budget item')
+                                ->label(__('Budget item'))
                                 ->options($this->itemOptions($record))
                                 ->required()
                                 ->searchable()
@@ -177,53 +190,58 @@ class ProjectBudgetsRelationManager extends RelationManager
                                 $item = $this->itemForBudget($record, $data['budget_item_id']);
                                 unset($data['budget_item_id']);
                                 app(BudgetingService::class)->updateItem(auth()->user(), $record, $item, $data);
-                                Notification::make()->success()->title('Budget item updated')->send();
+                                Notification::make()->success()->title(__('Budget item updated'))->send();
                             });
                         }),
                     Tables\Actions\Action::make('deleteItem')
-                        ->label('Delete budget item')
+                        ->label(__('Delete budget item'))
                         ->icon('heroicon-o-trash')
                         ->color('danger')
                         ->visible(fn (ProjectBudget $record): bool => $record->status === 'draft' && $record->items()->exists())
                         ->form(fn (ProjectBudget $record): array => [
-                            Forms\Components\Select::make('budget_item_id')->label('Budget item')->options($this->itemOptions($record))->required()->searchable(),
+                            Forms\Components\Select::make('budget_item_id')->label(__('Budget item'))->options($this->itemOptions($record))->required()->searchable(),
                         ])
                         ->requiresConfirmation()
-                        ->modalDescription('Deleting a draft item does not change historical budget versions or financial records.')
+                        ->modalDescription(__('Deleting a draft item does not change historical budget versions or financial records.'))
                         ->action(function (ProjectBudget $record, array $data): void {
                             $this->run(function () use ($record, $data): void {
                                 app(BudgetingService::class)->deleteItem(auth()->user(), $record, $this->itemForBudget($record, $data['budget_item_id']));
-                                Notification::make()->success()->title('Budget item deleted')->send();
+                                Notification::make()->success()->title(__('Budget item deleted'))->send();
                             });
                         }),
-                ])->label('Budget items')->icon('heroicon-o-calculator')->tooltip('Manage planned cost items'),
+                ])->label(__('Budget items'))->icon('heroicon-o-calculator')->tooltip(__('Manage planned cost items')),
                 Tables\Actions\Action::make('submit')
+                    ->label(__('Submit'))
                     ->icon('heroicon-o-paper-airplane')
-                    ->tooltip('Submit for approval')
+                    ->tooltip(__('Submit for approval'))
                     ->visible(fn (ProjectBudget $record): bool => $record->status === 'draft')
                     ->action(fn (ProjectBudget $record) => $this->run(fn () => app(BudgetingService::class)->submitBudget(auth()->user(), $record))),
                 Tables\Actions\Action::make('approve')
+                    ->label(__('Approve'))
                     ->color('success')
                     ->icon('heroicon-o-check-circle')
-                    ->tooltip('Approve budget')
+                    ->tooltip(__('Approve budget'))
                     ->visible(fn (ProjectBudget $record): bool => $record->status === 'pending_approval')
                     ->action(fn (ProjectBudget $record) => $this->run(fn () => app(BudgetingService::class)->approveBudget(auth()->user(), $record))),
                 Tables\Actions\Action::make('returnToDraft')
+                    ->label(__('Return to draft'))
                     ->icon('heroicon-o-arrow-uturn-left')
-                    ->tooltip('Return to draft')
+                    ->tooltip(__('Return to draft'))
                     ->visible(fn (ProjectBudget $record): bool => $record->status === 'pending_approval')
-                    ->form([Forms\Components\Textarea::make('reason')->required()])
+                    ->form([Forms\Components\Textarea::make('reason')->label(__('Reason'))->required()])
                     ->action(fn (ProjectBudget $record, array $data) => $this->run(fn () => app(BudgetingService::class)->rejectBudget(auth()->user(), $record, $data['reason']))),
                 Tables\Actions\Action::make('cancel')
+                    ->label(__('Cancel'))
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
-                    ->tooltip('Cancel draft budget')
+                    ->tooltip(__('Cancel draft budget'))
                     ->visible(fn (ProjectBudget $record): bool => in_array($record->status, ['draft', 'pending_approval'], true))
-                    ->form([Forms\Components\Textarea::make('reason')->required()])
+                    ->form([Forms\Components\Textarea::make('reason')->label(__('Reason'))->required()])
                     ->action(fn (ProjectBudget $record, array $data) => $this->run(fn () => app(BudgetingService::class)->cancelBudget(auth()->user(), $record, $data['reason']))),
                 Tables\Actions\Action::make('createRevision')
+                    ->label(__('Create revision'))
                     ->icon('heroicon-o-arrow-path')
-                    ->tooltip('Create revision')
+                    ->tooltip(__('Create revision'))
                     ->visible(fn (ProjectBudget $record): bool => $record->status === 'approved')
                     ->action(fn (ProjectBudget $record) => $this->run(fn () => app(BudgetingService::class)->createRevision(auth()->user(), $record))),
             ]);
@@ -232,33 +250,41 @@ class ProjectBudgetsRelationManager extends RelationManager
     private function categoryForm(ProjectBudget $budget): array
     {
         return [
-            Forms\Components\Select::make('parent_id')->label('Parent category')->options($this->categoryOptions($budget))->searchable(),
-            Forms\Components\TextInput::make('name')->required(),
-            Forms\Components\TextInput::make('code'),
-            Forms\Components\Textarea::make('description'),
-            Forms\Components\TextInput::make('sort_order')->numeric()->default(0),
+            Forms\Components\Select::make('parent_id')->label(__('Parent category'))->options($this->categoryOptions($budget))->searchable(),
+            Forms\Components\TextInput::make('name')->label(__('Name'))->required(),
+            Forms\Components\TextInput::make('code')->label(__('Code')),
+            Forms\Components\Textarea::make('description')->label(__('Description')),
+            Forms\Components\TextInput::make('sort_order')->label(__('Sort Order'))->numeric()->default(0),
         ];
     }
 
     private function budgetInfolist(): array
     {
         return [
-            \Filament\Infolists\Components\Section::make('Budget version')
+            \Filament\Infolists\Components\Section::make(__('Budget version'))
                 ->schema([
-                    \Filament\Infolists\Components\TextEntry::make('version_number')->label('Version')->badge(),
-                    \Filament\Infolists\Components\TextEntry::make('name')->placeholder('Unnamed budget'),
-                    \Filament\Infolists\Components\TextEntry::make('status')->badge()->colors([
+                    \Filament\Infolists\Components\TextEntry::make('version_number')->label(__('Version'))->badge(),
+                    \Filament\Infolists\Components\TextEntry::make('name')->label(__('Name'))->placeholder(__('Unnamed budget')),
+                    \Filament\Infolists\Components\TextEntry::make('status')->label(__('Status'))->badge()->colors([
                         'gray' => ['draft', 'superseded', 'closed', 'cancelled'],
                         'warning' => 'pending_approval',
                         'success' => 'approved',
-                    ]),
-                    \Filament\Infolists\Components\TextEntry::make('approved_at')->label('Approved at')->dateTime()->placeholder('—'),
-                    \Filament\Infolists\Components\TextEntry::make('notes')->columnSpanFull()->placeholder('No notes'),
+                    ])->formatStateUsing(fn ($state) => match ($state) {
+                        'draft' => __('Draft'),
+                        'superseded' => __('Superseded'),
+                        'closed' => __('Closed'),
+                        'pending_approval' => __('Pending Approval'),
+                        'approved' => __('Approved'),
+                        'cancelled' => __('Cancelled'),
+                        default => $state,
+                    }),
+                    \Filament\Infolists\Components\TextEntry::make('approved_at')->label(__('Approved At'))->dateTime()->placeholder(__('—')),
+                    \Filament\Infolists\Components\TextEntry::make('notes')->label(__('Notes'))->columnSpanFull()->placeholder(__('No notes')),
                 ])->columns(4),
 
-            \Filament\Infolists\Components\Tabs::make('Budget details')
+            \Filament\Infolists\Components\Tabs::make(__('Budget details'))
                 ->tabs([
-                    \Filament\Infolists\Components\Tabs\Tab::make('Categories')
+                    \Filament\Infolists\Components\Tabs\Tab::make(__('Categories'))
                         ->icon('heroicon-o-folder')
                         ->schema([
                             \Filament\Infolists\Components\RepeatableEntry::make('budget_categories')
@@ -271,17 +297,17 @@ class ProjectBudgetsRelationManager extends RelationManager
                                     ->map(fn (BudgetCategory $category): array => [
                                         'name' => $category->name,
                                         'code' => $category->code,
-                                        'parent' => $category->parent?->name ?? 'Top-level category',
+                                        'parent' => $category->parent?->name ?? __('Top-level category'),
                                         'description' => $category->description,
                                     ])->all())
                                 ->schema([
-                                    \Filament\Infolists\Components\TextEntry::make('name')->weight('bold'),
-                                    \Filament\Infolists\Components\TextEntry::make('code')->placeholder('—'),
-                                    \Filament\Infolists\Components\TextEntry::make('parent')->label('Parent'),
-                                    \Filament\Infolists\Components\TextEntry::make('description')->columnSpanFull()->placeholder('No description'),
+                                    \Filament\Infolists\Components\TextEntry::make('name')->label(__('Name'))->weight('bold'),
+                                    \Filament\Infolists\Components\TextEntry::make('code')->label(__('Code'))->placeholder(__('—')),
+                                    \Filament\Infolists\Components\TextEntry::make('parent')->label(__('Parent category')),
+                                    \Filament\Infolists\Components\TextEntry::make('description')->label(__('Description'))->columnSpanFull()->placeholder(__('No description')),
                                 ])->columns(3),
                         ]),
-                    \Filament\Infolists\Components\Tabs\Tab::make('Planned items')
+                    \Filament\Infolists\Components\Tabs\Tab::make(__('Planned items'))
                         ->icon('heroicon-o-calculator')
                         ->schema([
                             \Filament\Infolists\Components\RepeatableEntry::make('budget_items')
@@ -300,13 +326,13 @@ class ProjectBudgetsRelationManager extends RelationManager
                                         'description' => $item->description,
                                     ])->all())
                                 ->schema([
-                                    \Filament\Infolists\Components\TextEntry::make('category')->badge()->color('gray'),
-                                    \Filament\Infolists\Components\TextEntry::make('name')->weight('bold'),
-                                    \Filament\Infolists\Components\TextEntry::make('code')->placeholder('—'),
-                                    \Filament\Infolists\Components\TextEntry::make('planned_amount')->label('Planned amount'),
-                                    \Filament\Infolists\Components\TextEntry::make('quantity')->placeholder('—'),
-                                    \Filament\Infolists\Components\TextEntry::make('unit')->placeholder('—'),
-                                    \Filament\Infolists\Components\TextEntry::make('description')->columnSpanFull()->placeholder('No description'),
+                                    \Filament\Infolists\Components\TextEntry::make('category')->label(__('Category'))->badge()->color('gray'),
+                                    \Filament\Infolists\Components\TextEntry::make('name')->label(__('Name'))->weight('bold'),
+                                    \Filament\Infolists\Components\TextEntry::make('code')->label(__('Code'))->placeholder(__('—')),
+                                    \Filament\Infolists\Components\TextEntry::make('planned_amount')->label(__('Planned amount')),
+                                    \Filament\Infolists\Components\TextEntry::make('quantity')->label(__('Quantity'))->placeholder(__('—')),
+                                    \Filament\Infolists\Components\TextEntry::make('unit')->label(__('Unit'))->placeholder(__('—')),
+                                    \Filament\Infolists\Components\TextEntry::make('description')->label(__('Description'))->columnSpanFull()->placeholder(__('No description')),
                                 ])->columns(3),
                         ]),
                 ]),
@@ -316,14 +342,14 @@ class ProjectBudgetsRelationManager extends RelationManager
     private function itemForm(): array
     {
         return [
-            Forms\Components\TextInput::make('name')->required(),
-            Forms\Components\TextInput::make('code'),
-            Forms\Components\TextInput::make('planned_amount')->numeric()->required(),
-            Forms\Components\TextInput::make('quantity')->numeric(),
-            Forms\Components\TextInput::make('unit'),
-            Forms\Components\TextInput::make('unit_cost')->numeric(),
-            Forms\Components\Textarea::make('description'),
-            Forms\Components\Textarea::make('notes'),
+            Forms\Components\TextInput::make('name')->label(__('Name'))->required(),
+            Forms\Components\TextInput::make('code')->label(__('Code')),
+            Forms\Components\TextInput::make('planned_amount')->label(__('Planned amount'))->numeric()->required(),
+            Forms\Components\TextInput::make('quantity')->label(__('Quantity'))->numeric(),
+            Forms\Components\TextInput::make('unit')->label(__('Unit')),
+            Forms\Components\TextInput::make('unit_cost')->label(__('Unit Cost'))->numeric(),
+            Forms\Components\Textarea::make('description')->label(__('Description')),
+            Forms\Components\Textarea::make('notes')->label(__('Notes')),
         ];
     }
 
@@ -354,9 +380,9 @@ class ProjectBudgetsRelationManager extends RelationManager
         try {
             $operation();
         } catch (ValidationException $exception) {
-            Notification::make()->danger()->title('Cannot update budget')->body(collect($exception->errors())->flatten()->first())->send();
+            Notification::make()->danger()->title(__('Cannot update budget'))->body(collect($exception->errors())->flatten()->first())->send();
         } catch (AuthorizationException) {
-            Notification::make()->danger()->title('Unauthorized')->body('You do not have permission to perform this budget action.')->send();
+            Notification::make()->danger()->title(__('Unauthorized'))->body(__('You do not have permission to perform this budget action.'))->send();
         }
     }
 }

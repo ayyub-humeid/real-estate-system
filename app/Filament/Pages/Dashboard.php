@@ -14,9 +14,17 @@ class Dashboard extends BaseDashboard
 
     protected static ?string $navigationLabel = 'Dashboard';
 
-    protected static ?string $title = 'Dashboard';
-
     protected static ?int $navigationSort = -2;
+
+    public static function getNavigationLabel(): string
+    {
+        return __('Dashboard');
+    }
+
+    public function getTitle(): string | \Illuminate\Contracts\Support\Htmlable
+    {
+        return __('Dashboard');
+    }
 
     public function getWidgets(): array
     {

@@ -8,6 +8,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 class ProjectBudgetResource extends Resource
 {
+    use \App\Filament\Resources\Concerns\UsesLocalizedResourceLabels;
     protected static ?string $model = ProjectBudget::class;
     protected static bool $shouldRegisterNavigation = false;
     protected static ?string $navigationIcon = 'heroicon-o-calculator';
