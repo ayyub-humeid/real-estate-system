@@ -143,6 +143,12 @@ class RolesAndPermissionsSeeder extends Seeder
             // Phase 07.6 — reservation lifecycle. Top-level CRUD comes from Shield.
             'send_reservation_for_approval', 'approve_and_activate_reservation', 'reject_reservation_request',
             'cancel_unit_reservation', 'extend_unit_reservation', 'expire_unit_reservation',
+            // Phase 07.7 — Contract version/legal workflow children. Contract CRUD is Shield generated.
+            'submit_contract_version', 'approve_contract_version', 'request_contract_revision',
+            'create_contract_revision', 'update_contract_version', 'attach_contract_document',
+            'record_contract_signature', 'activate_contract',
+            'create_contract_amendment', 'view_contract_approval', 'view_contract_signature',
+            'view_contract_amendment', 'view_contract_status_history',
         ];
 
         foreach ($customDomainPermissions as $permission) {

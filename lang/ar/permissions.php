@@ -10,10 +10,18 @@ return [
         'send_reservation_for_approval' => 'إرسال الحجز للاعتماد', 'approve_and_activate_reservation' => 'اعتماد وتفعيل الحجز',
         'reject_reservation_request' => 'رفض طلب الحجز', 'cancel_unit_reservation' => 'إلغاء الحجز',
         'extend_unit_reservation' => 'تمديد الحجز', 'expire_unit_reservation' => 'إنهاء الحجز',
+        'update_contract_version' => 'تعديل إصدار مسودة العقد', 'submit_contract_version' => 'إرسال إصدار العقد للمراجعة',
+        'approve_contract_version' => 'اعتماد إصدار العقد', 'request_contract_revision' => 'طلب تعديل العقد',
+        'create_contract_revision' => 'إنشاء تعديل للعقد', 'attach_contract_document' => 'إرفاق مستند قانوني للعقد',
+        'record_contract_signature' => 'تسجيل توقيع العقد', 'activate_contract' => 'تفعيل العقد',
+        'create_contract_amendment' => 'إنشاء ملحق للعقد', 'view_contract_approval' => 'عرض موافقات العقد',
+        'view_contract_signature' => 'عرض توقيعات العقد', 'view_contract_amendment' => 'عرض ملاحق العقد',
+        'view_contract_status_history' => 'عرض سجل حالة العقد',
+        'confirm_offer_agreement' => 'تأكيد اتفاق العرض',
     ],
     'actions' => [
         'view_any' => 'عرض كل', 'view_own' => 'عرض الخاصة بي', 'complete_any' => 'إكمال أي', 'force_delete_any' => 'حذف نهائي لأي', 'force_delete' => 'حذف نهائي', 'delete_any' => 'حذف أي', 'restore_any' => 'استعادة أي',
-        'create' => 'إنشاء', 'update' => 'تعديل', 'delete' => 'حذف', 'view' => 'عرض', 'approve' => 'اعتماد', 'cancel' => 'إلغاء', 'complete' => 'إكمال', 'manage' => 'إدارة', 'attach' => 'ربط', 'detach' => 'فصل', 'clear' => 'تصفية', 'waive' => 'تجاوز', 'change' => 'تغيير', 'assign' => 'تعيين', 'replace' => 'استبدال', 'submit' => 'إرسال', 'review' => 'مراجعة', 'request' => 'طلب', 'close' => 'إغلاق', 'reject' => 'رفض', 'commit' => 'التزام', 'release' => 'تحرير', 'record' => 'تسجيل', 'allocate' => 'توزيع', 'void' => 'إبطال', 'start' => 'بدء', 'resolve' => 'حل', 'correct' => 'تصحيح', 'reactivate' => 'إعادة تفعيل', 'publish' => 'نشر', 'pause' => 'إيقاف مؤقت', 'archive' => 'أرشفة', 'move' => 'نقل', 'finalize' => 'تثبيت', 'withdraw' => 'سحب', 'expire' => 'إنهاء',
+        'create' => 'إنشاء', 'update' => 'تعديل', 'delete' => 'حذف', 'view' => 'عرض', 'approve' => 'اعتماد', 'cancel' => 'إلغاء', 'complete' => 'إكمال', 'manage' => 'إدارة', 'attach' => 'ربط', 'detach' => 'فصل', 'clear' => 'تصفية', 'waive' => 'تجاوز', 'change' => 'تغيير', 'assign' => 'تعيين', 'replace' => 'استبدال', 'submit' => 'إرسال', 'review' => 'مراجعة', 'request' => 'طلب', 'close' => 'إغلاق', 'reject' => 'رفض', 'commit' => 'التزام', 'release' => 'تحرير', 'record' => 'تسجيل', 'allocate' => 'توزيع', 'void' => 'إبطال', 'start' => 'بدء', 'resolve' => 'حل', 'correct' => 'تصحيح', 'reactivate' => 'إعادة تفعيل', 'publish' => 'نشر', 'pause' => 'إيقاف مؤقت', 'archive' => 'أرشفة', 'move' => 'نقل', 'finalize' => 'تثبيت', 'withdraw' => 'سحب', 'expire' => 'إنهاء', 'activate' => 'تفعيل', 'confirm' => 'تأكيد',
     ],
     'entities' => [
         'property_acquisition' => 'استحواذ عقاري', 'acquisition_property' => 'عقار الاستحواذ', 'acquisition_party' => 'طرف الاستحواذ', 'property_ownership' => 'ملكية العقار', 'due_diligence_case' => 'حالة التحقق النافي للجهالة', 'due_diligence_item' => 'بند التحقق النافي للجهالة',
@@ -24,7 +32,7 @@ return [
         'actual_unit_from_planned_unit' => 'وحدة فعلية من مخطط معتمد', 'unit_status' => 'حالة الوحدة', 'unit_ownership' => 'ملكية الوحدة', 'unit_status_history' => 'سجل حالة الوحدة', 'unit_documents' => 'مستندات الوحدة',
         'listing' => 'الإعلان', 'listing_price' => 'سعر الإعلان', 'lead' => 'عميل محتمل', 'opportunity' => 'فرصة', 'opportunity_stage' => 'مرحلة الفرصة', 'lead_inquiry' => 'استفسار العميل المحتمل', 'crm_pipeline_stage' => 'مرحلة مسار العملاء', 'crm_stage_requirement' => 'شرط المرحلة', 'opportunity_requirement_completion' => 'إكمال شرط الفرصة', 'opportunity_stage_history' => 'سجل مراحل الفرصة', 'crm_follow_up_tasks' => 'مهام المتابعة', 'crm_follow_up_task' => 'مهمة متابعة', 'crm_activity' => 'نشاط إدارة العملاء', 'crm_offer' => 'عرض إدارة العملاء', 'offer_revision' => 'تعديل العرض', 'offer_approval' => 'موافقة العرض', 'offer' => 'العرض', 'offer_agreement' => 'اتفاق العرض',
         'lost_opportunity' => 'فرصة خاسرة', 'won_opportunity' => 'فرصة رابحة', 'project_members' => 'أعضاء المشروع', 'team_crm_follow_up_tasks' => 'مهام متابعة الفريق', 'unit' => 'الوحدة', 'role' => 'الدور',
-        'unit_reservation' => 'الحجز',
+        'unit_reservation' => 'الحجز', 'contract' => 'العقد',
     ],
     'groups' => [
         'property_acquisition' => 'الاستحواذ العقاري', 'acquisition_workflow' => 'مسار الاستحواذ', 'acquisition_properties' => 'عقارات الاستحواذ', 'acquisition_parties' => 'أطراف الاستحواذ', 'property_ownership' => 'ملكية العقار', 'due_diligence_cases' => 'حالات التحقق', 'due_diligence_items' => 'بنود التحقق',
@@ -34,6 +42,8 @@ return [
         'construction' => 'الإنشاء', 'construction_lifecycle' => 'دورة الإنشاء', 'work_package_tasks' => 'مهام حزم العمل', 'work_packages' => 'حزم العمل', 'progress_updates' => 'تحديثات التقدم', 'inspections' => 'الفحوصات', 'issues' => 'المشكلات', 'delays' => 'التأخيرات',
         'unit_setup' => 'إعداد الوحدات', 'create_from_approved_plan' => 'الإنشاء من مخطط معتمد', 'unit_status' => 'حالة الوحدة', 'unit_ownership' => 'ملكية الوحدة', 'unit_history_and_documents' => 'سجل الوحدة ومستنداتها',
         'crm' => 'إدارة العملاء', 'lead_workflow' => 'مسار العميل المحتمل', 'opportunity_workflow' => 'مسار الفرصة', 'lead_inquiries' => 'استفسارات العملاء المحتملين', 'pipeline_stages' => 'مراحل المسار', 'stage_requirements' => 'شروط المراحل', 'requirement_completions' => 'إكمال الشروط', 'stage_history' => 'سجل المراحل', 'follow_up_tasks' => 'مهام المتابعة', 'task_assignment_and_completion' => 'تعيين وإكمال المهام', 'offers_and_negotiations' => 'العروض والتفاوض',
-        'listings_management' => 'إدارة الإعلانات', 'listing_lifecycle' => 'دورة الإعلان', 'listing_pricing' => 'تسعير الإعلان', 'reservations' => 'الحجوزات', 'other_custom_permissions' => 'صلاحيات مخصصة أخرى', 'uncategorized' => 'غير مصنفة',
+        'listings_management' => 'إدارة الإعلانات', 'listing_lifecycle' => 'دورة الإعلان', 'listing_pricing' => 'تسعير الإعلان', 'reservations' => 'الحجوزات',
+        'contracts_agreements' => 'العقود والاتفاقيات', 'version_workflow' => 'مسار الإصدارات', 'legal_documents_and_signatures' => 'المستندات والتوقيعات القانونية', 'amendments_and_audit' => 'الملاحق والتدقيق',
+        'other_custom_permissions' => 'صلاحيات مخصصة أخرى', 'uncategorized' => 'غير مصنفة',
     ],
 ];

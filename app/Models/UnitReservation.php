@@ -24,4 +24,5 @@ class UnitReservation extends Model
     public function cancelledBy(): BelongsTo { return $this->belongsTo(User::class, 'cancelled_by'); }
     public function snapshot(): HasOne { return $this->hasOne(ReservationSnapshot::class, 'reservation_id'); }
     public function statusHistories(): HasMany { return $this->hasMany(ReservationStatusHistory::class, 'reservation_id')->orderByDesc('created_at')->orderByDesc('id'); }
+    public function contracts(): HasMany { return $this->hasMany(Contract::class, 'reservation_id'); }
 }

@@ -26,4 +26,8 @@ class ProjectPlannedUnit extends Model
     {
         return $this->hasOne(Unit::class, 'planned_unit_id');
     }
+    public function contracts(): HasMany
+    {
+        return $this->hasMany(Contract::class, 'planned_unit_id');
+    }
 }

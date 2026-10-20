@@ -23,4 +23,8 @@ class Party extends Model
     {
         return $this->hasMany(UnitReservation::class, 'customer_party_id');
     }
+    public function contractParties(): HasMany
+    {
+        return $this->hasMany(ContractParty::class);
+    }
 }

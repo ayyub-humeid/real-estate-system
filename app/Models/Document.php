@@ -49,9 +49,12 @@ class Document extends Model
         static::deleting(function ($document) {
             // A formal design submission pins exact document versions. Deleting
             // their logical parent would silently destroy auditable history.
-            if ($document->versions()->withoutGlobalScopes()->whereHas('submissionDocuments')->exists()) {
+            if ($document->versions()->withoutGlobalScopes()
+                ->where(function ($query): void {
+                    $query->whereHas('submissionDocuments')->orWhereHas('contractSignatures');
+                })->exists()) {
                 throw ValidationException::withMessages([
-                    'document' => 'A document used by a formal design submission cannot be deleted.',
+                    'document' => 'A document used by a formal submission or contract signature cannot be deleted.',
                 ]);
             }
         });

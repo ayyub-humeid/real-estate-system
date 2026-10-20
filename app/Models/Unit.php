@@ -277,4 +277,10 @@ class Unit extends Model
     {
         return $this->hasMany(UnitReservation::class);
     }
+
+    /** Legal agreements are distinct from legacy lease records. */
+    public function contracts(): HasMany
+    {
+        return $this->hasMany(Contract::class);
+    }
 }

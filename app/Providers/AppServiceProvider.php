@@ -10,6 +10,11 @@ use Filament\Support\Assets\Js;
 use Filament\Support\Facades\FilamentAsset;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Filament\Actions\Action;
+use Filament\Forms\Components\Component as FormComponent;
+use Filament\Infolists\Components\Component as InfolistComponent;
+use Filament\Tables\Columns\Column;
+use Filament\Tables\Filters\BaseFilter;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -25,6 +30,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Legacy resources can opt into `translateLabel()` once here. This
+        // keeps Form fields, table columns, filters, infolist entries, and
+        // actions on the same Laravel translation path as newer modules.
+        FormComponent::configureUsing(fn (FormComponent $component) => $component->translateLabel());
+        InfolistComponent::configureUsing(fn (InfolistComponent $component) => $component->translateLabel());
+        Column::configureUsing(fn (Column $component) => $component->translateLabel());
+        BaseFilter::configureUsing(fn (BaseFilter $component) => $component->translateLabel());
+        Action::configureUsing(fn (Action $component) => $component->translateLabel());
+
         Schema::defaultStringLength(191);
         Relation::morphMap([
             'planned_unit' => \App\Models\ProjectPlannedUnit::class,

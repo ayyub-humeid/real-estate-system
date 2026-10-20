@@ -92,4 +92,8 @@ class Project extends Model
     {
         return $this->hasMany(Unit::class);
     }
+    public function contracts(): HasMany
+    {
+        return $this->hasMany(Contract::class);
+    }
 }

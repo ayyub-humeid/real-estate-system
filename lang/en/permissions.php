@@ -10,6 +10,13 @@ return [
         'send_reservation_for_approval' => 'Send reservation for approval', 'approve_and_activate_reservation' => 'Approve and activate reservation',
         'reject_reservation_request' => 'Reject reservation request', 'cancel_unit_reservation' => 'Cancel reservation',
         'extend_unit_reservation' => 'Extend reservation', 'expire_unit_reservation' => 'Expire reservation',
+        'update_contract_version' => 'Edit contract draft version', 'submit_contract_version' => 'Submit contract version for review',
+        'approve_contract_version' => 'Approve contract version', 'request_contract_revision' => 'Request contract revision',
+        'create_contract_revision' => 'Create contract revision', 'attach_contract_document' => 'Attach legal contract document',
+        'record_contract_signature' => 'Record contract signature', 'activate_contract' => 'Activate contract',
+        'create_contract_amendment' => 'Create contract amendment', 'view_contract_approval' => 'View contract approvals',
+        'view_contract_signature' => 'View contract signatures', 'view_contract_amendment' => 'View contract amendments',
+        'view_contract_status_history' => 'View contract status history',
     ],
     'actions' => [
         'view_any' => 'View all', 'view_own' => 'View own', 'complete_any' => 'Complete any', 'force_delete_any' => 'Force delete any', 'force_delete' => 'Force delete', 'delete_any' => 'Delete any', 'restore_any' => 'Restore any',
@@ -34,6 +41,8 @@ return [
         'construction' => 'Construction', 'construction_lifecycle' => 'Construction lifecycle', 'work_package_tasks' => 'Work package tasks', 'work_packages' => 'Work packages', 'progress_updates' => 'Progress updates', 'inspections' => 'Inspections', 'issues' => 'Issues', 'delays' => 'Delays',
         'unit_setup' => 'Unit setup', 'create_from_approved_plan' => 'Create from approved plan', 'unit_status' => 'Unit status', 'unit_ownership' => 'Unit ownership', 'unit_history_and_documents' => 'Unit history and documents',
         'crm' => 'CRM', 'lead_workflow' => 'Lead workflow', 'opportunity_workflow' => 'Opportunity workflow', 'lead_inquiries' => 'Lead inquiries', 'pipeline_stages' => 'Pipeline stages', 'stage_requirements' => 'Stage requirements', 'requirement_completions' => 'Requirement completions', 'stage_history' => 'Stage history', 'follow_up_tasks' => 'Follow-up tasks', 'task_assignment_and_completion' => 'Task assignment and completion', 'offers_and_negotiations' => 'Offers & negotiations',
-        'listings_management' => 'Listings management', 'listing_lifecycle' => 'Listing lifecycle', 'listing_pricing' => 'Listing pricing', 'reservations' => 'Reservations', 'other_custom_permissions' => 'Other custom permissions', 'uncategorized' => 'Uncategorized',
+        'listings_management' => 'Listings management', 'listing_lifecycle' => 'Listing lifecycle', 'listing_pricing' => 'Listing pricing', 'reservations' => 'Reservations',
+        'contracts_agreements' => 'Contracts & agreements', 'version_workflow' => 'Version workflow', 'legal_documents_and_signatures' => 'Legal documents & signatures', 'amendments_and_audit' => 'Amendments & audit',
+        'other_custom_permissions' => 'Other custom permissions', 'uncategorized' => 'Uncategorized',
     ],
 ];
