@@ -30,13 +30,13 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
-            ->login()
+            ->login(\App\Filament\Pages\Auth\Login::class)
             ->colors([
                 'primary' => Color::Blue,
                 'gray' => Color::Slate,
             ])
             ->font('Inter')
-            ->brandName('EstateHub B2B')
+            ->brandName('Madar')
             ->brandLogo(fn () => view('filament.admin-brand'))
             ->favicon('/favicon.png?v=3')
             ->databaseNotifications()
@@ -65,6 +65,7 @@ class AdminPanelProvider extends PanelProvider
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
                 StartSession::class,
+                \App\Http\Middleware\SetApplicationLocale::class,
                 AuthenticateSession::class,
                 ShareErrorsFromSession::class,
                 VerifyCsrfToken::class,
@@ -80,6 +81,10 @@ class AdminPanelProvider extends PanelProvider
             ->renderHook(
                 'panels::head.end',
                 fn() => view('filament.arabic-font'),
+            )
+            ->renderHook(
+                'panels::head.end',
+                fn() => view('filament.admin-chrome'),
             )
             ->renderHook(
                 'panels::body.end',
