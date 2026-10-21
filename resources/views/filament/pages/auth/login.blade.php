@@ -51,7 +51,9 @@
         .madar-login[dir='ltr'] .madar-login__form, .madar-login[dir='ltr'] .madar-login__brand { text-align: left; }
         .madar-login[dir='rtl'] .madar-login__form, .madar-login[dir='rtl'] .madar-login__brand { text-align: right; }
         .madar-login[dir='rtl'] .madar-login__brand { margin-right: 0; margin-left: auto; }
-        .madar-login[dir='rtl'] .madar-login__brand-row { flex-direction: row-reverse; }
+        /* In RTL, flex row already starts from the right. Reversing it again
+           pushes the logo away from the Arabic headline. */
+        .madar-login[dir='rtl'] .madar-login__brand-row { flex-direction: row; justify-content: flex-start; }
         .madar-login[dir='rtl'] .madar-login__feature { text-align: right; }
         @media (max-width: 960px) { .madar-login__form-side { padding-inline: clamp(1.5rem, 5vw, 3rem); } .madar-login__visual-side { padding: 2.5rem; } .madar-login__features { grid-template-columns: 1fr; } .madar-login__feature { min-height: 0; } .madar-login__feature-copy { display: none; } }
         @media (max-width: 720px) { .madar-login__shell, .madar-login[dir='rtl'] .madar-login__shell { flex-direction: column; } .madar-login__form-side, .madar-login__visual-side { width: 100%; min-height: auto; } .madar-login__form-side { order: 1; padding: 2rem 1.5rem 2.5rem; } .madar-login__visual-side { order: 0; min-height: 15rem; padding: 1.75rem 1.5rem; } .madar-login__form { transform: none; } .madar-login__utility { margin-bottom: 2.5rem; } .madar-login__brand { min-height: 0; } .madar-login__message { margin-top: 2.8rem; } .madar-login__title { font-size: 2rem; } .madar-login__description, .madar-login__features { display: none; } }
