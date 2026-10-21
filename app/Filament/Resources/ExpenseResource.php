@@ -18,12 +18,7 @@ class ExpenseResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-currency-dollar';
     protected static ?string $navigationGroup = '💼 Operations';
     protected static ?int $navigationSort = 5;
-    public static function shouldRegisterNavigation(): bool
-{
-    $user = auth()->user();
-    if ($user->isSuperAdmin()) return true;
-    return $user->company->hasFeature('expense_tracking');
-}
+    protected static bool $shouldRegisterNavigation = false;
 
 public static function canViewAny(): bool
 {

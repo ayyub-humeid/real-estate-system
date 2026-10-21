@@ -48,10 +48,26 @@ class RoleResource extends ShieldRoleResource
         self::class,
     ];
 
+    /**
+     * Legacy modules retained only for historical data and internal references.
+     * They must not be exposed for new role configuration or sidebar navigation.
+     */
+    private const HIDDEN_LEGACY_RESOURCE_CLASSES = [
+        ContactResource::class,
+        ExpenseResource::class,
+        LeaseResource::class,
+        RentalRequestResource::class,
+    ];
+
     /** Company Settings remains deliberately available because it is tenant-owned. */
     public static function getResourceEntitiesSchema(): ?array
     {
         return collect(FilamentShield::getResources())
+            ->reject(fn (array $entity) => in_array(
+                $entity['fqcn'] ?? null,
+                self::HIDDEN_LEGACY_RESOURCE_CLASSES,
+                true,
+            ))
             ->reject(fn (array $entity) => ! auth()->user()?->isSuperAdmin()
                 && in_array($entity['fqcn'] ?? null, self::PLATFORM_RESOURCE_CLASSES, true))
             ->sortKeys()

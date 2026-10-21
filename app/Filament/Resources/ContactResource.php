@@ -23,6 +23,7 @@ class ContactResource extends Resource
     protected static ?string $navigationLabel = 'Contact Messages';
 
     protected static ?int $navigationSort = 5;
+    protected static bool $shouldRegisterNavigation = false;
 
     public static function form(Form $form): Form
     {

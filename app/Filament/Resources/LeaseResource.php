@@ -23,6 +23,7 @@ class LeaseResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
     protected static ?string $navigationGroup = '💼 Operations';
     protected static ?int $navigationSort = 1;
+    protected static bool $shouldRegisterNavigation = false;
 
     // 🔥 PERFORMANCE: Eager load relationships to avoid N+1
     public static function getEloquentQuery(): Builder

@@ -18,16 +18,11 @@ class RentalRequestResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';
     protected static ?string $navigationGroup = '💼 Operations';
     protected static ?int $navigationSort = 4;
+    protected static bool $shouldRegisterNavigation = false;
     protected static ?string $modelLabel = 'Rental Request';
     protected static ?string $pluralModelLabel = 'Rental Requests';
 
     // ✅ PERFORMANCE: Eager load all relationships at once
-    public static function shouldRegisterNavigation(): bool
-{
-    $user = auth()->user();
-    if ($user->isSuperAdmin()) return true;
-    return $user->company->hasFeature('rental_requests');
-}
 
 public static function canViewAny(): bool
 {
