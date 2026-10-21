@@ -4078,6 +4078,18 @@ To ensure the application behaves identically across diverse environments (e.g.,
    php artisan test --configuration phpunit.pgsql.xml
    ```
 
+### PostgreSQL Seeder Compatibility
+
+Production seeders are application code and must be verified separately from
+PHPUnit. Before deploying a seeder change, run the same seeding path against a
+fresh PostgreSQL test database. Do not rely on MySQL's implicit casts for
+boolean values or other strict PostgreSQL types. Application PostgreSQL
+connections must bind boolean values as PostgreSQL boolean literals (`true` /
+`false`), not integer bindings (`1` / `0`), including any direct deployment
+connection that uses emulated prepares. Fix such incompatibilities once in the
+shared connection layer; do not scatter database-specific raw expressions
+through individual seeders.
+
 ### Portable Database Identifier Names
 
 MySQL limits identifiers (including generated index and unique-constraint names) to 64 characters. PostgreSQL permits longer names, so a migration that relies on Laravel's automatic name can pass on PostgreSQL and fail on MySQL.

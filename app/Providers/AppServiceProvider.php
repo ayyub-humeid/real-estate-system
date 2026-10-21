@@ -10,6 +10,7 @@ use Filament\Support\Assets\Js;
 use Filament\Support\Facades\FilamentAsset;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Database\Connection;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Component as FormComponent;
 use Filament\Infolists\Components\Component as InfolistComponent;
@@ -23,6 +24,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        Connection::resolverFor('pgsql', function ($connection, $database, $prefix, $config) {
+            return new \App\Database\PostgresConnection($connection, $database, $prefix, $config);
+        });
     }
 
     /**
