@@ -17,7 +17,8 @@
         .madar-login[dir='rtl'] .madar-login__utility { justify-content: flex-start; }
         .madar-login__language { border: 1px solid rgba(203,213,225,.26); background: rgba(15,23,42,.44); color: #dce7f8; border-radius: 999px; padding: .55rem .95rem; font-size: .8rem; font-weight: 700; cursor: pointer; transition: .2s ease; }
         .madar-login__language:hover { border-color: #60a5fa; color: #fff; background: rgba(37,99,235,.22); }
-        .madar-login__mark { width: 3.25rem; height: 3.25rem; display: grid; place-items: center; border: 1px solid rgba(96,165,250,.46); border-radius: 1rem; color: #dbeafe; background: linear-gradient(135deg, #2563eb, #123a8b); box-shadow: 0 14px 32px rgba(7,43,112,.44); margin-bottom: 1.25rem; }
+        .madar-login__mark { width: 3.35rem; height: 3.35rem; overflow: hidden; border: 1px solid rgba(229,183,100,.58); border-radius: 1rem; background: #050505; box-shadow: 0 14px 32px rgba(0,0,0,.32); margin-bottom: 1.25rem; }
+        .madar-login__mark img { display: block; width: 100%; height: 100%; object-fit: cover; }
         .madar-login__eyebrow { color: #60a5fa; font-size: .72rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; margin: 0 0 .75rem; }
         .madar-login__heading { color: #f8fafc; font-size: clamp(2rem, 2.7vw, 2.55rem); font-weight: 800; letter-spacing: -.045em; line-height: 1.15; margin: 0; }
         .madar-login__copy { color: #9dadc3; line-height: 1.75; margin: .9rem 0 2.3rem; font-size: .95rem; }
@@ -34,7 +35,8 @@
         .madar-login__visual-side::after { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(0deg, rgba(2,7,17,.42) 0%, transparent 48%); }
         .madar-login__brand { width: 100%; max-width: 38rem; min-height: min(78vh, 52rem); display: flex; flex-direction: column; }
         .madar-login__brand-row { display: flex; align-items: center; gap: .75rem; }
-        .madar-login__brand-icon { width: 2.85rem; height: 2.85rem; display: grid; place-items: center; border: 1px solid rgba(255,255,255,.34); border-radius: .9rem; background: rgba(255,255,255,.13); backdrop-filter: blur(8px); }
+        .madar-login__brand-icon { width: 3rem; height: 3rem; overflow: hidden; border: 1px solid rgba(229,183,100,.58); border-radius: .9rem; background: #050505; box-shadow: 0 8px 22px rgba(0,0,0,.3); }
+        .madar-login__brand-icon img { display: block; width: 100%; height: 100%; object-fit: cover; }
         .madar-login__brand-name { font-size: 1.35rem; font-weight: 800; letter-spacing: -.03em; text-shadow: 0 2px 14px rgba(0,0,0,.7); }
         .madar-login__tagline { opacity: .9; font-size: .78rem; margin-top: .1rem; text-shadow: 0 2px 12px rgba(0,0,0,.76); }
         .madar-login__message { margin-top: clamp(3.5rem, 11vh, 7.5rem); }
@@ -63,8 +65,8 @@
                     </button>
                 </div>
 
-                <div class="madar-login__mark" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" class="h-6 w-6"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V10Z"/><path d="M9 21v-7h6v7"/></svg>
+                <div class="madar-login__mark">
+                    <img src="{{ asset('madar logo.png') }}" alt="{{ __('auth_login.brand') }}">
                 </div>
                 <p class="madar-login__eyebrow">{{ __('auth_login.portal') }}</p>
                 <h1 class="madar-login__heading">{{ __('auth_login.sign_in') }}</h1>
@@ -86,7 +88,7 @@
         <aside class="madar-login__visual-side" aria-label="{{ __('auth_login.brand_panel') }}">
             <div class="madar-login__brand">
                 <div class="madar-login__brand-row">
-                    <span class="madar-login__brand-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-6 w-6"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V10Z"/><path d="M8 21v-8h8v8"/><path d="M5 10h14"/></svg></span>
+                    <span class="madar-login__brand-icon"><img src="{{ asset('madar logo.png') }}" alt="{{ __('auth_login.brand') }}"></span>
                     <div><div class="madar-login__brand-name">{{ __('auth_login.brand') }}</div><div class="madar-login__tagline">{{ __('auth_login.tagline') }}</div></div>
                 </div>
                 <div class="madar-login__message">

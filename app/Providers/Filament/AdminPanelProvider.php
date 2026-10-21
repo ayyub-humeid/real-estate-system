@@ -38,7 +38,7 @@ class AdminPanelProvider extends PanelProvider
             ->font('Inter')
             ->brandName('Madar')
             ->brandLogo(fn () => view('filament.admin-brand'))
-            ->favicon('/favicon.png?v=3')
+            ->favicon(asset('madar logo.png'))
             ->databaseNotifications()
             ->userMenuItems([
                 MenuItem::make()

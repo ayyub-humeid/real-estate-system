@@ -65,7 +65,12 @@ RUN php artisan storage:link
 ENV PORT=80
 EXPOSE ${PORT}
 
-# TEMPORARY deployment bootstrap for company roles, all Shield permissions, and demo company seed.
-# After the first successful production deploy, comment out shield:generate,
-# db:seed, and app:backfill-company-roles; keep migrate in the release flow.
-CMD npm run build && php artisan package:discover && php artisan storage:link && php artisan config:clear && php artisan migrate --force --database=pgsql_direct && DB_CONNECTION=pgsql_direct php artisan shield:generate --all --option=permissions --panel=admin --no-interaction && DB_CONNECTION=pgsql_direct php artisan db:seed --class=RolesAndPermissionsSeeder --force && DB_CONNECTION=pgsql_direct php artisan app:backfill-company-roles && DB_CONNECTION=pgsql_direct php artisan db:seed --class=DemoRealEstateCompanySeeder --force && php artisan optimize:clear && php artisan filament:cache-components && php artisan optimize && apache2-foreground
+# One-time production bootstrap — completed successfully on 2026-10-21.
+# Keep these disabled during ordinary deploys. Re-enable only when intentionally
+# adding Shield permissions/roles or recreating approved demonstration data:
+# DB_CONNECTION=pgsql_direct php artisan shield:generate --all --option=permissions --panel=admin --no-interaction
+# DB_CONNECTION=pgsql_direct php artisan db:seed --class=RolesAndPermissionsSeeder --force
+# DB_CONNECTION=pgsql_direct php artisan app:backfill-company-roles
+# DB_CONNECTION=pgsql_direct php artisan db:seed --class=DemoRealEstateCompanySeeder --force
+# Database migrations remain part of every release and are safe/idempotent.
+CMD npm run build && php artisan package:discover && php artisan storage:link && php artisan config:clear && php artisan migrate --force --database=pgsql_direct && php artisan optimize:clear && php artisan filament:cache-components && php artisan optimize && apache2-foreground
