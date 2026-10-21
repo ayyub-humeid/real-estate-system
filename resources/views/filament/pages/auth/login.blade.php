@@ -33,7 +33,7 @@
         .madar-login__visual-side { position: relative; isolation: isolate; display: flex; padding: clamp(2rem, 5vw, 5.25rem); background: #08152a url('{{ asset('madar-login-background.png') }}') center / cover no-repeat; color: #fff; }
         .madar-login__visual-side::before { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, rgba(2,9,23,.62) 0%, rgba(5,17,39,.32) 54%, rgba(8,25,56,.1) 100%); }
         .madar-login__visual-side::after { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(0deg, rgba(2,7,17,.42) 0%, transparent 48%); }
-        .madar-login__brand { width: 100%; max-width: 38rem; min-height: min(78vh, 52rem); display: flex; flex-direction: column; }
+        .madar-login__brand { width: 100%; max-width: 38rem; min-height: min(78vh, 52rem); display: flex; flex-direction: column; margin-right: auto; }
         .madar-login__brand-row { display: flex; align-items: center; gap: .75rem; }
         .madar-login__brand-icon { width: 3rem; height: 3rem; overflow: hidden; border: 1px solid rgba(229,183,100,.58); border-radius: .9rem; background: #050505; box-shadow: 0 8px 22px rgba(0,0,0,.3); }
         .madar-login__brand-icon img { display: block; width: 100%; height: 100%; object-fit: cover; }
@@ -50,6 +50,7 @@
         .madar-login__feature-copy { display: block; opacity: .72; font-size: .7rem; line-height: 1.45; margin-top: .3rem; }
         .madar-login[dir='ltr'] .madar-login__form, .madar-login[dir='ltr'] .madar-login__brand { text-align: left; }
         .madar-login[dir='rtl'] .madar-login__form, .madar-login[dir='rtl'] .madar-login__brand { text-align: right; }
+        .madar-login[dir='rtl'] .madar-login__brand { margin-right: 0; margin-left: auto; }
         .madar-login[dir='rtl'] .madar-login__brand-row { flex-direction: row-reverse; }
         .madar-login[dir='rtl'] .madar-login__feature { text-align: right; }
         @media (max-width: 960px) { .madar-login__form-side { padding-inline: clamp(1.5rem, 5vw, 3rem); } .madar-login__visual-side { padding: 2.5rem; } .madar-login__features { grid-template-columns: 1fr; } .madar-login__feature { min-height: 0; } .madar-login__feature-copy { display: none; } }
