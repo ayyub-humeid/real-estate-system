@@ -66,7 +66,7 @@
                 </div>
 
                 <div class="madar-login__mark">
-                    <img src="{{ asset('madar logo.png') }}" alt="{{ __('auth_login.brand') }}">
+                    <img src="{{ asset('madar-logo.png') }}" alt="{{ __('auth_login.brand') }}">
                 </div>
                 <p class="madar-login__eyebrow">{{ __('auth_login.portal') }}</p>
                 <h1 class="madar-login__heading">{{ __('auth_login.sign_in') }}</h1>
@@ -88,7 +88,7 @@
         <aside class="madar-login__visual-side" aria-label="{{ __('auth_login.brand_panel') }}">
             <div class="madar-login__brand">
                 <div class="madar-login__brand-row">
-                    <span class="madar-login__brand-icon"><img src="{{ asset('madar logo.png') }}" alt="{{ __('auth_login.brand') }}"></span>
+                    <span class="madar-login__brand-icon"><img src="{{ asset('madar-logo.png') }}" alt="{{ __('auth_login.brand') }}"></span>
                     <div><div class="madar-login__brand-name">{{ __('auth_login.brand') }}</div><div class="madar-login__tagline">{{ __('auth_login.tagline') }}</div></div>
                 </div>
                 <div class="madar-login__message">
