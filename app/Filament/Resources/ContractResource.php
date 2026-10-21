@@ -260,19 +260,6 @@ class ContractResource extends Resource
                             Infolists\Components\TextEntry::make('unit.unit_number')->label(__('Actual unit'))->placeholder('—'),
                             Infolists\Components\TextEntry::make('plannedUnit.code')->label(__('Planned unit'))->placeholder('—'),
                         ])->columns(3),
-                    Infolists\Components\Tabs\Tab::make(__('Documents'))
-                        ->schema([
-                            Infolists\Components\RepeatableEntry::make('documents')
-                                ->label(__('Attached documents'))
-                                ->schema([
-                                    Infolists\Components\TextEntry::make('title')->label(__('Document title'))->weight('bold'),
-                                    Infolists\Components\TextEntry::make('latestVersion.version_number')->label(__('Version'))->prefix('V')->badge(),
-                                    Infolists\Components\TextEntry::make('latestVersion.file_name')->label(__('File name')),
-                                    Infolists\Components\TextEntry::make('latestVersion.created_at')->label(__('Uploaded at'))->dateTime(),
-                                ])
-                                ->columns(4)
-                                ->placeholder(__('No legal documents attached to this contract yet.')),
-                        ]),
                 ]),
         ]);
     }

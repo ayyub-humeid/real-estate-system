@@ -119,7 +119,7 @@ class VersionsRelationManager extends RelationManager
                     ->icon('heroicon-o-pencil-square')
                     ->modalHeading(__('Edit draft version'))
                     ->modalSubmitActionLabel(__('Save changes'))
-                    ->visible(fn (ContractVersion $record): bool => $record->status === ContractVersionStatus::Draft && auth()->user()->can('update_contract_version'))
+                    ->visible(fn (ContractVersion $record): bool => in_array($record->status, [ContractVersionStatus::Draft, ContractVersionStatus::RevisionRequired], true) && auth()->user()->can('update_contract_version'))
                     ->fillForm(fn (ContractVersion $record): array => [
                         'total_amount' => $record->total_amount,
                         'currency' => $record->currency,

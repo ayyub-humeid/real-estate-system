@@ -38,8 +38,8 @@ class ContractWorkflowService
         return DB::transaction(function () use ($actor, $version): ContractVersion {
             $locked = $this->lockedVersion($version);
             $this->sameCompany($actor, $locked->company_id);
-            if ($locked->status !== ContractVersionStatus::Draft) {
-                $this->invalid('version', __('Only a draft version can be submitted.'));
+            if (! in_array($locked->status, [ContractVersionStatus::Draft, ContractVersionStatus::RevisionRequired], true)) {
+                $this->invalid('version', __('Only a draft or returned version can be submitted.'));
             }
             if (! $locked->parties()->exists()) {
                 $this->invalid('parties', __('Add at least one contract party before submission.'));
@@ -128,8 +128,8 @@ class ContractWorkflowService
         return DB::transaction(function () use ($actor, $source): ContractVersion {
             $locked = $this->lockedVersion($source, ['parties', 'terms']);
             $this->sameCompany($actor, $locked->company_id);
-            if (! in_array($locked->status, [ContractVersionStatus::Submitted, ContractVersionStatus::RevisionRequired, ContractVersionStatus::Approved], true)) {
-                $this->invalid('version', __('Only a frozen version can be revised.'));
+            if ($locked->status !== ContractVersionStatus::Approved) {
+                $this->invalid('version', __('Only an approved version can be revised into a new legal version.'));
             }
 
             $draft = $this->cloneIntoDraft($actor, $locked);
@@ -151,39 +151,80 @@ class ContractWorkflowService
         });
     }
 
-    /** Attaches a legal source document only to the exact approved version. */
+    /** Attaches a working contract document only while its version is editable. */
     public function attachDocument(User $actor, ContractVersion $version, array $data): DocumentVersion
     {
         $this->can($actor, 'attach_contract_document');
 
-        return DB::transaction(function () use ($actor, $version, $data): DocumentVersion {
+        try {
+            return DB::transaction(function () use ($actor, $version, $data): DocumentVersion {
+                $locked = $this->lockedVersion($version);
+                $this->sameCompany($actor, $locked->company_id);
+                $this->assertDocumentsEditable($locked);
+                $this->assertUploadedFile($data);
+
+                $document = Document::create([
+                    'documentable_type' => ContractVersion::class,
+                    'documentable_id' => $locked->id,
+                    'title' => $data['title'],
+                    'description' => $data['description'] ?? null,
+                    'created_by' => $actor->id,
+                ]);
+
+                return $this->createDocumentVersion($locked, $document, $actor, $data);
+            });
+        } catch (\Throwable $exception) {
+            $this->deleteUnreferencedFiles([$data['file_path'] ?? null]);
+
+            throw $exception;
+        }
+    }
+
+    /** Replaces a pre-approval working document without retaining stale draft files. */
+    public function replaceDocument(User $actor, ContractVersion $version, Document $document, array $data): DocumentVersion
+    {
+        $this->can($actor, 'attach_contract_document');
+
+        try {
+            return DB::transaction(function () use ($actor, $version, $document, $data): DocumentVersion {
+                $locked = $this->lockedVersion($version);
+                $this->sameCompany($actor, $locked->company_id);
+                $this->assertDocumentsEditable($locked);
+                $this->assertUploadedFile($data);
+                $lockedDocument = $this->lockedContractDocument($locked, $document);
+                $oldPaths = $this->removeDocumentVersions($lockedDocument);
+
+                $lockedDocument->update([
+                    'title' => $data['title'],
+                    'description' => $data['description'] ?? null,
+                ]);
+                $replacement = $this->createDocumentVersion($locked, $lockedDocument, $actor, $data);
+
+                DB::afterCommit(fn () => $this->deleteUnreferencedFiles($oldPaths));
+
+                return $replacement;
+            });
+        } catch (\Throwable $exception) {
+            $this->deleteUnreferencedFiles([$data['file_path'] ?? null]);
+
+            throw $exception;
+        }
+    }
+
+    /** Removes a working draft document and its file only when no other version uses it. */
+    public function deleteDocument(User $actor, ContractVersion $version, Document $document): void
+    {
+        $this->can($actor, 'attach_contract_document');
+
+        DB::transaction(function () use ($actor, $version, $document): void {
             $locked = $this->lockedVersion($version);
             $this->sameCompany($actor, $locked->company_id);
-            if ($locked->status !== ContractVersionStatus::Approved) {
-                $this->invalid('version', __('A legal document may only be attached to an approved version.'));
-            }
-            if (empty($data['file_path'])) {
-                $this->invalid('file_path', __('Upload the legal document before saving.'));
-            }
+            $this->assertDocumentsEditable($locked);
+            $lockedDocument = $this->lockedContractDocument($locked, $document);
+            $paths = $this->removeDocumentVersions($lockedDocument);
+            $lockedDocument->forceDelete();
 
-            $document = Document::create([
-                'documentable_type' => ContractVersion::class,
-                'documentable_id' => $locked->id,
-                'title' => $data['title'],
-                'description' => $data['description'] ?? null,
-                'created_by' => $actor->id,
-            ]);
-
-            return DocumentVersion::withoutGlobalScopes()->create([
-                'company_id' => $locked->company_id,
-                'document_id' => $document->id,
-                'version_number' => 1,
-                'file_name' => $data['file_name'] ?? basename($data['file_path']),
-                'file_path' => $data['file_path'],
-                'mime_type' => $data['mime_type'] ?? null,
-                'file_size' => $data['file_size'] ?? null,
-                'uploaded_by' => $actor->id,
-            ]);
+            DB::afterCommit(fn () => $this->deleteUnreferencedFiles($paths));
         });
     }
 
@@ -336,6 +377,79 @@ class ContractWorkflowService
         }
 
         return $draft;
+    }
+
+    private function assertDocumentsEditable(ContractVersion $version): void
+    {
+        if (! in_array($version->status, [ContractVersionStatus::Draft, ContractVersionStatus::RevisionRequired], true)) {
+            $this->invalid('documents', __('Contract documents can only be managed while the version is a draft or requires revision.'));
+        }
+    }
+
+    private function assertUploadedFile(array $data): void
+    {
+        if (empty($data['file_path'])) {
+            $this->invalid('file_path', __('Upload the contract document before saving.'));
+        }
+    }
+
+    private function lockedContractDocument(ContractVersion $version, Document $document): Document
+    {
+        $locked = Document::query()
+            // The parent/version ownership is verified below; load all versions
+            // while locked, including those hidden by the company global scope.
+            ->with(['versions' => fn ($query) => $query->withoutGlobalScopes()])
+            ->lockForUpdate()
+            ->findOrFail($document->id);
+
+        if ($locked->documentable_type !== ContractVersion::class || (int) $locked->documentable_id !== (int) $version->id) {
+            $this->invalid('document', __('The selected document does not belong to this contract version.'));
+        }
+
+        return $locked;
+    }
+
+    private function createDocumentVersion(ContractVersion $contractVersion, Document $document, User $actor, array $data): DocumentVersion
+    {
+        return DocumentVersion::withoutGlobalScopes()->create([
+            'company_id' => $contractVersion->company_id,
+            'document_id' => $document->id,
+            'version_number' => 1,
+            'file_name' => $data['file_name'] ?? basename($data['file_path']),
+            'file_path' => $data['file_path'],
+            'mime_type' => $data['mime_type'] ?? null,
+            'file_size' => $data['file_size'] ?? null,
+            'uploaded_by' => $actor->id,
+        ]);
+    }
+
+    /** @return array<int, string> */
+    private function removeDocumentVersions(Document $document): array
+    {
+        $paths = [];
+
+        foreach ($document->versions as $version) {
+            if ($version->file_path) {
+                $paths[] = $version->file_path;
+            }
+            $version->delete();
+        }
+
+        return array_values(array_unique($paths));
+    }
+
+    /** @param array<int, null|string> $paths */
+    private function deleteUnreferencedFiles(array $paths): void
+    {
+        foreach (array_unique(array_filter($paths)) as $path) {
+            $stillReferenced = DocumentVersion::withoutGlobalScopes()
+                ->where('file_path', $path)
+                ->exists();
+
+            if (! $stillReferenced) {
+                Storage::disk(config('filesystems.default'))->delete($path);
+            }
+        }
     }
 
     private function assertAllPartiesSigned(ContractVersion $version): void

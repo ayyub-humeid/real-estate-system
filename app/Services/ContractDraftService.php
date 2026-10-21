@@ -79,8 +79,8 @@ class ContractDraftService
     }
 
     /**
-     * An editable Draft is changed in place. Once submitted, every substantive
-     * change must use ContractWorkflowService::createRevision instead.
+     * A draft, or a version returned by its reviewer, is changed in place.
+     * Once approved, substantive changes require a new legal version.
      */
     public function updateDraft(User $actor, ContractVersion $version, array $data): ContractVersion
     {
@@ -96,8 +96,8 @@ class ContractDraftService
 
             $this->sameCompany($actor, $locked->company_id);
 
-            if ($locked->status !== ContractVersionStatus::Draft) {
-                $this->invalid('version', __('Only a draft version can be edited.'));
+            if (! in_array($locked->status, [ContractVersionStatus::Draft, ContractVersionStatus::RevisionRequired], true)) {
+                $this->invalid('version', __('Only a draft or returned version can be edited.'));
             }
 
             $locked->update([

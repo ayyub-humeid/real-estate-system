@@ -116,9 +116,9 @@ Submit for Review  ⇒ freeze version content
     ↓
 Review / Approval
     ├── Approved ⇒ issue/finalize reviewable PDF ⇒ collect signatures
-    └── Revision Required ⇒ create Version N+1 (DRAFT copy)
+    └── Revision Required ⇒ reopen the same pre-approval version for correction
                                     ↓
-                               resubmit and reapprove
+                               correct documents/terms, resubmit, and reapprove
     ↓
 Required signatures on EXACT approved version & document version
     ↓
@@ -129,7 +129,7 @@ Amendment if needed (separate formal record, same reusable engine)
 
 **Mandatory workflow rules:**
 
-1. Only **drafts** can be edited in place. Submission freezes the version's commercial data, parties, and terms for review. Subsequent substantive changes require a new version; never rewrite frozen V1.
+1. Only **Draft** and returned **Revision Required** versions can be edited in place. Submission freezes the version's commercial data, parties, terms, and documents for review. An ordinary pre-approval review correction reopens that same version; an approved legal change requires a new version. Never rewrite approved or signed history.
 2. Every approval and signature references `contract_version_id` and cannot be carried forward automatically. Altering a final signed document requires a legitimate new version and signing flow, never a silent file replacement.
 3. Workflow-controlled `status` fields must not be editable through generic CRUD forms. Transitions occur through explicit domain actions with authorization, validation, and transactional integrity.
 4. Define enforceable version states: Draft, Submitted/Under Review, Approved, Signed, Superseded, plus any narrowly justified substates. Do not allow two competing effective versions.
@@ -152,6 +152,9 @@ Amendment if needed (separate formal record, same reusable engine)
 - The approved legal PDF/document is linked to a specific contract version and the exact `document_version_id` in the existing document subsystem.
 - When recording a signature, calculate SHA-256 from the **actual stored file contents**, not a filename or URL; store the digest and immutable version reference.
 - Reuse existing upload, storage, document-versioning, and polymorphic relations; do not implement a parallel upload system.
+- **Working-document rule:** documents attached to a `Draft` or `Revision Required` contract version may be uploaded, replaced, or removed. A replacement removes its superseded draft file from storage only when no other `DocumentVersion` references the same path.
+- **Review/final-document rule:** submission freezes the version and its documents during review. `Approved` and `Signed` documents are immutable; they are never silently replaced or deleted. A reviewer returns the same pre-approval version to `Revision Required` for ordinary corrections, and the employee corrects it and resubmits it. A new version is reserved for an approved legal revision or a post-signature amendment.
+- This workflow reuses `documents` and `document_versions`; it deliberately does **not** add a `ContractVersionDocument` pivot or a parallel contract-file store.
 - Do not integrate an external electronic-signature provider or claim universal legal validity without explicit identity verification, provider requirements, and applicable legal context.
 - Never overwrite a signed file. New versions, files, and signatures must remain independently retrievable.
 
@@ -185,7 +188,7 @@ Amendment if needed (separate formal record, same reusable engine)
 
 **Core:** Direct and reservation-based creation; Sale/Off-plan/Lease types; tenant isolation; party snapshots; immutable copies of terms/templates; draft editing; sequence/number generation.
 
-**Versions:** Submit and review V1, then request changes and create V2. V1 data and approvals remain unchanged. Parties may differ between V1 and V2 while maintaining the same canonical `party_id` where applicable. Material changes to frozen versions create a new revision.
+**Versions:** Submit and review V1, then return it for an ordinary correction and resubmit the same version. Once V1 is approved, an approved legal revision creates V2; V1 data and approvals remain unchanged. Parties may differ between V1 and V2 while maintaining the same canonical `party_id` where applicable.
 
 **Approvals / Signatures:** Disallow approval or signing in invalid states; bind signatures to the correct version, party, document version, and actual digest. Reject overwriting a signed document. Verify append-only transition logs, authorization, and tenant isolation.
 

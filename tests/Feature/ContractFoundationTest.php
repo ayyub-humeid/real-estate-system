@@ -257,6 +257,63 @@ class ContractFoundationTest extends TestCase
         $this->assertDatabaseHas('contract_status_histories', ['contract_id' => $contract->id, 'action' => 'activated']);
     }
 
+    public function test_draft_documents_are_replaceable_but_reviewed_and_approved_documents_are_locked(): void
+    {
+        Storage::fake(config('filesystems.default'));
+        [$company, $user, $unit] = $this->companyUserAndUnit('Draft documents');
+        $this->grant($user, ['create_contract', 'attach_contract_document', 'submit_contract_version', 'request_contract_revision', 'approve_contract_version']);
+        $buyer = Party::create(['company_id' => $company->id, 'type' => 'person', 'name' => 'Draft Buyer', 'is_active' => true]);
+        $contract = $this->draft($user, $unit, $buyer, 1000);
+        $version = $contract->versions()->firstOrFail();
+        $workflow = app(ContractWorkflowService::class);
+
+        Storage::disk(config('filesystems.default'))->put('documents/contracts/draft-old.pdf', 'old draft');
+        $documentVersion = $workflow->attachDocument($user, $version, [
+            'title' => 'Ownership deed',
+            'file_path' => 'documents/contracts/draft-old.pdf',
+            'file_name' => 'draft-old.pdf',
+        ]);
+        $document = $documentVersion->document;
+
+        $workflow->submit($user, $version->fresh());
+        Storage::disk(config('filesystems.default'))->put('documents/contracts/blocked.pdf', 'blocked');
+        try {
+            $workflow->replaceDocument($user, $version->fresh(), $document, [
+                'title' => 'Ownership deed',
+                'file_path' => 'documents/contracts/blocked.pdf',
+                'file_name' => 'blocked.pdf',
+            ]);
+            $this->fail('A submitted contract document was changed.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('documents', $exception->errors());
+        }
+        Storage::disk(config('filesystems.default'))->assertMissing('documents/contracts/blocked.pdf');
+
+        $workflow->requestRevision($user, $version->fresh(), 'Please upload the corrected ownership deed.');
+        Storage::disk(config('filesystems.default'))->put('documents/contracts/draft-corrected.pdf', 'corrected draft');
+        $replacement = $workflow->replaceDocument($user, $version->fresh(), $document->fresh(), [
+            'title' => 'Corrected ownership deed',
+            'file_path' => 'documents/contracts/draft-corrected.pdf',
+            'file_name' => 'draft-corrected.pdf',
+        ]);
+
+        $this->assertSame('documents/contracts/draft-corrected.pdf', $replacement->file_path);
+        Storage::disk(config('filesystems.default'))->assertMissing('documents/contracts/draft-old.pdf');
+        Storage::disk(config('filesystems.default'))->assertExists('documents/contracts/draft-corrected.pdf');
+        $this->assertSame(1, $document->fresh()->versions()->count());
+
+        $workflow->submit($user, $version->fresh());
+        $workflow->approve($user, $version->fresh());
+        try {
+            $workflow->deleteDocument($user, $version->fresh(), $document->fresh());
+            $this->fail('An approved contract document was deleted.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('documents', $exception->errors());
+        }
+        $this->assertDatabaseHas('documents', ['id' => $document->id]);
+        Storage::disk(config('filesystems.default'))->assertExists('documents/contracts/draft-corrected.pdf');
+    }
+
     public function test_amendment_creates_a_new_draft_without_mutating_the_signed_version(): void
     {
         Storage::fake(config('filesystems.default'));
@@ -287,11 +344,12 @@ class ContractFoundationTest extends TestCase
         $workflow->submit($user, $amendmentDraft);
         $this->assertSame(ContractStatus::Active, $contract->fresh()->status);
         $workflow->requestRevision($user, $amendmentDraft->fresh(), 'Clarify the amendment text.');
-        $revisedAmendmentDraft = $workflow->createRevision($user, $amendmentDraft->fresh());
+        $this->assertSame(ContractVersionStatus::RevisionRequired, $amendmentDraft->fresh()->status);
+        $workflow->submit($user, $amendmentDraft->fresh());
 
         $this->assertSame(ContractStatus::Active, $contract->fresh()->status);
-        $this->assertSame(ContractVersionStatus::Draft, $revisedAmendmentDraft->status);
-        $this->assertSame($revisedAmendmentDraft->id, $amendment->fresh()->resulting_contract_version_id);
+        $this->assertSame(ContractVersionStatus::Submitted, $amendmentDraft->fresh()->status);
+        $this->assertSame($amendmentDraft->id, $amendment->fresh()->resulting_contract_version_id);
     }
 
     public function test_consecutive_leases_are_allowed_but_overlapping_leases_are_rejected_on_activation(): void
