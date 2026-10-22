@@ -14,6 +14,12 @@ class PropertyAcquisitionsRelationManager extends RelationManager
 {
     protected static string $relationship = 'propertyAcquisitions';
 
+    /** The relation exposes its own guarded acquisition-creation workflow. */
+    public function isReadOnly(): bool
+    {
+        return false;
+    }
+
     public static function getTitle(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): string
     {
         return __('Acquisition History');

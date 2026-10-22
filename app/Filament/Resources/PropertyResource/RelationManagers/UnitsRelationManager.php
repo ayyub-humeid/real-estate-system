@@ -14,6 +14,12 @@ class UnitsRelationManager extends RelationManager
     protected static bool $isLazy = true;
     protected static string $relationship = 'units';
 
+    /** Allow authorized users to add/manage units from the Property view page. */
+    public function isReadOnly(): bool
+    {
+        return false;
+    }
+
     public static function getTitle(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): string
     {
         return __('Units');

@@ -14,6 +14,12 @@ class FeaturesRelationManager extends RelationManager
 {
     protected static string $relationship = 'features';
 
+    /** Features are part of unit setup and remain manageable from View Unit. */
+    public function isReadOnly(): bool
+    {
+        return false;
+    }
+
     public static function getTitle(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): string
     {
         return __('Features');

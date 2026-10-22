@@ -16,6 +16,12 @@ class OwnershipsRelationManager extends RelationManager
     protected static bool $isLazy = true;
     protected static string $relationship = 'ownerships';
 
+    /** Ownership changes use the explicit replacement workflow on the view page. */
+    public function isReadOnly(): bool
+    {
+        return false;
+    }
+
     public static function getTitle(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): string
     {
         return __('Ownership History');

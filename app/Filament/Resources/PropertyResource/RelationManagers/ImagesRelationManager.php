@@ -15,6 +15,12 @@ class ImagesRelationManager extends RelationManager
     // Filament scopes queries automatically by imageable_type + imageable_id.
     protected static string $relationship = 'images';
 
+    /** The gallery is intentionally manageable from the Property view page. */
+    public function isReadOnly(): bool
+    {
+        return false;
+    }
+
     public static function getTitle(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): string
     {
         return __('Gallery');

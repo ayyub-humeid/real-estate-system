@@ -14,6 +14,12 @@ class MaintenanceRequestsRelationManager extends RelationManager
 {
     protected static string $relationship = 'maintenanceRequests';
 
+    /** Authorized users may record maintenance requests without leaving View Unit. */
+    public function isReadOnly(): bool
+    {
+        return false;
+    }
+
     public static function getTitle(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): string
     {
         return __('Maintenance Requests');
