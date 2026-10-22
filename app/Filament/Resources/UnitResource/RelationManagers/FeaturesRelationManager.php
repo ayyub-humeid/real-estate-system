@@ -31,9 +31,12 @@ class FeaturesRelationManager extends RelationManager
             ->schema([
                 Forms\Components\Select::make('feature_key')
                     ->label(__('Common feature'))
-                    ->options(collect(\App\Services\UnitSetupService::FEATURE_CATALOGUE)->mapWithKeys(fn($v, $k) => [$k => $v[0]]))
+                    ->options(collect(\App\Services\UnitSetupService::FEATURE_CATALOGUE)
+                        ->mapWithKeys(fn ($value, $key) => [$key => __('unit_features.'.$key)]))
                     ->live()
-                    ->afterStateUpdated(fn(Forms\Set $set, $state) => $state ? $set('name', \App\Services\UnitSetupService::FEATURE_CATALOGUE[$state][0]) : null),
+                    // Persist the stable catalogue value; the table renders the
+                    // translated label from feature_key for the active locale.
+                    ->afterStateUpdated(fn (Forms\Set $set, $state) => $state ? $set('name', \App\Services\UnitSetupService::FEATURE_CATALOGUE[$state][0]) : null),
                 Forms\Components\TextInput::make('name')
                     ->label(__('Feature Name'))
                     ->required()
@@ -52,7 +55,10 @@ class FeaturesRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('name')
                     ->label(__('Feature'))
                     ->weight('bold')
-                    ->searchable(),
+                    ->searchable()
+                    ->formatStateUsing(fn (?string $state, $record): string => $record->feature_key
+                        ? __('unit_features.'.$record->feature_key)
+                        : ($state ?? __('—'))),
                 Tables\Columns\TextColumn::make('value')
                     ->label(__('Detail'))
                     ->placeholder(__('—')),

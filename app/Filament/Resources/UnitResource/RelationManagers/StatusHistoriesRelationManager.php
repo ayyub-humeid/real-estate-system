@@ -1,5 +1,6 @@
 <?php
 namespace App\Filament\Resources\UnitResource\RelationManagers;
+use App\Enums\UnitStatus;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -15,8 +16,10 @@ class StatusHistoriesRelationManager extends RelationManager
     public function isReadOnly(): bool { return true; }
 
     public function table(Table $table): Table { return $table->columns([
-        Tables\Columns\TextColumn::make('from_status')->label(__('From'))->placeholder(__('Legacy baseline')),
-        Tables\Columns\TextColumn::make('to_status')->label(__('To'))->badge(),
+        Tables\Columns\TextColumn::make('from_status')->label(__('From'))->placeholder(__('Legacy baseline'))
+            ->formatStateUsing(fn (?string $state): string => $state ? (UnitStatus::tryFrom($state)?->getLabel() ?? $state) : __('Legacy baseline')),
+        Tables\Columns\TextColumn::make('to_status')->label(__('To'))->badge()
+            ->formatStateUsing(fn (?string $state): string => $state ? (UnitStatus::tryFrom($state)?->getLabel() ?? $state) : __('—')),
         Tables\Columns\TextColumn::make('reason')->label(__('Reason'))->wrap()->placeholder(__('—')),
         Tables\Columns\TextColumn::make('changedBy.name')->label(__('Changed by'))->placeholder(__('System')),
         Tables\Columns\TextColumn::make('changed_at')->label(__('Changed at'))->dateTime()->sortable(),

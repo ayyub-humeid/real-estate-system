@@ -12,8 +12,12 @@ use Filament\Tables\Table;
 class PaymentsRelationManager extends RelationManager
 {
     protected static string $relationship = 'payments';
-    protected static ?string $title = 'Payment History';
     protected static ?string $icon = 'heroicon-o-banknotes';
+
+    public static function getTitle(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): string
+    {
+        return __('Payment History');
+    }
 
     public function table(Table $table): Table
     {
@@ -21,11 +25,11 @@ class PaymentsRelationManager extends RelationManager
             ->recordTitleAttribute('amount')
             ->columns([
                 Tables\Columns\TextColumn::make('lease.unit.property.name')
-                    ->label('Property')
+                    ->label(__('Property'))
                     ->searchable(),
 
                 Tables\Columns\TextColumn::make('lease.unit.unit_number')
-                    ->label('Unit')
+                    ->label(__('Unit'))
                     ->badge()
                     ->color('info'),
 
@@ -38,12 +42,12 @@ class PaymentsRelationManager extends RelationManager
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('paid_amount')
-                    ->label('Paid')
+                    ->label(__('Paid'))
                     ->money('USD')
                     ->color('success'),
 
                 Tables\Columns\TextColumn::make('remaining_amount')
-                    ->label('Remaining after this payment')
+                    ->label(__('Remaining after this payment'))
                     ->money('USD')
                     ->color(fn($state) => $state > 0 ? 'danger' : 'success'),
 
@@ -67,10 +71,10 @@ class PaymentsRelationManager extends RelationManager
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
                     ->options([
-                        'pending' => 'Pending',
-                        'paid' => 'Paid',
-                        'overdue' => 'Overdue',
-                        'partial' => 'Partial',
+                        'pending' => __('tenant.statuses.pending'),
+                        'paid' => __('Paid'),
+                        'overdue' => __('Overdue'),
+                        'partial' => __('Partial'),
                     ]),
             ])
             ->defaultSort('due_date', 'desc');

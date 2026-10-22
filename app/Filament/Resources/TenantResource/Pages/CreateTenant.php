@@ -93,6 +93,6 @@ class CreateTenant extends CreateRecord
 
     protected function getCreatedNotificationTitle(): ?string
     {
-        return 'Tenant created successfully';
+        return __('tenant.messages.created');
     }
 }

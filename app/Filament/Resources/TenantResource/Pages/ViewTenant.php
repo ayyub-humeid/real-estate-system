@@ -38,9 +38,9 @@ class ViewTenant extends ViewRecord
             Actions\DeleteAction::make()
                 ->icon('heroicon-o-trash')
                 ->requiresConfirmation()
-                ->modalHeading(__('Delete Tenant'))
-                ->modalDescription(__('Are you sure you want to delete this tenant? This will also delete their user account.'))
-                ->successNotificationTitle('Tenant deleted successfully'),
+                ->modalHeading(__('tenant.messages.delete_heading'))
+                ->modalDescription(__('tenant.messages.delete_description'))
+                ->successNotificationTitle(__('tenant.messages.deleted')),
         ];
     }
 
@@ -66,27 +66,27 @@ class ViewTenant extends ViewRecord
                             // Right: Basic Info
                             Infolists\Components\Group::make([
                                 Infolists\Components\TextEntry::make('user.name')
-                                    ->label('Full Name')
+                                    ->label(__('tenant.fields.full_name'))
                                     ->size(Infolists\Components\TextEntry\TextEntrySize::Large)
                                     ->weight('bold')
                                     ->icon('heroicon-m-user')
                                     ->color('primary'),
 
                                 Infolists\Components\TextEntry::make('user.email')
-                                    ->label('Email')
+                                    ->label(__('tenant.fields.email'))
                                     ->icon('heroicon-m-envelope')
                                     ->copyable()
-                                    ->copyMessage('Email copied!')
+                                    ->copyMessage(__('tenant.messages.email_copied'))
                                     ->copyMessageDuration(1500),
 
                                 Infolists\Components\TextEntry::make('user.phone')
-                                    ->label('Phone')
+                                    ->label(__('tenant.fields.phone'))
                                     ->icon('heroicon-m-phone')
                                     ->placeholder(__('—'))
                                     ->copyable(),
 
                                 Infolists\Components\IconEntry::make('status')
-                                    ->label('Status')
+                                    ->label(__('tenant.fields.status'))
                                     ->boolean()
                                     ->trueIcon('heroicon-o-check-circle')
                                     ->falseIcon('heroicon-o-x-circle')
@@ -99,13 +99,13 @@ class ViewTenant extends ViewRecord
                     ->columnSpanFull(),
 
                 // 🔥 SECTION 2: Statistics Cards
-                Infolists\Components\Section::make(__('Tenancy Overview'))
+                Infolists\Components\Section::make(__('tenant.sections.overview'))
                     ->schema([
                         Infolists\Components\Split::make([
                             // Card 1: Total Leases
                             Infolists\Components\Group::make([
                                 Infolists\Components\TextEntry::make('leases_count')
-                                    ->label('Total Leases')
+                                    ->label(__('tenant.fields.total_leases'))
                                     ->state(fn($record) => $record->leases_count ?? 0)
                                     ->badge()
                                     ->size(Infolists\Components\TextEntry\TextEntrySize::Large)
@@ -114,7 +114,7 @@ class ViewTenant extends ViewRecord
                                 
                                 Infolists\Components\TextEntry::make('leases_label')
                                     ->label('')
-                                    ->state('Rental contracts')
+                                    ->state(__('tenant.help.rental_contracts'))
                                     ->color('gray')
                                     ->size(Infolists\Components\TextEntry\TextEntrySize::Small),
                             ])->extraAttributes(['class' => 'bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-100 dark:border-blue-800']),
@@ -122,7 +122,7 @@ class ViewTenant extends ViewRecord
                             // Card 2: Active Leases
                             Infolists\Components\Group::make([
                                 Infolists\Components\TextEntry::make('active_leases_count')
-                                    ->label('Active Leases')
+                                    ->label(__('tenant.fields.active_leases'))
                                     ->state(fn($record) => $record->active_leases_count ?? 0)
                                     ->badge()
                                     ->size(Infolists\Components\TextEntry\TextEntrySize::Large)
@@ -131,7 +131,7 @@ class ViewTenant extends ViewRecord
                                 
                                 Infolists\Components\TextEntry::make('active_label')
                                     ->label('')
-                                    ->state('Currently renting')
+                                    ->state(__('tenant.statuses.active'))
                                     ->color('gray')
                                     ->size(Infolists\Components\TextEntry\TextEntrySize::Small),
                             ])->extraAttributes(['class' => 'bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-100 dark:border-green-800']),
@@ -139,8 +139,8 @@ class ViewTenant extends ViewRecord
                             // Card 3: Customer billing is intentionally introduced in Phase 08.
              Infolists\Components\Group::make([
                                  Infolists\Components\TextEntry::make('total_paid')
-                                    ->label('Customer billing')
-                                    ->state('Available in Phase 08')
+                                    ->label(__('tenant.fields.customer_billing'))
+                                    ->state(__('tenant.help.billing_unavailable'))
                                     ->badge()
                                     ->size(Infolists\Components\TextEntry\TextEntrySize::Large)
                                     ->color('gray')
@@ -148,7 +148,7 @@ class ViewTenant extends ViewRecord
 
                                 Infolists\Components\TextEntry::make('paid_label')
                                     ->label('')
-                                    ->state('Schedules and installments are not yet enabled')
+                                    ->state(__('tenant.help.billing_unavailable'))
                                     ->color('gray')
                                     ->size(Infolists\Components\TextEntry\TextEntrySize::Small),
                             ])->extraAttributes(['class' => 'bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-100 dark:border-yellow-800']),
@@ -156,7 +156,7 @@ class ViewTenant extends ViewRecord
                             // Card 4: Member Since
                             Infolists\Components\Group::make([
                                 Infolists\Components\TextEntry::make('created_at')
-                                    ->label('Member Since')
+                                    ->label(__('tenant.fields.member_since'))
                                     ->since()
                                     ->size(Infolists\Components\TextEntry\TextEntrySize::Large)
                                     ->color('info')
@@ -175,28 +175,28 @@ class ViewTenant extends ViewRecord
                     ->columnSpanFull(),
 
                 // 🔥 SECTION 3: Personal Information
-                Infolists\Components\Section::make(__('Personal Information'))
+                Infolists\Components\Section::make(__('tenant.sections.personal'))
                     ->schema([
                         Infolists\Components\TextEntry::make('company.name')
-                            ->label('Company')
+                            ->label(__('tenant.fields.company'))
                             ->icon('heroicon-m-building-office')
                             ->badge()
                             ->color('primary'),
 
                         Infolists\Components\TextEntry::make('move_in_date')
-                            ->label('Move-in Date')
+                            ->label(__('tenant.fields.move_in_date'))
                             ->date()
                             ->placeholder(__('—'))
                             ->icon('heroicon-m-calendar-days'),
 
                         Infolists\Components\TextEntry::make('number_of_occupants')
-                            ->label('Number of Occupants')
+                            ->label(__('tenant.fields.occupants'))
                             ->badge()
                             ->color('info')
                             ->icon('heroicon-m-users'),
 
                         Infolists\Components\IconEntry::make('has_pets')
-                            ->label('Has Pets')
+                            ->label(__('tenant.fields.has_pets'))
                             ->boolean()
                             ->trueIcon('heroicon-o-check-circle')
                             ->falseIcon('heroicon-o-x-circle')
@@ -204,7 +204,7 @@ class ViewTenant extends ViewRecord
                             ->falseColor('gray'),
 
                         Infolists\Components\TextEntry::make('pet_details')
-                            ->label('Pet Details')
+                            ->label(__('tenant.fields.pet_details'))
                             ->placeholder(__('—'))
                             ->columnSpanFull()
                             ->visible(fn($record) => $record->has_pets),
@@ -213,20 +213,20 @@ class ViewTenant extends ViewRecord
                     ->collapsible(),
 
                 // 🔥 SECTION 4: Employment Information
-                Infolists\Components\Section::make(__('Employment Information'))
+                Infolists\Components\Section::make(__('tenant.sections.employment'))
                     ->schema([
                         Infolists\Components\TextEntry::make('employer_name')
-                            ->label('Employer')
+                            ->label(__('tenant.fields.employer_name'))
                             ->icon('heroicon-m-building-office-2')
                             ->placeholder(__('—')),
 
                         Infolists\Components\TextEntry::make('job_title')
-                            ->label('Job Title')
+                            ->label(__('tenant.fields.job_title'))
                             ->icon('heroicon-m-briefcase')
                             ->placeholder(__('—')),
 
                         Infolists\Components\TextEntry::make('monthly_income')
-                            ->label('Monthly Income')
+                            ->label(__('tenant.fields.monthly_income'))
                             ->money('USD')
                             ->icon('heroicon-m-banknotes')
                             ->badge()
@@ -234,19 +234,19 @@ class ViewTenant extends ViewRecord
                             ->placeholder(__('—')),
 
                         Infolists\Components\TextEntry::make('employment_start_date')
-                            ->label('Employment Start')
+                            ->label(__('tenant.fields.employment_start'))
                             ->date()
                             ->icon('heroicon-m-calendar')
                             ->placeholder(__('—')),
 
                         Infolists\Components\TextEntry::make('employer_phone')
-                            ->label('Employer Phone')
+                            ->label(__('tenant.fields.employer_phone'))
                             ->icon('heroicon-m-phone')
                             ->placeholder(__('—'))
                             ->copyable(),
 
                         Infolists\Components\TextEntry::make('employer_address')
-                            ->label('Employer Address')
+                            ->label(__('tenant.fields.employer_address'))
                             ->placeholder(__('—'))
                             ->columnSpanFull(),
                     ])
@@ -255,21 +255,21 @@ class ViewTenant extends ViewRecord
                     ->collapsed(),
 
                 // 🔥 SECTION 5: Emergency Contact
-                Infolists\Components\Section::make(__('Emergency Contact'))
+                Infolists\Components\Section::make(__('tenant.sections.emergency'))
                     ->schema([
                         Infolists\Components\TextEntry::make('emergency_contact_name')
-                            ->label('Contact Name')
+                            ->label(__('tenant.fields.contact_name'))
                             ->icon('heroicon-m-user')
                             ->placeholder(__('—')),
 
                         Infolists\Components\TextEntry::make('emergency_contact_phone')
-                            ->label('Contact Phone')
+                            ->label(__('tenant.fields.contact_phone'))
                             ->icon('heroicon-m-phone')
                             ->placeholder(__('—'))
                             ->copyable(),
 
                         Infolists\Components\TextEntry::make('emergency_contact_relationship')
-                            ->label('Relationship')
+                            ->label(__('tenant.fields.relationship'))
                             ->icon('heroicon-m-heart')
                             ->placeholder(__('—')),
                     ])
@@ -278,36 +278,36 @@ class ViewTenant extends ViewRecord
                     ->collapsed(),
 
                 // 🔥 SECTION 6: Previous Address
-                Infolists\Components\Section::make(__('Previous Rental History'))
+                Infolists\Components\Section::make(__('tenant.sections.rental_history'))
                     ->schema([
                         Infolists\Components\TextEntry::make('previous_address')
-                            ->label('Previous Address')
+                            ->label(__('tenant.fields.previous_address'))
                             ->placeholder(__('—'))
                             ->columnSpanFull(),
 
                         Infolists\Components\TextEntry::make('previous_landlord_name')
-                            ->label('Previous Landlord')
+                            ->label(__('tenant.fields.previous_landlord'))
                             ->icon('heroicon-m-user')
                             ->placeholder(__('—')),
 
                         Infolists\Components\TextEntry::make('previous_landlord_phone')
-                            ->label('Landlord Phone')
+                            ->label(__('tenant.fields.landlord_phone'))
                             ->icon('heroicon-m-phone')
                             ->placeholder(__('—'))
                             ->copyable(),
 
                         Infolists\Components\TextEntry::make('previous_tenancy_start')
-                            ->label('Tenancy Start')
+                            ->label(__('tenant.fields.tenancy_start'))
                             ->date()
                             ->placeholder(__('—')),
 
                         Infolists\Components\TextEntry::make('previous_tenancy_end')
-                            ->label('Tenancy End')
+                            ->label(__('tenant.fields.tenancy_end'))
                             ->date()
                             ->placeholder(__('—')),
 
                         Infolists\Components\TextEntry::make('previous_duration')
-                            ->label('Duration')
+                            ->label(__('tenant.fields.duration'))
                             ->state(function($record) {
                                 if (!$record->previous_tenancy_start || !$record->previous_tenancy_end) {
                                     return '—';
@@ -322,21 +322,21 @@ class ViewTenant extends ViewRecord
                     ->collapsed(),
 
                 // 🔥 SECTION 7: Identification
-                Infolists\Components\Section::make(__('Identification'))
+                Infolists\Components\Section::make(__('tenant.sections.identification'))
                     ->schema([
                         Infolists\Components\TextEntry::make('id_type')
-                            ->label('ID Type')
+                            ->label(__('tenant.fields.id_type'))
                             ->badge()
-                            ->formatStateUsing(fn($state) => str_replace('_', ' ', ucwords($state, '_')))
+                            ->formatStateUsing(fn ($state) => $state ? __('tenant.id_types.'.$state) : __('—'))
                             ->placeholder(__('—')),
 
                         Infolists\Components\TextEntry::make('id_number')
-                            ->label('ID Number')
+                            ->label(__('tenant.fields.id_number'))
                             ->placeholder(__('—'))
                             ->copyable(),
 
                         Infolists\Components\TextEntry::make('id_expiry_date')
-                            ->label('Expiry Date')
+                            ->label(__('tenant.fields.id_expiry'))
                             ->date()
                             ->placeholder(__('—'))
                             ->color(fn($record) => 
@@ -350,28 +350,28 @@ class ViewTenant extends ViewRecord
                     ->collapsed(),
 
                 // 🔥 SECTION 8: References
-                Infolists\Components\Section::make(__('References'))
+                Infolists\Components\Section::make(__('tenant.sections.references'))
                     ->schema([
                         Infolists\Components\RepeatableEntry::make('references')
                             ->label('')
                             ->schema([
                                 Infolists\Components\TextEntry::make('name')
-                                    ->label('Name')
+                                    ->label(__('tenant.fields.name'))
                                     ->icon('heroicon-m-user')
                                     ->weight('bold'),
 
                                 Infolists\Components\TextEntry::make('relationship')
-                                    ->label('Relationship')
+                                    ->label(__('tenant.fields.relationship'))
                                     ->badge()
                                     ->color('info'),
 
                                 Infolists\Components\TextEntry::make('phone')
-                                    ->label('Phone')
+                                    ->label(__('tenant.fields.phone'))
                                     ->icon('heroicon-m-phone')
                                     ->copyable(),
 
                                 Infolists\Components\TextEntry::make('email')
-                                    ->label('Email')
+                                    ->label(__('tenant.fields.email'))
                                     ->icon('heroicon-m-envelope')
                                     ->copyable()
                                     ->placeholder(__('—')),
@@ -385,10 +385,10 @@ class ViewTenant extends ViewRecord
                     ->visible(fn($record) => !empty($record->references)),
 
                 // 🔥 SECTION 9: Background Check
-                Infolists\Components\Section::make(__('Background Check'))
+                Infolists\Components\Section::make(__('tenant.sections.background_check'))
                     ->schema([
                         Infolists\Components\TextEntry::make('background_check_status')
-                            ->label('Status')
+                            ->label(__('tenant.fields.status'))
                             ->badge()
                             ->colors([
                                 'warning' => 'pending',
@@ -396,15 +396,15 @@ class ViewTenant extends ViewRecord
                                 'danger' => 'rejected',
                                 'gray' => 'not_required',
                             ])
-                            ->formatStateUsing(fn($state) => ucfirst($state)),
+                            ->formatStateUsing(fn ($state) => $state ? __('tenant.statuses.'.$state) : __('—')),
 
                         Infolists\Components\TextEntry::make('background_check_date')
-                            ->label('Check Date')
+                            ->label(__('tenant.fields.check_date'))
                             ->date()
                             ->placeholder(__('—')),
 
                         Infolists\Components\TextEntry::make('background_check_notes')
-                            ->label('Notes')
+                            ->label(__('tenant.fields.notes'))
                             ->placeholder(__('—'))
                             ->columnSpanFull(),
                     ])
@@ -413,11 +413,11 @@ class ViewTenant extends ViewRecord
                     ->collapsed(),
 
                 // 🔥 SECTION 10: Internal Notes
-                Infolists\Components\Section::make(__('Internal Notes'))
+                Infolists\Components\Section::make(__('tenant.sections.internal_notes'))
                     ->schema([
                         Infolists\Components\TextEntry::make('notes')
                             ->label('')
-                            ->placeholder(__('No notes added'))
+                            ->placeholder(__('tenant.help.no_notes'))
                             ->markdown()
                             ->columnSpanFull(),
                     ])

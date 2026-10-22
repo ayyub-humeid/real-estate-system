@@ -16,7 +16,7 @@ class LanguagePreferences extends Page
         return __('Language Preferences');
     }
 
-    public string $locale = 'en';
+    public string $locale = 'ar';
 
     public static function canAccess(): bool
     {
@@ -25,7 +25,7 @@ class LanguagePreferences extends Page
 
     public function mount(): void
     {
-        $this->locale = auth()->user()->locale ?? config('app.locale', 'en');
+        $this->locale = auth()->user()->locale ?? config('app.locale', 'ar');
     }
 
     public function getTitle(): string

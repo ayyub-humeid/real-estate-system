@@ -1,0 +1,52 @@
+<?php
+
+return [
+    'resource' => ['singular' => 'Tenant', 'plural' => 'Tenants', 'navigation' => 'People'],
+    'sections' => [
+        'basic' => 'Basic information', 'employment' => 'Employment information',
+        'emergency' => 'Emergency contact', 'previous_address' => 'Previous address',
+        'identification' => 'Identification', 'move_in' => 'Move-in details',
+        'references' => 'References', 'background_check' => 'Background check',
+        'additional' => 'Additional information', 'overview' => 'Tenancy overview',
+        'personal' => 'Personal information', 'rental_history' => 'Previous rental history',
+        'internal_notes' => 'Internal notes',
+    ],
+    'fields' => [
+        'company' => 'Company', 'full_name' => 'Full name', 'email' => 'Email', 'phone' => 'Phone',
+        'password' => 'Password', 'photo' => 'Tenant photo', 'employer_name' => 'Employer',
+        'job_title' => 'Job title', 'employer_phone' => 'Employer phone', 'monthly_income' => 'Monthly income',
+        'employer_address' => 'Employer address', 'employment_start' => 'Employment start date',
+        'contact_name' => 'Contact name', 'contact_phone' => 'Contact phone', 'relationship' => 'Relationship',
+        'previous_address' => 'Previous address', 'previous_landlord' => 'Previous landlord',
+        'landlord_phone' => 'Landlord phone', 'tenancy_start' => 'Tenancy start', 'tenancy_end' => 'Tenancy end',
+        'id_type' => 'ID type', 'id_number' => 'ID number', 'id_expiry' => 'Expiry date',
+        'move_in_date' => 'Move-in date', 'occupants' => 'Number of occupants', 'has_pets' => 'Has pets',
+        'pet_details' => 'Pet details', 'name' => 'Name', 'status' => 'Status', 'notes' => 'Notes',
+        'check_date' => 'Check date', 'created_at' => 'Created at', 'leases' => 'Leases',
+        'active_leases' => 'Active leases', 'total_leases' => 'Total leases', 'member_since' => 'Member since',
+        'duration' => 'Duration', 'customer_billing' => 'Customer billing',
+    ],
+    'statuses' => [
+        'active' => 'Active', 'inactive' => 'Inactive', 'blacklisted' => 'Blacklisted',
+        'pending' => 'Pending', 'approved' => 'Approved', 'rejected' => 'Rejected',
+        'not_required' => 'Not required',
+    ],
+    'id_types' => ['national_id' => 'National ID', 'passport' => 'Passport', 'driver_license' => 'Driver license'],
+    'help' => [
+        'saved_to_user' => 'This information is saved to the user account.',
+        'password_create' => 'The tenant uses this password to sign in.',
+        'password_keep' => 'Leave blank to keep the current password.',
+        'relationship_placeholder' => 'For example: parent, spouse, or sibling.',
+        'pet_placeholder' => 'Type, breed, size, and any relevant details.',
+        'no_notes' => 'No notes added.', 'rental_contracts' => 'Rental contracts',
+        'billing_unavailable' => 'Schedules and installments are not enabled.',
+    ],
+    'actions' => ['add_reference' => 'Add reference'],
+    'messages' => [
+        'created' => 'Tenant created successfully.', 'updated' => 'Tenant updated successfully.',
+        'deleted' => 'Tenant deleted successfully.', 'email_copied' => 'Email copied.',
+        'delete_heading' => 'Delete tenant',
+        'delete_description' => 'Are you sure you want to delete this tenant? Their user account will also be deleted.',
+        'create_error' => 'Unable to create tenant',
+    ],
+];

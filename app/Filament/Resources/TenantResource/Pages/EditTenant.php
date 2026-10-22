@@ -84,7 +84,7 @@ class EditTenant extends EditRecord
 
     protected function getSavedNotificationTitle(): ?string
     {
-        return 'Tenant updated successfully';
+        return __('tenant.messages.updated');
     }
 }
 

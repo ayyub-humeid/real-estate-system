@@ -22,6 +22,21 @@ class TenantResource extends Resource
     protected static ?string $navigationGroup = '👥 People';
     protected static ?int $navigationSort = 1;
 
+    public static function getModelLabel(): string
+    {
+        return __('tenant.resource.singular');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('tenant.resource.plural');
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return '👥 '.__('tenant.resource.navigation');
+    }
+
     // 🔥 PERFORMANCE: Eager Loading Strategy
     public static function getEloquentQuery(): Builder
     {
@@ -50,7 +65,7 @@ class TenantResource extends Resource
     private static function companyField(): Forms\Components\Component
     {
         return Forms\Components\Select::make('company_id')
-            ->label('Company')
+            ->label(__('tenant.fields.company'))
             ->relationship('company', 'name')
             ->searchable()
             ->preload()
@@ -63,13 +78,13 @@ class TenantResource extends Resource
         return $form
             ->schema([
                 // 🔥 SECTION 1: Basic Information (saves to users table)
-                Forms\Components\Section::make(__('Basic Information'))
-                    ->description(__('This information will be saved in the user account'))
+                Forms\Components\Section::make(__('tenant.sections.basic'))
+                    ->description(__('tenant.help.saved_to_user'))
                     ->schema([
                         self::companyField(),
 
                         Forms\Components\TextInput::make('user.name')
-                            ->label('Full Name')
+                            ->label(__('tenant.fields.full_name'))
                             ->required()
                             ->maxLength(255)
                             ->live(onBlur: true)
@@ -82,7 +97,7 @@ class TenantResource extends Resource
                             }),
 
                         Forms\Components\TextInput::make('user.email')
-                            ->label('Email')
+                            ->label(__('tenant.fields.email'))
                             ->email()
                             ->required()
                             ->unique(
@@ -101,13 +116,13 @@ class TenantResource extends Resource
                             ),
 
                         Forms\Components\TextInput::make('user.phone')
-                            ->label('Phone')
+                            ->label(__('tenant.fields.phone'))
                             ->tel()
                             ->maxLength(255),
 
                         // 🔥 Password field (only for creation)
                         Forms\Components\TextInput::make('user.password')
-                            ->label('Password')
+                            ->label(__('tenant.fields.password'))
                             ->password()
                             ->revealable()
                             ->required(fn(string $context) => $context === 'create')
@@ -116,12 +131,12 @@ class TenantResource extends Resource
                             ->helperText(
                                 fn(string $context) =>
                                 $context === 'create'
-                                    ? 'Tenant will use this to login'
-                                    : 'Leave empty to keep current password'
+                                    ? __('tenant.help.password_create')
+                                    : __('tenant.help.password_keep')
                             ),
 
                         Forms\Components\FileUpload::make('avatar')
-                            ->label('Tenant Photo')
+                            ->label(__('tenant.fields.photo'))
                             ->image()
                             ->avatar()
                             ->directory('tenants-avatars')
@@ -131,29 +146,35 @@ class TenantResource extends Resource
                     ->columns(2),
 
                 // 🔥 SECTION 2: Employment Information (saves to tenants table)
-                Forms\Components\Section::make(__('Employment Information'))
+                Forms\Components\Section::make(__('tenant.sections.employment'))
                     ->schema([
                         Forms\Components\TextInput::make('employer_name')
+                            ->label(__('tenant.fields.employer_name'))
                             ->maxLength(255),
 
                         Forms\Components\TextInput::make('job_title')
+                            ->label(__('tenant.fields.job_title'))
                             ->maxLength(255),
 
                         Forms\Components\TextInput::make('employer_phone')
+                            ->label(__('tenant.fields.employer_phone'))
                             ->tel()
                             ->maxLength(255),
 
                         Forms\Components\TextInput::make('monthly_income')
+                            ->label(__('tenant.fields.monthly_income'))
                             ->numeric()
                             ->prefix('$')
                             ->step(0.01)
                             ->minValue(0),
 
                         Forms\Components\Textarea::make('employer_address')
+                            ->label(__('tenant.fields.employer_address'))
                             ->rows(2)
                             ->columnSpanFull(),
 
                         Forms\Components\DatePicker::make('employment_start_date')
+                            ->label(__('tenant.fields.employment_start'))
                             ->native(false)
                             ->maxDate(now()),
                     ])
@@ -161,60 +182,71 @@ class TenantResource extends Resource
                     ->collapsible(),
 
                 // 🔥 SECTION 3: Emergency Contact
-                Forms\Components\Section::make(__('Emergency Contact'))
+                Forms\Components\Section::make(__('tenant.sections.emergency'))
                     ->schema([
                         Forms\Components\TextInput::make('emergency_contact_name')
+                            ->label(__('tenant.fields.contact_name'))
                             ->maxLength(255),
 
                         Forms\Components\TextInput::make('emergency_contact_phone')
+                            ->label(__('tenant.fields.contact_phone'))
                             ->tel()
                             ->maxLength(255),
 
                         Forms\Components\TextInput::make('emergency_contact_relationship')
+                            ->label(__('tenant.fields.relationship'))
                             ->maxLength(255)
-                            ->placeholder(__('Father, Mother, Spouse, etc.')),
+                            ->placeholder(__('tenant.help.relationship_placeholder')),
                     ])
                     ->columns(3)
                     ->collapsible(),
 
                 // 🔥 SECTION 4: Previous Address
-                Forms\Components\Section::make(__('Previous Address'))
+                Forms\Components\Section::make(__('tenant.sections.previous_address'))
                     ->schema([
                         Forms\Components\Textarea::make('previous_address')
+                            ->label(__('tenant.fields.previous_address'))
                             ->rows(2)
                             ->columnSpanFull(),
 
                         Forms\Components\TextInput::make('previous_landlord_name')
+                            ->label(__('tenant.fields.previous_landlord'))
                             ->maxLength(255),
 
                         Forms\Components\TextInput::make('previous_landlord_phone')
+                            ->label(__('tenant.fields.landlord_phone'))
                             ->tel()
                             ->maxLength(255),
 
                         Forms\Components\DatePicker::make('previous_tenancy_start')
+                            ->label(__('tenant.fields.tenancy_start'))
                             ->native(false),
 
                         Forms\Components\DatePicker::make('previous_tenancy_end')
+                            ->label(__('tenant.fields.tenancy_end'))
                             ->native(false),
                     ])
                     ->columns(2)
                     ->collapsible(),
 
                 // 🔥 SECTION 5: Identification
-                Forms\Components\Section::make(__('Identification'))
+                Forms\Components\Section::make(__('tenant.sections.identification'))
                     ->schema([
                         Forms\Components\Select::make('id_type')
+                            ->label(__('tenant.fields.id_type'))
                             ->options([
-                                'national_id' => 'National ID',
-                                'passport' => 'Passport',
-                                'driver_license' => 'Driver License',
+                                'national_id' => __('tenant.id_types.national_id'),
+                                'passport' => __('tenant.id_types.passport'),
+                                'driver_license' => __('tenant.id_types.driver_license'),
                             ])
                             ->native(false),
 
                         Forms\Components\TextInput::make('id_number')
+                            ->label(__('tenant.fields.id_number'))
                             ->maxLength(255),
 
                         Forms\Components\DatePicker::make('id_expiry_date')
+                            ->label(__('tenant.fields.id_expiry'))
                             ->native(false)
                             ->minDate(now()),
                     ])
@@ -222,75 +254,83 @@ class TenantResource extends Resource
                     ->collapsible(),
 
                 // 🔥 SECTION 6: Move-in Details
-                Forms\Components\Section::make(__('Move-in Details'))
+                Forms\Components\Section::make(__('tenant.sections.move_in'))
                     ->schema([
                         Forms\Components\DatePicker::make('move_in_date')
+                            ->label(__('tenant.fields.move_in_date'))
                             ->native(false),
 
                         Forms\Components\TextInput::make('number_of_occupants')
+                            ->label(__('tenant.fields.occupants'))
                             ->numeric()
                             ->default(1)
                             ->minValue(1)
                             ->maxValue(10),
 
                         Forms\Components\Toggle::make('has_pets')
-                            ->label('Has Pets')
+                            ->label(__('tenant.fields.has_pets'))
                             ->live(),
 
                         Forms\Components\Textarea::make('pet_details')
-                            ->label('Pet Details')
+                            ->label(__('tenant.fields.pet_details'))
                             ->visible(fn(Forms\Get $get) => $get('has_pets'))
                             ->rows(2)
                             ->columnSpanFull()
-                            ->placeholder(__('Type, breed, size, etc.')),
+                            ->placeholder(__('tenant.help.pet_placeholder')),
                     ])
                     ->columns(3)
                     ->collapsible(),
 
                 // 🔥 SECTION 7: References (Repeater for multiple references)
-                Forms\Components\Section::make(__('References'))
+                Forms\Components\Section::make(__('tenant.sections.references'))
                     ->schema([
                         Forms\Components\Repeater::make('references')
                             ->schema([
                                 Forms\Components\TextInput::make('name')
+                                    ->label(__('tenant.fields.name'))
                                     ->required()
                                     ->maxLength(255),
 
                                 Forms\Components\TextInput::make('relationship')
+                                    ->label(__('tenant.fields.relationship'))
                                     ->maxLength(255),
 
                                 Forms\Components\TextInput::make('phone')
+                                    ->label(__('tenant.fields.phone'))
                                     ->tel()
                                     ->required()
                                     ->maxLength(255),
 
                                 Forms\Components\TextInput::make('email')
+                                    ->label(__('tenant.fields.email'))
                                     ->email()
                                     ->maxLength(255),
                             ])
                             ->columns(4)
                             ->defaultItems(0)
-                            ->addActionLabel('Add Reference')
+                            ->addActionLabel(__('tenant.actions.add_reference'))
                             ->collapsible()
                             ->columnSpanFull(),
                     ])
                     ->collapsible(),
 
                 // 🔥 SECTION 8: Background Check
-                Forms\Components\Section::make(__('Background Check'))
+                Forms\Components\Section::make(__('tenant.sections.background_check'))
                     ->schema([
                         Forms\Components\Select::make('background_check_status')
+                            ->label(__('tenant.fields.status'))
                             ->options([
-                                'pending' => 'Pending',
-                                'approved' => 'Approved',
-                                'rejected' => 'Rejected',
-                                'not_required' => 'Not Required',
+                                'pending' => __('tenant.statuses.pending'),
+                                'approved' => __('tenant.statuses.approved'),
+                                'rejected' => __('tenant.statuses.rejected'),
+                                'not_required' => __('tenant.statuses.not_required'),
                             ])
                             ->default('pending')
                             ->native(false)
                             ->live(),
 
                         Forms\Components\DatePicker::make('background_check_date')
+                            ->label(__('tenant.fields.check_date'))
                             ->visible(
                                 fn(Forms\Get $get) =>
                                 in_array($get('background_check_status'), ['approved', 'rejected'])
@@ -298,6 +338,7 @@ class TenantResource extends Resource
                             ->native(false),
 
                         Forms\Components\Textarea::make('background_check_notes')
+                            ->label(__('tenant.fields.notes'))
                             ->visible(
                                 fn(Forms\Get $get) =>
                                 in_array($get('background_check_status'), ['approved', 'rejected'])
@@ -309,19 +350,21 @@ class TenantResource extends Resource
                     ->collapsible(),
 
                 // 🔥 SECTION 9: Status & Notes
-                Forms\Components\Section::make(__('Additional Information'))
+                Forms\Components\Section::make(__('tenant.sections.additional'))
                     ->schema([
                         Forms\Components\Select::make('status')
+                            ->label(__('tenant.fields.status'))
                             ->options([
-                                'active' => 'Active',
-                                'inactive' => 'Inactive',
-                                'blacklisted' => 'Blacklisted',
+                                'active' => __('tenant.statuses.active'),
+                                'inactive' => __('tenant.statuses.inactive'),
+                                'blacklisted' => __('tenant.statuses.blacklisted'),
                             ])
                             ->default('active')
                             ->required()
                             ->native(false),
 
                         Forms\Components\Textarea::make('notes')
+                            ->label(__('tenant.fields.notes'))
                             ->rows(3)
                             ->columnSpanFull(),
                     ])
@@ -334,7 +377,7 @@ class TenantResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('id')
-                    ->label('ID')
+                    ->label(__('ID'))
                     ->sortable()
                     ->searchable(),
                 Tables\Columns\ImageColumn::make('avatar')
@@ -343,20 +386,20 @@ class TenantResource extends Resource
 
                 // 🔥 WHY: user.name is already eager loaded - zero extra queries
                 Tables\Columns\TextColumn::make('user.name')
-                    ->label('Name')
+                    ->label(__('tenant.fields.name'))
                     ->searchable()
                     ->sortable()
                     ->weight('bold')
                     ->icon('heroicon-m-user'),
 
                 Tables\Columns\TextColumn::make('user.email')
-                    ->label('Email')
+                    ->label(__('tenant.fields.email'))
                     ->searchable()
                     ->copyable()
                     ->icon('heroicon-m-envelope'),
 
                 Tables\Columns\TextColumn::make('user.phone')
-                    ->label('Phone')
+                    ->label(__('tenant.fields.phone'))
                     ->searchable()
                     ->icon('heroicon-m-phone')
                     ->toggleable(),
@@ -373,18 +416,19 @@ class TenantResource extends Resource
 
                 // 🔥 WHY: leases_count from withCount() - NO extra query
                 Tables\Columns\TextColumn::make('leases_count')
-                    ->label('Leases')
+                    ->label(__('tenant.fields.leases'))
                     ->badge()
                     ->color('info')
                     ->icon('heroicon-m-document-text'),
 
                 // 🔥 WHY: active_leases_count from withCount() - NO extra query
                 Tables\Columns\TextColumn::make('active_leases_count')
-                    ->label('Active')
+                    ->label(__('tenant.fields.active_leases'))
                     ->badge()
                     ->color('success'),
 
                 Tables\Columns\TextColumn::make('background_check_status')
+                    ->label(__('tenant.sections.background_check'))
                     ->badge()
                     ->colors([
                         'warning' => 'pending',
@@ -392,18 +436,22 @@ class TenantResource extends Resource
                         'danger' => 'rejected',
                         'gray' => 'not_required',
                     ])
+                    ->formatStateUsing(fn (?string $state): string => $state ? __('tenant.statuses.'.$state) : __('—'))
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('status')
+                    ->label(__('tenant.fields.status'))
                     ->badge()
                     ->colors([
                         'success' => 'active',
                         'gray' => 'inactive',
                         'danger' => 'blacklisted',
                     ])
+                    ->formatStateUsing(fn (?string $state): string => $state ? __('tenant.statuses.'.$state) : __('—'))
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('created_at')
+                    ->label(__('tenant.fields.created_at'))
                     ->dateTime()
                     ->sortable()
                     ->since()
@@ -412,24 +460,24 @@ class TenantResource extends Resource
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
                     ->options([
-                        'active' => 'Active',
-                        'inactive' => 'Inactive',
-                        'blacklisted' => 'Blacklisted',
+                        'active' => __('tenant.statuses.active'),
+                        'inactive' => __('tenant.statuses.inactive'),
+                        'blacklisted' => __('tenant.statuses.blacklisted'),
                     ])
                     ->native(false)
                     ->multiple(),
 
                 Tables\Filters\SelectFilter::make('background_check_status')
-                    ->label('Background Check')
+                    ->label(__('tenant.sections.background_check'))
                     ->options([
-                        'pending' => 'Pending',
-                        'approved' => 'Approved',
-                        'rejected' => 'Rejected',
+                        'pending' => __('tenant.statuses.pending'),
+                        'approved' => __('tenant.statuses.approved'),
+                        'rejected' => __('tenant.statuses.rejected'),
                     ])
                     ->native(false),
 
                 Tables\Filters\Filter::make('has_active_lease')
-                    ->label('Has Active Lease')
+                    ->label(__('tenant.fields.active_leases'))
                     ->query(fn (Builder $query) => $query->hasActiveLease())
                     ->toggle(),
             ])

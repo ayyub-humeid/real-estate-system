@@ -8,6 +8,7 @@ use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Pages;
 use Filament\Navigation\MenuItem;
+use Filament\Enums\ThemeMode;
 use App\Filament\Pages\Dashboard;
 use App\Filament\Pages\CrmKanban;
 use App\Filament\Pages\LanguagePreferences;
@@ -35,6 +36,7 @@ class AdminPanelProvider extends PanelProvider
                 'primary' => Color::Blue,
                 'gray' => Color::Slate,
             ])
+            ->defaultThemeMode(ThemeMode::Dark)
             ->font('Inter')
             ->brandName('Madar')
             ->brandLogo(fn () => view('filament.admin-brand'))

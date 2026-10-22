@@ -1,0 +1,52 @@
+<?php
+
+return [
+    'resource' => ['singular' => 'مستأجر', 'plural' => 'المستأجرون', 'navigation' => 'الأشخاص'],
+    'sections' => [
+        'basic' => 'المعلومات الأساسية', 'employment' => 'معلومات العمل',
+        'emergency' => 'جهة اتصال للطوارئ', 'previous_address' => 'العنوان السابق',
+        'identification' => 'إثبات الهوية', 'move_in' => 'تفاصيل الانتقال',
+        'references' => 'المراجع', 'background_check' => 'التحقق من الخلفية',
+        'additional' => 'معلومات إضافية', 'overview' => 'نظرة عامة على الإيجار',
+        'personal' => 'المعلومات الشخصية', 'rental_history' => 'سجل الإيجار السابق',
+        'internal_notes' => 'ملاحظات داخلية',
+    ],
+    'fields' => [
+        'company' => 'الشركة', 'full_name' => 'الاسم الكامل', 'email' => 'البريد الإلكتروني', 'phone' => 'الهاتف',
+        'password' => 'كلمة المرور', 'photo' => 'صورة المستأجر', 'employer_name' => 'جهة العمل',
+        'job_title' => 'المسمى الوظيفي', 'employer_phone' => 'هاتف جهة العمل', 'monthly_income' => 'الدخل الشهري',
+        'employer_address' => 'عنوان جهة العمل', 'employment_start' => 'تاريخ بدء العمل',
+        'contact_name' => 'اسم جهة الاتصال', 'contact_phone' => 'هاتف جهة الاتصال', 'relationship' => 'صلة القرابة',
+        'previous_address' => 'العنوان السابق', 'previous_landlord' => 'المؤجر السابق',
+        'landlord_phone' => 'هاتف المؤجر', 'tenancy_start' => 'بداية الإيجار', 'tenancy_end' => 'نهاية الإيجار',
+        'id_type' => 'نوع الهوية', 'id_number' => 'رقم الهوية', 'id_expiry' => 'تاريخ الانتهاء',
+        'move_in_date' => 'تاريخ الانتقال', 'occupants' => 'عدد المقيمين', 'has_pets' => 'لديه حيوانات أليفة',
+        'pet_details' => 'تفاصيل الحيوانات الأليفة', 'name' => 'الاسم', 'status' => 'الحالة', 'notes' => 'ملاحظات',
+        'check_date' => 'تاريخ التحقق', 'created_at' => 'تاريخ الإنشاء', 'leases' => 'عقود الإيجار',
+        'active_leases' => 'عقود الإيجار النشطة', 'total_leases' => 'إجمالي عقود الإيجار', 'member_since' => 'عضو منذ',
+        'duration' => 'المدة', 'customer_billing' => 'فوترة العميل',
+    ],
+    'statuses' => [
+        'active' => 'نشط', 'inactive' => 'غير نشط', 'blacklisted' => 'محظور',
+        'pending' => 'قيد الانتظار', 'approved' => 'معتمد', 'rejected' => 'مرفوض',
+        'not_required' => 'غير مطلوب',
+    ],
+    'id_types' => ['national_id' => 'هوية وطنية', 'passport' => 'جواز سفر', 'driver_license' => 'رخصة قيادة'],
+    'help' => [
+        'saved_to_user' => 'تُحفظ هذه المعلومات في حساب المستخدم.',
+        'password_create' => 'يستخدم المستأجر كلمة المرور هذه لتسجيل الدخول.',
+        'password_keep' => 'اتركه فارغًا للاحتفاظ بكلمة المرور الحالية.',
+        'relationship_placeholder' => 'مثال: أحد الوالدين أو الزوج/الزوجة أو الأخ/الأخت.',
+        'pet_placeholder' => 'النوع والسلالة والحجم وأي تفاصيل مهمة.',
+        'no_notes' => 'لا توجد ملاحظات.', 'rental_contracts' => 'عقود الإيجار',
+        'billing_unavailable' => 'الجداول والأقساط غير مفعّلة حاليًا.',
+    ],
+    'actions' => ['add_reference' => 'إضافة مرجع'],
+    'messages' => [
+        'created' => 'تم إنشاء المستأجر بنجاح.', 'updated' => 'تم تحديث المستأجر بنجاح.',
+        'deleted' => 'تم حذف المستأجر بنجاح.', 'email_copied' => 'تم نسخ البريد الإلكتروني.',
+        'delete_heading' => 'حذف المستأجر',
+        'delete_description' => 'هل أنت متأكد من حذف هذا المستأجر؟ سيُحذف حساب المستخدم المرتبط به أيضًا.',
+        'create_error' => 'تعذر إنشاء المستأجر',
+    ],
+];
