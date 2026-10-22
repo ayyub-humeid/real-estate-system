@@ -3,6 +3,8 @@
 namespace App\Filament\Resources\UnitResource\Pages;
 
 use App\Filament\Resources\UnitResource;
+use App\Enums\UnitStatus;
+use App\Enums\UnitType;
 use Filament\Actions;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Infolists;
