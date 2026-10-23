@@ -37,17 +37,12 @@ class ProjectBuildingsRelationManager extends RelationManager
                     ->label(__('Building Type'))
                     ->badge()
                     ->color('info')
-                    ->formatStateUsing(fn ($state) => $state ? __(ProjectBuilding::TYPES[$state] ?? $state) : __('Not specified')),
+                    ->formatStateUsing(fn (?string $state): string => $state ? __('project.building_types.'.$state) : __('Not specified')),
                 Tables\Columns\TextColumn::make('status')
                     ->label(__('Status'))
                     ->badge()
-                    ->colors(['gray' => 'planned', 'success' => 'approved', 'danger' => 'cancelled'])
-                    ->formatStateUsing(fn ($state) => match ($state) {
-                        'planned' => __('Planned'),
-                        'approved' => __('Approved'),
-                        'cancelled' => __('Cancelled'),
-                        default => $state ? __($state) : __('—'),
-                    }),
+                    ->colors(['gray' => 'planned', 'warning' => 'in_progress', 'success' => 'approved', 'danger' => 'cancelled'])
+                    ->formatStateUsing(fn (?string $state): string => $state ? __('project.statuses.'.$state) : __('—')),
                 Tables\Columns\TextColumn::make('floors_count')->label(__('Floors'))->counts('floors')->alignCenter(),
             ])
             ->headerActions([
@@ -176,11 +171,11 @@ class ProjectBuildingsRelationManager extends RelationManager
         $fields = [
             Forms\Components\TextInput::make('name')->label(__('Name'))->required(),
             Forms\Components\TextInput::make('code')->label(__('Code'))->maxLength(255),
-            Forms\Components\Select::make('building_type')->label(__('Building Type'))->options(collect(ProjectBuilding::TYPES)->mapWithKeys(fn ($l, $k) => [$k => __($l)]))->searchable()->placeholder(__('Select a building type')),
+            Forms\Components\Select::make('building_type')->label(__('Building Type'))->options(collect(ProjectBuilding::TYPES)->mapWithKeys(fn ($label, $key) => [$key => __('project.building_types.'.$key)]))->searchable()->placeholder(__('Select a building type')),
             Forms\Components\TextInput::make('sort_order')->label(__('Order'))->numeric()->default(0),
             Forms\Components\Textarea::make('description')->label(__('Description'))->columnSpanFull(),
         ];
-        if ($includeStatus) $fields[] = Forms\Components\Select::make('status')->label(__('Status'))->options(['planned' => __('Planned'), 'approved' => __('Approved'), 'cancelled' => __('Cancelled')])->required();
+        if ($includeStatus) $fields[] = Forms\Components\Select::make('status')->label(__('Status'))->options(collect(['planned', 'in_progress', 'approved', 'cancelled'])->mapWithKeys(fn (string $status) => [$status => __('project.statuses.'.$status)]))->required();
         return $fields;
     }
 
@@ -266,8 +261,8 @@ class ProjectBuildingsRelationManager extends RelationManager
         return [
             Infolists\Components\TextEntry::make('name')->label(__('Building')),
             Infolists\Components\TextEntry::make('code')->label(__('Code'))->badge()->placeholder(__('No code')),
-            Infolists\Components\TextEntry::make('building_type')->label(__('Building Type'))->placeholder(__('Not specified'))->formatStateUsing(fn ($state) => $state ? __(ProjectBuilding::TYPES[$state] ?? $state) : __('Not specified')),
-            Infolists\Components\TextEntry::make('status')->label(__('Status'))->badge()->formatStateUsing(fn ($state) => match ($state) { 'planned' => __('Planned'), 'approved' => __('Approved'), 'cancelled' => __('Cancelled'), default => $state ? __($state) : __('—') }),
+            Infolists\Components\TextEntry::make('building_type')->label(__('Building Type'))->placeholder(__('Not specified'))->formatStateUsing(fn (?string $state): string => $state ? __('project.building_types.'.$state) : __('Not specified')),
+            Infolists\Components\TextEntry::make('status')->label(__('Status'))->badge()->formatStateUsing(fn (?string $state): string => $state ? __('project.statuses.'.$state) : __('—')),
             Infolists\Components\TextEntry::make('description')->label(__('Description'))->columnSpanFull()->placeholder(__('No description')),
             Infolists\Components\RepeatableEntry::make('floors')->label(__('Floors, planned units, and specifications'))->schema([
                 Infolists\Components\TextEntry::make('floor_number')->label(__('Floor'))->badge(),
@@ -277,7 +272,7 @@ class ProjectBuildingsRelationManager extends RelationManager
                     Infolists\Components\TextEntry::make('code')->label(__('Unit'))->badge(),
                     Infolists\Components\TextEntry::make('unit_type')->label(__('Unit type'))->formatStateUsing(fn ($state) => $state ? (\App\Enums\UnitType::tryFrom($state)?->getLabel() ?? __($state)) : __('—')),
                     Infolists\Components\TextEntry::make('planned_area')->label(__('Planned Area'))->suffix(' m²')->placeholder(__('Area not set')),
-                    Infolists\Components\TextEntry::make('status')->label(__('Status'))->badge()->formatStateUsing(fn ($state) => match ($state) { 'planned' => __('Planned'), 'approved' => __('Approved'), 'cancelled' => __('Cancelled'), default => $state ? __($state) : __('—') }),
+                    Infolists\Components\TextEntry::make('status')->label(__('Status'))->badge()->formatStateUsing(fn (?string $state): string => $state ? __('project.statuses.'.$state) : __('—')),
                     Infolists\Components\TextEntry::make('description')->label(__('Description'))->columnSpanFull()->placeholder(__('No unit description')),
                     Infolists\Components\RepeatableEntry::make('specifications')->label(__('Specifications'))->schema([
                         Infolists\Components\TextEntry::make('name')->label(__('Name'))->weight('medium'),
@@ -299,7 +294,7 @@ class ProjectBuildingsRelationManager extends RelationManager
     {
         $query = ProjectPlannedUnit::withoutGlobalScopes()->whereIn('project_building_floor_id', $building->floors()->select('id'));
         if ($statuses) $query->whereIn('status', (array) $statuses);
-        return $query->with('floor')->orderBy('code')->get()->mapWithKeys(fn (ProjectPlannedUnit $unit) => [$unit->id => "{$unit->code} — " . __('Floor') . " {$unit->floor->floor_number} (" . __($unit->status) . ")"])->all();
+        return $query->with('floor')->orderBy('code')->get()->mapWithKeys(fn (ProjectPlannedUnit $unit) => [$unit->id => "{$unit->code} — " . __('Floor') . " {$unit->floor->floor_number} (" . __('project.statuses.'.$unit->status) . ")"])->all();
     }
 
     private function specificationOptions(ProjectBuilding $building): array

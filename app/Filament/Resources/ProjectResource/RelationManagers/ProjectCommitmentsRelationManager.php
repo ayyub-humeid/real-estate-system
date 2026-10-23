@@ -39,14 +39,7 @@ class ProjectCommitmentsRelationManager extends RelationManager
                     'info' => 'committed',
                     'success' => 'fulfilled',
                     'danger' => 'cancelled',
-                ])->formatStateUsing(fn ($state) => match ($state) {
-                    'draft' => __('Draft'),
-                    'committed' => __('Committed'),
-                    'released' => __('Released'),
-                    'fulfilled' => __('Fulfilled'),
-                    'cancelled' => __('Cancelled'),
-                    default => $state,
-                }),
+                ])->formatStateUsing(fn (?string $state): string => $state ? __('project.statuses.'.$state) : __('—')),
             ])->headerActions([
                 Tables\Actions\Action::make('createCommitment')
                     ->label(__('Create commitment'))->icon('heroicon-o-plus')
@@ -64,14 +57,7 @@ class ProjectCommitmentsRelationManager extends RelationManager
                             ->schema([
                                 \Filament\Infolists\Components\TextEntry::make('description')->label(__('Description'))->columnSpanFull(),
                                 \Filament\Infolists\Components\TextEntry::make('status')->label(__('Status'))->badge()->colors(['gray' => ['draft', 'released'], 'info' => 'committed', 'success' => 'fulfilled', 'danger' => 'cancelled'])
-                                    ->formatStateUsing(fn ($state) => match ($state) {
-                                        'draft' => __('Draft'),
-                                        'committed' => __('Committed'),
-                                        'released' => __('Released'),
-                                        'fulfilled' => __('Fulfilled'),
-                                        'cancelled' => __('Cancelled'),
-                                        default => $state,
-                                    }),
+                                    ->formatStateUsing(fn (?string $state): string => $state ? __('project.statuses.'.$state) : __('—')),
                                 \Filament\Infolists\Components\TextEntry::make('party.name')->label(__('Vendor'))->placeholder(__('Unassigned')),
                                 \Filament\Infolists\Components\TextEntry::make('item.name')->label(__('Budget item'))->placeholder(__('Unbudgeted')),
                                 \Filament\Infolists\Components\TextEntry::make('amount')->label(__('Amount'))->money(fn (FinancialCommitment $record): string => $record->currency),
@@ -87,7 +73,8 @@ class ProjectCommitmentsRelationManager extends RelationManager
                                         \Filament\Infolists\Components\TextEntry::make('reason')->label(__('Reason'))->weight('bold'),
                                         \Filament\Infolists\Components\TextEntry::make('amount_change')->label(__('Original-currency change')),
                                         \Filament\Infolists\Components\TextEntry::make('budget_amount_change')->label(__('Project-currency change')),
-                                        \Filament\Infolists\Components\TextEntry::make('status')->label(__('Status'))->badge(),
+                                        \Filament\Infolists\Components\TextEntry::make('status')->label(__('Status'))->badge()
+                                            ->formatStateUsing(fn (?string $state): string => $state ? __('project.statuses.'.$state) : __('—')),
                                         \Filament\Infolists\Components\TextEntry::make('requested_at')->label(__('Requested'))->dateTime(),
                                     ])->columns(3),
                             ])->collapsible(),

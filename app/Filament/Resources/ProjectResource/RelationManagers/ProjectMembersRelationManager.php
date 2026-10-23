@@ -11,6 +11,7 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class ProjectMembersRelationManager extends RelationManager
@@ -31,7 +32,8 @@ class ProjectMembersRelationManager extends RelationManager
             ->emptyStateDescription(__('Assign the people responsible for planning and delivering this project.'))
             ->columns([
                 Tables\Columns\TextColumn::make('user.name')->label(__('Member'))->sortable()->searchable()->weight('medium'),
-                Tables\Columns\TextColumn::make('role')->label(__('Role'))->badge()->color('info')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('role')->label(__('Role'))->badge()->color('info')->sortable()->searchable()
+                    ->formatStateUsing(fn (?string $state): string => $this->roleLabel($state)),
                 Tables\Columns\TextColumn::make('started_at')->label(__('Assigned'))->date()->sortable(),
                 Tables\Columns\TextColumn::make('ended_at')->label(__('Ended'))->date()->placeholder(__('Active'))->sortable(),
             ])
@@ -40,7 +42,7 @@ class ProjectMembersRelationManager extends RelationManager
                     ->visible(fn () => auth()->user()->can('manageMembers', $this->getOwnerRecord()))
                     ->form([
                         Forms\Components\Select::make('user_id')->label(__('Employee'))->options(fn () => User::withoutGlobalScopes()->where('company_id', $this->getOwnerRecord()->company_id)->orderBy('name')->pluck('name', 'id'))->searchable()->required(),
-                        Forms\Components\TextInput::make('role')->label(__('Role'))->required()->placeholder(__('e.g. project manager')),
+                        Forms\Components\TextInput::make('role')->label(__('Role'))->required()->placeholder(__('project.member_roles.project_manager')),
                         Forms\Components\DateTimePicker::make('started_at')->label(__('Started at')),
                         Forms\Components\Textarea::make('notes')->label(__('Notes'))->columnSpanFull(),
                     ])->action(function (array $data): void {
@@ -55,7 +57,8 @@ class ProjectMembersRelationManager extends RelationManager
                     Infolists\Components\Section::make()->schema([
                         Infolists\Components\TextEntry::make('user.name')->label(__('Member')),
                         Infolists\Components\TextEntry::make('user.email')->label(__('Email')),
-                        Infolists\Components\TextEntry::make('role')->label(__('Role'))->badge(),
+                        Infolists\Components\TextEntry::make('role')->label(__('Role'))->badge()
+                            ->formatStateUsing(fn (?string $state): string => $this->roleLabel($state)),
                         Infolists\Components\TextEntry::make('started_at')->label(__('Assigned'))->dateTime(),
                         Infolists\Components\TextEntry::make('ended_at')->label(__('Ended'))->dateTime()->placeholder(__('Active assignment')),
                         Infolists\Components\TextEntry::make('notes')->label(__('Notes'))->columnSpanFull()->placeholder(__('No notes')),
@@ -82,5 +85,19 @@ class ProjectMembersRelationManager extends RelationManager
     private function error(string $title, ValidationException $exception): void
     {
         Notification::make()->danger()->title($title)->body(collect($exception->errors())->flatten()->first())->send();
+    }
+
+    /** Keeps historical/custom role text intact while localizing known company roles. */
+    private function roleLabel(?string $role): string
+    {
+        if (blank($role)) {
+            return __('—');
+        }
+
+        $key = Str::of($role)->lower()->replace([' ', '-'], '_')->toString();
+        $translationKey = 'project.member_roles.'.$key;
+        $translated = __($translationKey);
+
+        return $translated === $translationKey ? $role : $translated;
     }
 }

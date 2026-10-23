@@ -38,14 +38,7 @@ class ProjectActualCostsRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('budget_amount')->label(__('Project amount')),
                 Tables\Columns\TextColumn::make('status')->label(__('Status'))->badge()->colors([
                     'gray' => 'draft', 'warning' => 'pending_approval', 'success' => 'approved', 'danger' => ['rejected', 'cancelled'],
-                ])->formatStateUsing(fn ($state) => match ($state) {
-                    'draft' => __('Draft'),
-                    'pending_approval' => __('Pending Approval'),
-                    'approved' => __('Approved'),
-                    'rejected' => __('Rejected'),
-                    'cancelled' => __('Cancelled'),
-                    default => $state,
-                }),
+                ])->formatStateUsing(fn (?string $state): string => $state ? __('project.statuses.'.$state) : __('—')),
                 Tables\Columns\TextColumn::make('incurred_at')->label(__('Incurred on'))->date(),
             ])
             ->headerActions([
@@ -61,14 +54,7 @@ class ProjectActualCostsRelationManager extends RelationManager
                         \Filament\Infolists\Components\Section::make(__('Actual cost'))->schema([
                             \Filament\Infolists\Components\TextEntry::make('name')->label(__('Name'))->weight('bold'),
                             \Filament\Infolists\Components\TextEntry::make('status')->label(__('Status'))->badge()->colors(['gray' => 'draft', 'warning' => 'pending_approval', 'success' => 'approved', 'danger' => ['rejected', 'cancelled']])
-                                ->formatStateUsing(fn ($state) => match ($state) {
-                                    'draft' => __('Draft'),
-                                    'pending_approval' => __('Pending Approval'),
-                                    'approved' => __('Approved'),
-                                    'rejected' => __('Rejected'),
-                                    'cancelled' => __('Cancelled'),
-                                    default => $state,
-                                }),
+                                ->formatStateUsing(fn (?string $state): string => $state ? __('project.statuses.'.$state) : __('—')),
                             \Filament\Infolists\Components\TextEntry::make('party.name')->label(__('Vendor')),
                             \Filament\Infolists\Components\TextEntry::make('commitment.description')->label(__('Commitment'))->placeholder(__('No commitment')),
                             \Filament\Infolists\Components\TextEntry::make('item.name')->label(__('Budget item'))->placeholder(__('Unbudgeted')),

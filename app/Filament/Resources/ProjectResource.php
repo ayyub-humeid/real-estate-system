@@ -43,15 +43,7 @@ class ProjectResource extends Resource
             Tables\Columns\TextColumn::make('project_type')->label(__('Project Type'))->badge(),
             Tables\Columns\TextColumn::make('status')->label(__('Status'))->badge()
                 ->colors(['gray' => 'planning', 'info' => 'approved', 'warning' => 'in_progress', 'success' => ['completed', 'closed'], 'danger' => 'cancelled'])
-                ->formatStateUsing(fn ($state) => match ($state) {
-                    'planning' => __('Planning'),
-                    'approved' => __('Approved'),
-                    'in_progress' => __('In Progress'),
-                    'completed' => __('Completed'),
-                    'closed' => __('Closed'),
-                    'cancelled' => __('Cancelled'),
-                    default => $state ? __($state) : __('—'),
-                }),
+                ->formatStateUsing(fn (?string $state): string => $state ? __('project.statuses.'.$state) : __('—')),
             Tables\Columns\TextColumn::make('active_project_properties_count')->label(__('Properties')),
             Tables\Columns\TextColumn::make('active_members_count')->label(__('Members')),
             Tables\Columns\TextColumn::make('buildings_count')->label(__('Buildings'))

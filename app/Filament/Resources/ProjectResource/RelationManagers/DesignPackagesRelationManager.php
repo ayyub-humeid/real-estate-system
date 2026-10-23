@@ -36,18 +36,7 @@ class DesignPackagesRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('name')->label(__('Name'))->searchable()->weight('medium')->description(fn(ProjectDesignPackage $record) => $record->discipline),
                 Tables\Columns\TextColumn::make('code')->label(__('Code'))->badge()->color('gray')->placeholder(__('No code')),
                 Tables\Columns\TextColumn::make('status')->label(__('Status'))->badge()->colors(['gray' => 'planned', 'info' => ['assigned', 'submitted', 'resubmitted'], 'warning' => ['in_progress', 'under_review', 'revision_required'], 'success' => ['approved', 'closed']])
-                    ->formatStateUsing(fn ($state) => match ($state) {
-                        'planned' => __('Planned'),
-                        'assigned' => __('Assigned'),
-                        'submitted' => __('Submitted'),
-                        'resubmitted' => __('Resubmitted'),
-                        'in_progress' => __('In Progress'),
-                        'under_review' => __('Under Review'),
-                        'revision_required' => __('Revision Required'),
-                        'approved' => __('Approved'),
-                        'closed' => __('Closed'),
-                        default => $state,
-                    }),
+                    ->formatStateUsing(fn (?string $state): string => $state ? __('project.statuses.'.$state) : __('—')),
                 Tables\Columns\TextColumn::make('activeAssignment.party.name')->label(__('Engineering office'))->placeholder(__('Not assigned')),
                 Tables\Columns\TextColumn::make('submissions_count')->counts('submissions')->label(__('Rounds')),
                 Tables\Columns\TextColumn::make('target_submission_date')->date()->label(__('Target'))->placeholder(__('—')),
@@ -197,18 +186,7 @@ class DesignPackagesRelationManager extends RelationManager
                     \Filament\Infolists\Components\TextEntry::make('discipline')->label(__('Discipline'))->badge(),
                     \Filament\Infolists\Components\TextEntry::make('status')->label(__('Status'))->badge()
                         ->colors(['gray' => 'planned', 'info' => ['assigned', 'submitted', 'resubmitted'], 'warning' => ['in_progress', 'under_review', 'revision_required'], 'success' => ['approved', 'closed']])
-                        ->formatStateUsing(fn ($state) => match ($state) {
-                            'planned' => __('Planned'),
-                            'assigned' => __('Assigned'),
-                            'submitted' => __('Submitted'),
-                            'resubmitted' => __('Resubmitted'),
-                            'in_progress' => __('In Progress'),
-                            'under_review' => __('Under Review'),
-                            'revision_required' => __('Revision Required'),
-                            'approved' => __('Approved'),
-                            'closed' => __('Closed'),
-                            default => $state,
-                        }),
+                        ->formatStateUsing(fn (?string $state): string => $state ? __('project.statuses.'.$state) : __('—')),
                     \Filament\Infolists\Components\TextEntry::make('activeAssignment.party.name')->label(__('Engineering office'))->placeholder(__('Not assigned')),
                     \Filament\Infolists\Components\TextEntry::make('target_submission_date')->label(__('Target Submission Date'))->date()->placeholder(__('—')),
                     \Filament\Infolists\Components\TextEntry::make('description')->label(__('Description'))->columnSpanFull()->placeholder(__('No description')),
@@ -230,7 +208,8 @@ class DesignPackagesRelationManager extends RelationManager
                                 ->schema([
                                     \Filament\Infolists\Components\TextEntry::make('title')->label(__('Title'))->weight('bold'),
                                     \Filament\Infolists\Components\TextEntry::make('code')->label(__('Code'))->placeholder(__('—')),
-                                    \Filament\Infolists\Components\TextEntry::make('status')->label(__('Status'))->badge()->colors(['gray' => 'planned', 'warning' => 'in_progress', 'success' => 'ready', 'danger' => 'cancelled']),
+                                    \Filament\Infolists\Components\TextEntry::make('status')->label(__('Status'))->badge()->colors(['gray' => 'planned', 'warning' => 'in_progress', 'success' => 'ready', 'danger' => 'cancelled'])
+                                        ->formatStateUsing(fn (?string $state): string => $state ? __('project.statuses.'.$state) : __('—')),
                                     \Filament\Infolists\Components\TextEntry::make('target_date')->label(__('Target Date'))->placeholder(__('—')),
                                 ])->columns(4)
                         ]),
@@ -262,14 +241,16 @@ class DesignPackagesRelationManager extends RelationManager
                                 ->label('')
                                 ->schema([
                                     \Filament\Infolists\Components\TextEntry::make('submission_number')->label(__('Submission #'))->weight('bold'),
-                                    \Filament\Infolists\Components\TextEntry::make('status')->label(__('Status'))->badge()->colors(['info' => ['submitted', 'reviewed'], 'warning' => 'under_review', 'gray' => 'superseded', 'success' => 'approved']),
+                                    \Filament\Infolists\Components\TextEntry::make('status')->label(__('Status'))->badge()->colors(['info' => ['submitted', 'reviewed'], 'warning' => 'under_review', 'gray' => 'superseded', 'success' => 'approved'])
+                                        ->formatStateUsing(fn (?string $state): string => $state ? __('project.statuses.'.$state) : __('—')),
                                     \Filament\Infolists\Components\TextEntry::make('submitted_at')->date()->label(__('Submitted At'))->placeholder(__('—')),
                                     \Filament\Infolists\Components\TextEntry::make('notes')->label(__('Notes'))->placeholder(__('—')),
                                     \Filament\Infolists\Components\RepeatableEntry::make('reviews')
                                         ->label(__('Reviews'))
                                         ->schema([
                                             \Filament\Infolists\Components\TextEntry::make('reviewer.name')->label(__('Reviewer'))->weight('bold'),
-                                            \Filament\Infolists\Components\TextEntry::make('status')->label(__('Status'))->badge()->colors(['gray' => 'pending', 'warning' => 'in_review', 'success' => 'completed', 'danger' => 'cancelled']),
+                                            \Filament\Infolists\Components\TextEntry::make('status')->label(__('Status'))->badge()->colors(['gray' => 'pending', 'warning' => 'in_review', 'success' => 'completed', 'danger' => 'cancelled'])
+                                                ->formatStateUsing(fn (?string $state): string => $state ? __('project.statuses.'.$state) : __('—')),
                                             \Filament\Infolists\Components\TextEntry::make('started_at')->date()->label(__('Started At'))->placeholder(__('—')),
                                             \Filament\Infolists\Components\TextEntry::make('completed_at')->date()->label(__('Completed At'))->placeholder(__('—')),
                                             \Filament\Infolists\Components\RepeatableEntry::make('findings')
@@ -277,7 +258,8 @@ class DesignPackagesRelationManager extends RelationManager
                                                 ->schema([
                                                     \Filament\Infolists\Components\TextEntry::make('severity')->label(__('Severity'))->badge()->colors(['info' => 'info', 'success' => 'minor', 'warning' => 'major', 'danger' => 'critical']),
                                                     \Filament\Infolists\Components\TextEntry::make('title')->label(__('Title'))->weight('bold'),
-                                                    \Filament\Infolists\Components\TextEntry::make('status')->label(__('Status'))->badge()->colors(['warning' => 'open', 'info' => 'addressed', 'success' => 'accepted', 'gray' => 'waived']),
+                                                    \Filament\Infolists\Components\TextEntry::make('status')->label(__('Status'))->badge()->colors(['warning' => 'open', 'info' => 'addressed', 'success' => 'accepted', 'gray' => 'waived'])
+                                                        ->formatStateUsing(fn (?string $state): string => $state ? __('project.statuses.'.$state) : __('—')),
                                                     \Filament\Infolists\Components\TextEntry::make('description')->label(__('Description'))->columnSpanFull(),
                                                 ])->columns(3)->columnSpanFull()
                                         ])->columns(4)->columnSpanFull()
@@ -290,7 +272,8 @@ class DesignPackagesRelationManager extends RelationManager
                                 ->label('')
                                 ->schema([
                                     \Filament\Infolists\Components\TextEntry::make('revision_number')->label(__('Revision #'))->weight('bold'),
-                                    \Filament\Infolists\Components\TextEntry::make('status')->label(__('Status'))->badge()->colors(['gray' => 'draft', 'warning' => 'in_progress', 'success' => ['ready', 'submitted'], 'danger' => 'cancelled']),
+                                    \Filament\Infolists\Components\TextEntry::make('status')->label(__('Status'))->badge()->colors(['gray' => 'draft', 'warning' => 'in_progress', 'success' => ['ready', 'submitted'], 'danger' => 'cancelled'])
+                                        ->formatStateUsing(fn (?string $state): string => $state ? __('project.statuses.'.$state) : __('—')),
                                     \Filament\Infolists\Components\TextEntry::make('sourceSubmission.submission_number')->label(__('Source Sub. #'))->placeholder(__('—')),
                                     \Filament\Infolists\Components\TextEntry::make('started_at')->date()->label(__('Started At'))->placeholder(__('—')),
                                     \Filament\Infolists\Components\TextEntry::make('description')->label(__('Description'))->columnSpanFull()->placeholder(__('—')),

@@ -54,14 +54,7 @@ class ViewProject extends ViewRecord
     {
         try {
             $this->record = app(ProjectPlanningService::class)->transitionProject(auth()->user(), $this->record, $to, $reason);
-            $statusLabel = match ($to) {
-                'approved' => __('Approved'),
-                'in_progress' => __('In Progress'),
-                'completed' => __('Completed'),
-                'closed' => __('Closed'),
-                'cancelled' => __('Cancelled'),
-                default => __(ucwords(str_replace('_', ' ', $to))),
-            };
+            $statusLabel = __('project.statuses.'.$to);
             Notification::make()->success()->title($title)->body(__('Current status: :status.', ['status' => $statusLabel]))->send();
         } catch (ValidationException $e) {
             Notification::make()->danger()->title(__('Cannot change project status'))->body(collect($e->errors())->flatten()->first())->send();

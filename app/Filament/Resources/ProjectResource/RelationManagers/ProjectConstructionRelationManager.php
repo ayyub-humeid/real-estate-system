@@ -36,13 +36,7 @@ class ProjectConstructionRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('execution_number')->label(__('Execution'))->prefix('#'),
                 Tables\Columns\TextColumn::make('status')->label(__('Status'))->badge()
                     ->colors(['gray' => ['planned', 'cancelled'], 'info' => 'in_progress', 'success' => 'completed'])
-                    ->formatStateUsing(fn ($state) => match ($state) {
-                        'planned' => __('Planned'),
-                        'in_progress' => __('In Progress'),
-                        'completed' => __('Completed'),
-                        'cancelled' => __('Cancelled'),
-                        default => $state,
-                    }),
+                    ->formatStateUsing(fn (?string $state): string => $state ? __('project.statuses.'.$state) : __('—')),
                 Tables\Columns\TextColumn::make('progress_percentage')
                     ->label(__('Overall progress'))
                     ->suffix('%'),
@@ -224,13 +218,7 @@ class ProjectConstructionRelationManager extends RelationManager
             Infolists\Components\Tabs::make('Construction')->tabs([
                 Infolists\Components\Tabs\Tab::make(__('Overview'))->schema([
                     Infolists\Components\TextEntry::make('status')->label(__('Status'))->badge()->colors(['gray' => ['planned', 'cancelled'], 'info' => 'in_progress', 'success' => 'completed'])
-                        ->formatStateUsing(fn ($state) => match ($state) {
-                            'planned' => __('Planned'),
-                            'in_progress' => __('In Progress'),
-                            'completed' => __('Completed'),
-                            'cancelled' => __('Cancelled'),
-                            default => $state,
-                        }),
+                        ->formatStateUsing(fn (?string $state): string => $state ? __('project.statuses.'.$state) : __('—')),
                     Infolists\Components\TextEntry::make('progress_percentage')->label(__('Overall progress'))->suffix('%'),
                     Infolists\Components\TextEntry::make('managerParty.name')->label(__('Manager'))->placeholder(__('—')),
                     Infolists\Components\TextEntry::make('planned_start_date')->label(__('Planned Start Date'))->date()->placeholder(__('—')),
@@ -240,12 +228,14 @@ class ProjectConstructionRelationManager extends RelationManager
                 Infolists\Components\Tabs\Tab::make(__('Work Packages'))->schema([
                     Infolists\Components\RepeatableEntry::make('workPackages')->label('')->schema([
                         Infolists\Components\TextEntry::make('name')->label(__('Name'))->weight('bold'),
-                        Infolists\Components\TextEntry::make('status')->label(__('Status'))->badge(),
+                        Infolists\Components\TextEntry::make('status')->label(__('Status'))->badge()
+                            ->formatStateUsing(fn (?string $state): string => $state ? __('project.statuses.'.$state) : __('—')),
                         Infolists\Components\TextEntry::make('progress_percentage')->label(__('Overall progress'))->suffix('%'),
                         Infolists\Components\TextEntry::make('responsibleParty.name')->label(__('Responsible party'))->placeholder(__('—')),
                         Infolists\Components\RepeatableEntry::make('tasks')->label(__('Tasks'))->schema([
                             Infolists\Components\TextEntry::make('name')->label(__('Name'))->weight('medium'),
-                            Infolists\Components\TextEntry::make('status')->label(__('Status'))->badge(),
+                            Infolists\Components\TextEntry::make('status')->label(__('Status'))->badge()
+                                ->formatStateUsing(fn (?string $state): string => $state ? __('project.statuses.'.$state) : __('—')),
                             Infolists\Components\TextEntry::make('progress_percentage')->label(__('Overall progress'))->suffix('%'),
                         ])->columns(3),
                     ])->columns(4),
@@ -256,7 +246,8 @@ class ProjectConstructionRelationManager extends RelationManager
                         Infolists\Components\RepeatableEntry::make('issues')->label(__('Issues'))->schema([
                             Infolists\Components\TextEntry::make('title')->label(__('Title'))->weight('bold'),
                             Infolists\Components\TextEntry::make('severity')->label(__('Severity'))->badge()->colors(['gray' => 'low', 'warning' => ['medium', 'high'], 'danger' => 'critical']),
-                            Infolists\Components\TextEntry::make('status')->label(__('Status'))->badge(),
+                            Infolists\Components\TextEntry::make('status')->label(__('Status'))->badge()
+                                ->formatStateUsing(fn (?string $state): string => $state ? __('project.statuses.'.$state) : __('—')),
                             Infolists\Components\TextEntry::make('task.name')->label(__('Task'))->placeholder(__('Package issue')),
                         ])->columns(4),
                     ])->columns(1),

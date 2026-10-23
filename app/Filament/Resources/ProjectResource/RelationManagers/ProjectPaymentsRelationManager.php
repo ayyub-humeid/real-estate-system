@@ -41,13 +41,7 @@ class ProjectPaymentsRelationManager extends RelationManager
                     'warning' => 'pending',
                     'success' => 'completed',
                     'danger' => ['failed', 'voided'],
-                ])->formatStateUsing(fn ($state) => match ($state) {
-                    'pending' => __('Pending'),
-                    'completed' => __('Completed'),
-                    'failed' => __('Failed'),
-                    'voided' => __('Voided'),
-                    default => $state,
-                }),
+                ])->formatStateUsing(fn (?string $state): string => $state ? __('project.statuses.'.$state) : __('—')),
                 Tables\Columns\TextColumn::make('payment_date')->label(__('Payment Date'))->date(),
             ])
             ->headerActions([
@@ -79,13 +73,7 @@ class ProjectPaymentsRelationManager extends RelationManager
                         \Filament\Infolists\Components\Section::make(__('Payment'))->schema([
                             \Filament\Infolists\Components\TextEntry::make('party.name')->label(__('Vendor')),
                             \Filament\Infolists\Components\TextEntry::make('status')->label(__('Status'))->badge()->colors(['warning' => 'pending', 'success' => 'completed', 'danger' => ['failed', 'voided']])
-                                ->formatStateUsing(fn ($state) => match ($state) {
-                                    'pending' => __('Pending'),
-                                    'completed' => __('Completed'),
-                                    'failed' => __('Failed'),
-                                    'voided' => __('Voided'),
-                                    default => $state,
-                                }),
+                                ->formatStateUsing(fn (?string $state): string => $state ? __('project.statuses.'.$state) : __('—')),
                             \Filament\Infolists\Components\TextEntry::make('direction')->label(__('Direction'))->badge(),
                             \Filament\Infolists\Components\TextEntry::make('amount')->label(__('Amount'))->money(fn (Payment $record): string => $record->currency),
                             \Filament\Infolists\Components\TextEntry::make('project_amount')->label(__('Project amount'))->money(fn (Payment $record): string => $record->project->currency),
