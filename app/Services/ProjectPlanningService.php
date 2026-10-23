@@ -26,12 +26,12 @@ class ProjectPlanningService
         $this->assertProjectMutable($project);
         $this->sameCompany($project, $property);
         if ($project->projectProperties()->where('property_id', $property->id)->exists()) {
-            throw ValidationException::withMessages(['property_id' => 'This property has already been attached to the project.']);
+            throw ValidationException::withMessages(['property_id' => __('project.errors.property_already_attached')]);
         }
         return DB::transaction(function () use ($actor, $project, $property, $attributes) {
             $link = ProjectProperty::create(array_merge($attributes, ['company_id' => $project->company_id, 'project_id' => $project->id, 'property_id' => $property->id, 'attached_at' => now()]));
             if (in_array($project->status, ['approved', 'in_progress'], true))
-                DB::afterCommit(fn() => $this->notify($actor, $project, 'Project property attached', "{$property->name} was attached to project {$project->name}."));
+                DB::afterCommit(fn() => $this->notify($actor, $project, __('project.notifications.property_attached_title'), __('project.notifications.property_attached_body', ['property' => $property->name, 'project' => $project->name])));
             return $link;
         });
     }
@@ -41,11 +41,11 @@ class ProjectPlanningService
         $this->authorize($actor, 'detachProperty', $link->project);
         $this->assertProjectMutable($link->project);
         if ($link->detached_at)
-            throw ValidationException::withMessages(['property_id' => 'This property is already detached from the project.']);
+            throw ValidationException::withMessages(['property_id' => __('project.errors.property_already_detached')]);
         return DB::transaction(function () use ($actor, $link) {
             $link->update(['detached_at' => now()]);
             if (in_array($link->project->status, ['approved', 'in_progress'], true))
-                DB::afterCommit(fn() => $this->notify($actor, $link->project, 'Project property detached', "A property was detached from project {$link->project->name}."));
+                DB::afterCommit(fn() => $this->notify($actor, $link->project, __('project.notifications.property_detached_title'), __('project.notifications.property_detached_body', ['project' => $link->project->name])));
             return $link->refresh();
         });
     }
@@ -55,7 +55,7 @@ class ProjectPlanningService
         $this->authorize($actor, 'update', $link);
         $this->assertProjectMutable($link->project);
         if ($link->detached_at) {
-            throw ValidationException::withMessages(['property_id' => 'A detached property link is historical and cannot be edited.']);
+            throw ValidationException::withMessages(['property_id' => __('project.errors.detached_property_immutable')]);
         }
 
         $link->update(collect($attributes)->only(['role', 'notes'])->all());
@@ -71,10 +71,10 @@ class ProjectPlanningService
         return DB::transaction(function () use ($actor, $project, $member, $attributes) {
             $existing = ProjectMember::withoutGlobalScopes()->where('project_id', $project->id)->where('user_id', $member->id)->first();
             if ($existing && !$existing->ended_at)
-                throw ValidationException::withMessages(['user_id' => 'This user is already an active project member.']);
+                throw ValidationException::withMessages(['user_id' => __('project.errors.member_already_active')]);
             $data = array_merge($attributes, ['company_id' => $project->company_id, 'project_id' => $project->id, 'user_id' => $member->id, 'started_at' => $attributes['started_at'] ?? now(), 'ended_at' => null]);
             $link = $existing ? tap($existing)->update($data)->refresh() : ProjectMember::create($data);
-            DB::afterCommit(fn() => $member->notify(new ProjectWorkflowNotification('Project membership assigned', "You were assigned to project {$project->name} as {$link->role}.", $project->id)));
+            DB::afterCommit(fn() => $member->notify(new ProjectWorkflowNotification(__('project.notifications.membership_assigned_title'), __('project.notifications.membership_assigned_body', ['project' => $project->name, 'role' => $this->roleLabel($link->role)]), $project->id)));
             return $link;
         });
     }
@@ -84,9 +84,9 @@ class ProjectPlanningService
         $this->authorize($actor, 'manageMembers', $member->project);
         $this->assertProjectMutable($member->project);
         if ($member->ended_at)
-            throw ValidationException::withMessages(['user_id' => 'This project membership has already ended.']);
+            throw ValidationException::withMessages(['user_id' => __('project.errors.membership_already_ended')]);
         $member->update(['ended_at' => now()]);
-        DB::afterCommit(fn() => $member->user->notify(new ProjectWorkflowNotification('Project membership ended', "Your assignment to project {$member->project->name} has ended.", $member->project_id)));
+        DB::afterCommit(fn() => $member->user->notify(new ProjectWorkflowNotification(__('project.notifications.membership_ended_title'), __('project.notifications.membership_ended_body', ['project' => $member->project->name]), $member->project_id)));
         return $member->refresh();
     }
 
@@ -95,7 +95,7 @@ class ProjectPlanningService
         $this->authorize($actor, 'update', $member);
         $this->assertProjectMutable($member->project);
         if ($member->ended_at) {
-            throw ValidationException::withMessages(['user_id' => 'An ended membership is historical and cannot be edited.']);
+            throw ValidationException::withMessages(['user_id' => __('project.errors.ended_membership_immutable')]);
         }
 
         $member->update(collect($attributes)->only(['role', 'started_at', 'notes'])->all());
@@ -127,7 +127,7 @@ class ProjectPlanningService
         $this->assertProjectMutable($building->project);
         $this->authorize($actor, 'delete', $building);
         if ($building->floors()->exists()) {
-            throw ValidationException::withMessages(['building' => 'Delete its floors first; a building with planning records cannot be deleted.']);
+            throw ValidationException::withMessages(['building' => __('project.errors.building_has_floors')]);
         }
 
         $building->delete();
@@ -154,7 +154,7 @@ class ProjectPlanningService
         $this->assertProjectMutable($floor->building->project);
         $this->authorize($actor, 'delete', $floor);
         if ($floor->plannedUnits()->exists()) {
-            throw ValidationException::withMessages(['floor' => 'Delete its planned units first; a floor with planning records cannot be deleted.']);
+            throw ValidationException::withMessages(['floor' => __('project.errors.floor_has_planned_units')]);
         }
 
         $floor->delete();
@@ -185,7 +185,7 @@ class ProjectPlanningService
         $this->authorize($actor, 'delete', $unit);
         $this->assertPlannedUnitEditable($unit);
         if ($unit->specifications()->exists()) {
-            throw ValidationException::withMessages(['planned_unit' => 'Delete its specifications first; a planned unit with specifications cannot be deleted.']);
+            throw ValidationException::withMessages(['planned_unit' => __('project.errors.planned_unit_has_specifications')]);
         }
 
         $unit->delete();
@@ -225,9 +225,9 @@ class ProjectPlanningService
         $this->authorize($actor, $ability, $project);
         $allowed = ['planning' => ['approved', 'cancelled'], 'approved' => ['in_progress', 'cancelled'], 'in_progress' => ['completed', 'cancelled'], 'completed' => ['closed']];
         if (!in_array($to, $allowed[$project->status] ?? [], true))
-            throw ValidationException::withMessages(['status' => "Cannot transition a project from {$project->status} to {$to}."]);
+            throw ValidationException::withMessages(['status' => __('project.errors.project_transition_invalid', ['from' => $this->statusLabel($project->status), 'to' => $this->statusLabel($to)])]);
         if ($to === 'approved' && !$project->activeProjectProperties()->exists())
-            throw ValidationException::withMessages(['status' => 'At least one active property is required before project approval.']);
+            throw ValidationException::withMessages(['status' => __('project.errors.project_requires_property')]);
         return DB::transaction(function () use ($actor, $project, $to, $reason) {
             $data = ['status' => $to];
             if ($to === 'approved')
@@ -240,7 +240,7 @@ class ProjectPlanningService
                 $data += ['cancelled_at' => now(), 'cancellation_reason' => $reason];
             $project->update($data);
             if (in_array($to, ['approved', 'cancelled'], true))
-                DB::afterCommit(fn() => $this->notify($actor, $project, 'Project ' . str_replace('_', ' ', $to), "Project {$project->name} is {$to}."));
+                DB::afterCommit(fn() => $this->notify($actor, $project, __('project.notifications.status_changed_title'), __('project.notifications.status_changed_body', ['project' => $project->name, 'status' => $this->statusLabel($to)])));
             return $project->refresh();
         });
     }
@@ -251,7 +251,7 @@ class ProjectPlanningService
         $this->authorize($actor, $ability, $unit);
         $allowed = ['planned' => ['approved', 'cancelled'], 'approved' => ['cancelled']];
         if (!in_array($to, $allowed[$unit->status] ?? [], true))
-            throw ValidationException::withMessages(['status' => "Cannot transition a planned unit from {$unit->status} to {$to}."]);
+            throw ValidationException::withMessages(['status' => __('project.errors.planned_unit_transition_invalid', ['from' => $this->statusLabel($unit->status), 'to' => $this->statusLabel($to)])]);
         $unit->update(['status' => $to]);
         return $unit->refresh();
     }
@@ -259,12 +259,12 @@ class ProjectPlanningService
     private function assertProjectMutable(Project $project): void
     {
         if (in_array($project->status, ['closed', 'cancelled'], true))
-            throw ValidationException::withMessages(['status' => "Project planning records cannot be changed while the project is {$project->status}."]);
+            throw ValidationException::withMessages(['status' => __('project.errors.project_immutable', ['status' => $this->statusLabel($project->status)])]);
     }
     private function assertPlannedUnitEditable(ProjectPlannedUnit $unit): void
     {
         if ($unit->status !== 'planned') {
-            throw ValidationException::withMessages(['planned_unit' => 'Only planned units may be edited. Approved or cancelled units retain their approved planning record.']);
+            throw ValidationException::withMessages(['planned_unit' => __('project.errors.planned_unit_not_editable')]);
         }
     }
     private function assertKnownType(array $attributes, string $field, array $options, bool $required = false): void
@@ -272,19 +272,19 @@ class ProjectPlanningService
         $value = $attributes[$field] ?? null;
         if ($value === null || $value === '') {
             if ($required) {
-                throw ValidationException::withMessages([$field => 'Select a valid type.']);
+                throw ValidationException::withMessages([$field => __('project.errors.valid_type_required')]);
             }
             return;
         }
         if (!array_key_exists($value, $options)) {
-            throw ValidationException::withMessages([$field => 'The selected type is not supported.']);
+            throw ValidationException::withMessages([$field => __('project.errors.type_not_supported')]);
         }
     }
     private function resolveCompanyId(User $actor, mixed $companyId): int
     {
         if ($actor->isSuperAdmin()) {
             if (!$companyId)
-                throw ValidationException::withMessages(['company_id' => 'A target company is required for Super Admin project creation.']);
+                throw ValidationException::withMessages(['company_id' => __('project.errors.company_required')]);
             return (int) $companyId;
         }
         return (int) $actor->company_id;
@@ -292,7 +292,7 @@ class ProjectPlanningService
     private function sameCompany(object $left, object $right): void
     {
         if ((int) $left->company_id !== (int) $right->company_id)
-            throw ValidationException::withMessages(['company_id' => 'Records from different companies cannot be associated.']);
+            throw ValidationException::withMessages(['company_id' => __('project.errors.cross_company')]);
     }
     private function authorize(User $user, string $ability, object $record): void
     {
@@ -304,5 +304,19 @@ class ProjectPlanningService
         $project->activeMembers()->with('user')->get()->pluck('user')->filter()->unique('id')->each->notify(new ProjectWorkflowNotification($title, $body, $project->id));
         if (!$project->activeMembers()->where('user_id', $actor->id)->exists())
             $actor->notify(new ProjectWorkflowNotification($title, $body, $project->id));
+    }
+
+    private function statusLabel(string $status): string
+    {
+        return __('project.statuses.'.$status);
+    }
+
+    private function roleLabel(string $role): string
+    {
+        $key = str($role)->lower()->replace([' ', '-'], '_')->toString();
+        $translationKey = 'project.member_roles.'.$key;
+        $translated = __($translationKey);
+
+        return $translated === $translationKey ? $role : $translated;
     }
 }
