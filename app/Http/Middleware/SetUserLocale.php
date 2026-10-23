@@ -13,10 +13,14 @@ class SetUserLocale
 
     public function handle(Request $request, Closure $next): Response
     {
-        // A deliberate browser/login selection is stored in the session and
-        // must win over an older account preference. The account value remains
-        // the fallback for a new browser/session.
-        $locale = $request->session()->get('locale');
+        // The cookie mirrors the browser/localStorage selection and lets the
+        // first server render use it. Session and account settings are
+        // fallbacks for browsers that do not yet have this preference.
+        $locale = $request->cookie('madar_locale');
+
+        if (! in_array($locale, self::SUPPORTED, true)) {
+            $locale = $request->session()->get('locale');
+        }
 
         if (! in_array($locale, self::SUPPORTED, true)) {
             $locale = $request->user()?->locale;

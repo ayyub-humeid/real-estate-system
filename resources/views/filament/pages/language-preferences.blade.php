@@ -1,6 +1,6 @@
 <x-filament-panels::page
     x-data="{ selectedLocale: @entangle('locale').live }"
-    x-init="localStorage.setItem('madar.locale', selectedLocale || 'ar')"
+    x-init="const locale = selectedLocale || 'ar'; localStorage.setItem('madar.locale', locale); document.cookie = `madar_locale=${locale}; path=/; max-age=31536000; SameSite=Lax`;"
 >
     <div dir="{{ $locale === 'ar' ? 'rtl' : 'ltr' }}" class="max-w-2xl">
         <x-filament::section :heading="__('settings.language')" :description="__('settings.language_description')"
@@ -21,7 +21,7 @@
         </x-filament::section>
 
         <div class="mt-6 flex {{ $locale === 'ar' ? 'justify-start' : 'justify-end' }}">
-            <x-filament::button x-on:click="localStorage.setItem('madar.locale', selectedLocale || 'ar')" wire:click="save" icon="heroicon-o-check">
+            <x-filament::button x-on:click="const locale = selectedLocale || 'ar'; localStorage.setItem('madar.locale', locale); document.cookie = `madar_locale=${locale}; path=/; max-age=31536000; SameSite=Lax`;" wire:click="save" icon="heroicon-o-check">
                 {{ __('settings.save_language') }}
             </x-filament::button>
         </div>
