@@ -3,7 +3,22 @@
     $isRtl = $locale === 'ar';
 @endphp
 
-<div class="madar-login" dir="{{ $isRtl ? 'rtl' : 'ltr' }}">
+<div
+    class="madar-login"
+    dir="{{ $isRtl ? 'rtl' : 'ltr' }}"
+    x-data
+    x-init="
+        const localeKey = 'madar.locale';
+        const storedLocale = localStorage.getItem(localeKey);
+        const locale = ['ar', 'en'].includes(storedLocale) ? storedLocale : 'ar';
+
+        localStorage.setItem(localeKey, locale);
+
+        if (locale !== @js($locale)) {
+            $wire.switchLocale(locale);
+        }
+    "
+>
     <style>
         .madar-login { min-height: 100vh; background: #070b13; color: #f8fafc; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
         .madar-login[dir='rtl'] { font-family: Cairo, ui-sans-serif, system-ui, sans-serif; }
@@ -63,7 +78,12 @@
         <section class="madar-login__form-side">
             <div class="madar-login__form">
                 <div class="madar-login__utility">
-                    <button type="button" wire:click="switchLocale('{{ $isRtl ? 'en' : 'ar' }}')" class="madar-login__language">
+                    <button
+                        type="button"
+                        x-on:click="localStorage.setItem('madar.locale', '{{ $isRtl ? 'en' : 'ar' }}')"
+                        wire:click="switchLocale('{{ $isRtl ? 'en' : 'ar' }}')"
+                        class="madar-login__language"
+                    >
                         {{ $isRtl ? 'English' : 'العربية' }}
                     </button>
                 </div>

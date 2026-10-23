@@ -40,6 +40,7 @@ class LanguagePreferences extends Page
         ]);
 
         auth()->user()->update(['locale' => $this->locale]);
+        session(['locale' => $this->locale]);
         app()->setLocale($this->locale);
 
         Notification::make()
