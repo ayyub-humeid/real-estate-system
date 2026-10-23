@@ -25,7 +25,9 @@ class LanguagePreferences extends Page
 
     public function mount(): void
     {
-        $this->locale = auth()->user()->locale ?? config('app.locale', 'ar');
+        // Match the language already chosen for this browser/session instead
+        // of showing a stale account preference as the selected option.
+        $this->locale = app()->getLocale();
     }
 
     public function getTitle(): string
