@@ -6,7 +6,6 @@
 <div
     class="madar-login"
     dir="{{ $isRtl ? 'rtl' : 'ltr' }}"
-    x-cloak
     x-data
     x-init="
         const localeKey = 'madar.locale';
@@ -16,16 +15,11 @@
         localStorage.setItem(localeKey, locale);
 
         if (locale !== @js($locale)) {
-            document.cookie = `madar_locale=${locale}; path=/; max-age=31536000; SameSite=Lax`;
-            window.location.replace(window.location.href);
-        } else {
-            document.cookie = `madar_locale=${locale}; path=/; max-age=31536000; SameSite=Lax`;
-            $el.removeAttribute('x-cloak');
+            $wire.switchLocale(locale);
         }
     "
 >
     <style>
-        [x-cloak] { display: none !important; }
         .madar-login { min-height: 100vh; background: #070b13; color: #f8fafc; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
         .madar-login[dir='rtl'] { font-family: Cairo, ui-sans-serif, system-ui, sans-serif; }
         .madar-login__shell { min-height: 100vh; display: flex; overflow: hidden; direction: ltr; }
@@ -86,7 +80,7 @@
                 <div class="madar-login__utility">
                     <button
                         type="button"
-                        x-on:click="const locale = '{{ $isRtl ? 'en' : 'ar' }}'; localStorage.setItem('madar.locale', locale); document.cookie = `madar_locale=${locale}; path=/; max-age=31536000; SameSite=Lax`;"
+                        x-on:click="localStorage.setItem('madar.locale', '{{ $isRtl ? 'en' : 'ar' }}')"
                         wire:click="switchLocale('{{ $isRtl ? 'en' : 'ar' }}')"
                         class="madar-login__language"
                     >

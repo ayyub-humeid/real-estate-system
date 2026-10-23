@@ -25,8 +25,7 @@ class LanguagePreferences extends Page
 
     public function mount(): void
     {
-        $locale = request()->cookie('madar_locale') ?? session('locale') ?? auth()->user()->locale;
-        $this->locale = in_array($locale, ['ar', 'en'], true) ? $locale : 'ar';
+        $this->locale = auth()->user()->locale ?? config('app.locale', 'ar');
     }
 
     public function getTitle(): string
