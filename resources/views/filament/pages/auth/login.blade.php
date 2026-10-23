@@ -6,6 +6,7 @@
 <div
     class="madar-login"
     dir="{{ $isRtl ? 'rtl' : 'ltr' }}"
+    style="display: none"
     x-data
     x-init="
         const localeKey = 'madar.locale';
@@ -16,6 +17,8 @@
 
         if (locale !== @js($locale)) {
             $wire.switchLocale(locale);
+        } else {
+            $el.style.removeProperty('display');
         }
     "
 >
