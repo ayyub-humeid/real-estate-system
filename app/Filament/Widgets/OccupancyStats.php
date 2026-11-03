@@ -54,8 +54,8 @@ class OccupancyStats extends BaseWidget
                 ->description(__('Ready for rent'))
                 ->descriptionIcon('heroicon-m-plus-circle')
                 ->color('info'),
-            Stat::make(__('Maintenance'), $maintenanceUnits)
-                ->description(__('Units under repair'))
+            Stat::make(__('maintenance.widgets.maintenance_units'), $maintenanceUnits)
+                ->description(__('maintenance.widgets.under_repair'))
                 ->descriptionIcon('heroicon-m-wrench-screwdriver')
                 ->color('warning'),
         ];

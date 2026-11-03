@@ -1,6 +1,10 @@
 <?php
 
 return [
+    'resource' => [
+        'singular' => 'موظف',
+        'plural'   => 'الموظفون',
+    ],
     'sections' => [
         'account' => 'معلومات الحساب',
         'employment' => 'تفاصيل التوظيف',
@@ -47,9 +51,13 @@ return [
         'keep_password' => 'اترك الحقل فارغًا للاحتفاظ بكلمة المرور الحالية.',
     ],
     'notifications' => [
-        'created' => 'تم إنشاء الموظف بنجاح',
-        'limit_reached' => 'تم بلوغ الحد',
-        'plan_limit' => 'لا تسمح باقتك بإضافة موظفين آخرين.',
-        'create_failed' => 'تعذر إنشاء الموظف',
+        'created'      => 'تم إنشاء الموظف بنجاح',
+        'updated'      => 'تم تحديث الموظف بنجاح',
+        'limit_reached'=> 'تم بلوغ الحد',
+        'plan_limit'   => 'لا تسمح باقتك بإضافة موظفين آخرين.',
+        'create_failed'=> 'تعذر إنشاء الموظف',
+    ],
+    'validation' => [
+        'role_required' => 'يجب تحديد دور في الشركة.',
     ],
 ];

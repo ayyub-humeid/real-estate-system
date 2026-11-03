@@ -19,10 +19,10 @@ class EditEmployee extends EditRecord
     {
         // Load user relationship data into the form structure
         $data['user'] = [
-            'name' => $this->record->user->name,
-            'email' => $this->record->user->email,
-            'phone' => $this->record->user->phone,
-            'role_id' => $this->record->user->roles()->value('roles.id'),
+            'name'       => $this->record->user->name,
+            'email'      => $this->record->user->email,
+            'phone'      => $this->record->user->phone,
+            'role_id'    => $this->record->user->roles()->value('roles.id'),
             'company_id' => $this->record->user->company_id,
         ];
 
@@ -32,13 +32,14 @@ class EditEmployee extends EditRecord
     protected function handleRecordUpdate(Model $record, array $data): Model
     {
         return DB::transaction(function () use ($record, $data) {
-            
+
             if (isset($data['user'])) {
                 $userData = [
-                    'name' => $data['user']['name'],
+                    'name'  => $data['user']['name'],
                     'email' => $data['user']['email'],
                     'phone' => $data['user']['phone'] ?? null,
                 ];
+
                 $roleId = $data['user']['role_id'] ?? null;
 
                 if (!empty($data['user']['password'])) {
@@ -47,14 +48,17 @@ class EditEmployee extends EditRecord
 
                 if (isset($data['user']['company_id'])) {
                     $userData['company_id'] = $data['user']['company_id'];
-                    $data['company_id'] = $data['user']['company_id'];
+                    $data['company_id']     = $data['user']['company_id'];
                 }
 
                 $record->user->updateQuietly($userData);
+
                 if (! $roleId) {
-                    throw new \InvalidArgumentException('A company role is required.');
+                    throw new \InvalidArgumentException(__('employee.validation.role_required'));
                 }
+
                 app(CompanyRoleService::class)->assignRole($record->user, Role::findOrFail($roleId));
+
                 unset($data['user']);
             }
 
@@ -79,6 +83,6 @@ class EditEmployee extends EditRecord
 
     protected function getSavedNotificationTitle(): ?string
     {
-        return 'Employee updated successfully';
+        return __('employee.notifications.updated');
     }
 }

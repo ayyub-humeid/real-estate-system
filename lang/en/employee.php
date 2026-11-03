@@ -1,6 +1,10 @@
 <?php
 
 return [
+    'resource' => [
+        'singular' => 'Employee',
+        'plural'   => 'Employees',
+    ],
     'sections' => [
         'account' => 'Account information',
         'employment' => 'Employment details',
@@ -47,9 +51,13 @@ return [
         'keep_password' => 'Leave blank to retain the current password.',
     ],
     'notifications' => [
-        'created' => 'Employee created successfully',
-        'limit_reached' => 'Limit reached',
-        'plan_limit' => 'Your plan does not allow adding more employees.',
-        'create_failed' => 'Could not create employee',
+        'created'      => 'Employee created successfully',
+        'updated'      => 'Employee updated successfully',
+        'limit_reached'=> 'Limit reached',
+        'plan_limit'   => 'Your plan does not allow adding more employees.',
+        'create_failed'=> 'Could not create employee',
+    ],
+    'validation' => [
+        'role_required' => 'A company role is required.',
     ],
 ];

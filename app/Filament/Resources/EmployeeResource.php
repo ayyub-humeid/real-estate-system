@@ -25,6 +25,16 @@ class EmployeeResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-briefcase';
     protected static ?string $navigationGroup = '👥 People';
     protected static ?int $navigationSort = 2;
+    public static function getModelLabel(): string
+    {
+        return __('employee.resource.singular');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('employee.resource.plural');
+    }
+
 
 
     public static function getEloquentQuery(): Builder
