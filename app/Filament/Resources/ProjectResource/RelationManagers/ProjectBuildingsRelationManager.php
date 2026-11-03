@@ -17,6 +17,9 @@ class ProjectBuildingsRelationManager extends RelationManager
 {
     protected static string $relationship = 'buildings';
 
+    public static function getModelLabel(): string { return __('Project Building'); }
+    public static function getPluralModelLabel(): string { return __('Planning Structure'); }
+
     public static function getTitle(Model $ownerRecord, string $pageClass): string
     {
         return __('Planning Structure');
@@ -259,29 +262,62 @@ class ProjectBuildingsRelationManager extends RelationManager
     private function structureInfolist(): array
     {
         return [
-            Infolists\Components\TextEntry::make('name')->label(__('Building')),
-            Infolists\Components\TextEntry::make('code')->label(__('Code'))->badge()->placeholder(__('No code')),
-            Infolists\Components\TextEntry::make('building_type')->label(__('Building Type'))->placeholder(__('Not specified'))->formatStateUsing(fn (?string $state): string => $state ? __('project.building_types.'.$state) : __('Not specified')),
-            Infolists\Components\TextEntry::make('status')->label(__('Status'))->badge()->formatStateUsing(fn (?string $state): string => $state ? __('project.statuses.'.$state) : __('—')),
-            Infolists\Components\TextEntry::make('description')->label(__('Description'))->columnSpanFull()->placeholder(__('No description')),
-            Infolists\Components\RepeatableEntry::make('floors')->label(__('Floors, planned units, and specifications'))->schema([
-                Infolists\Components\TextEntry::make('floor_number')->label(__('Floor'))->badge(),
-                Infolists\Components\TextEntry::make('label')->label(__('Label'))->placeholder(__('No label')),
-                Infolists\Components\TextEntry::make('description')->label(__('Description'))->columnSpanFull()->placeholder(__('No floor description')),
-                Infolists\Components\RepeatableEntry::make('plannedUnits')->label(__('Planned units'))->schema([
-                    Infolists\Components\TextEntry::make('code')->label(__('Unit'))->badge(),
-                    Infolists\Components\TextEntry::make('unit_type')->label(__('Unit type'))->formatStateUsing(fn ($state) => $state ? (\App\Enums\UnitType::tryFrom($state)?->getLabel() ?? __($state)) : __('—')),
-                    Infolists\Components\TextEntry::make('planned_area')->label(__('Planned Area'))->suffix(' m²')->placeholder(__('Area not set')),
+            Infolists\Components\Section::make(__('Building summary'))
+                ->icon('heroicon-o-building-office-2')
+                ->columnSpanFull()
+                ->schema([
+                    Infolists\Components\TextEntry::make('name')->label(__('Building'))->weight('bold')->size(Infolists\Components\TextEntry\TextEntrySize::Large),
+                    Infolists\Components\TextEntry::make('code')->label(__('Code'))->badge()->placeholder(__('No code')),
+                    Infolists\Components\TextEntry::make('building_type')->label(__('Building Type'))->badge()->color('info')->placeholder(__('Not specified'))->formatStateUsing(fn (?string $state): string => $state ? __('project.building_types.'.$state) : __('Not specified')),
                     Infolists\Components\TextEntry::make('status')->label(__('Status'))->badge()->formatStateUsing(fn (?string $state): string => $state ? __('project.statuses.'.$state) : __('—')),
-                    Infolists\Components\TextEntry::make('description')->label(__('Description'))->columnSpanFull()->placeholder(__('No unit description')),
-                    Infolists\Components\RepeatableEntry::make('specifications')->label(__('Specifications'))->schema([
-                        Infolists\Components\TextEntry::make('name')->label(__('Name'))->weight('medium'),
-                        Infolists\Components\TextEntry::make('value')->label(__('Value')),
-                        Infolists\Components\TextEntry::make('unit')->label(__('Unit'))->placeholder(__('No unit')),
-                        Infolists\Components\TextEntry::make('notes')->label(__('Notes'))->columnSpanFull()->placeholder(__('No notes')),
-                    ])->columns(2),
-                ])->columns(4),
-            ])->columns(2),
+                    Infolists\Components\TextEntry::make('description')->label(__('Description'))->columnSpanFull()->placeholder(__('No description')),
+                ])->columns(['default' => 1, 'sm' => 2, 'xl' => 4]),
+            Infolists\Components\Tabs::make('planningStructure')
+                ->columnSpanFull()
+                ->tabs([
+                    Infolists\Components\Tabs\Tab::make(__('Floors, planned units, and specifications'))
+                        ->icon('heroicon-o-building-office')
+                        ->schema([
+                            Infolists\Components\RepeatableEntry::make('floors')
+                                ->label(__('Floors'))
+                                ->schema([
+                                    Infolists\Components\Section::make(fn (ProjectBuildingFloor $record): string => __('Floor').' '.$record->floor_number.($record->label ? ' — '.$record->label : ''))
+                                        ->icon('heroicon-o-chevron-down')
+                                        ->collapsible()
+                                        ->collapsed()
+                                        ->schema([
+                                            Infolists\Components\TextEntry::make('floor_number')->label(__('Floor'))->badge()->color('gray'),
+                                            Infolists\Components\TextEntry::make('label')->label(__('Label'))->weight('medium')->placeholder(__('No label')),
+                                            Infolists\Components\TextEntry::make('description')->label(__('Description'))->columnSpanFull()->placeholder(__('No floor description')),
+                                            Infolists\Components\RepeatableEntry::make('plannedUnits')
+                                                ->label(__('Planned units'))
+                                                ->columnSpanFull()
+                                                ->schema([
+                                                    Infolists\Components\Section::make(fn (ProjectPlannedUnit $record): string => __('Unit').' '.$record->code)
+                                                        ->icon('heroicon-o-home-modern')
+                                                        ->collapsible()
+                                                        ->collapsed()
+                                                        ->schema([
+                                                            Infolists\Components\TextEntry::make('code')->label(__('Unit'))->badge()->color('primary'),
+                                                            Infolists\Components\TextEntry::make('unit_type')->label(__('Unit type'))->formatStateUsing(fn ($state) => $state ? (\App\Enums\UnitType::tryFrom($state)?->getLabel() ?? __($state)) : __('—')),
+                                                            Infolists\Components\TextEntry::make('planned_area')->label(__('Planned Area'))->suffix(' m²')->placeholder(__('Area not set')),
+                                                            Infolists\Components\TextEntry::make('status')->label(__('Status'))->badge()->formatStateUsing(fn (?string $state): string => $state ? __('project.statuses.'.$state) : __('—')),
+                                                            Infolists\Components\TextEntry::make('description')->label(__('Description'))->columnSpanFull()->placeholder(__('No unit description')),
+                                                            Infolists\Components\RepeatableEntry::make('specifications')
+                                                                ->label(__('Specifications'))
+                                                                ->columnSpanFull()
+                                                                ->schema([
+                                                                    Infolists\Components\TextEntry::make('name')->label(__('Name'))->weight('medium'),
+                                                                    Infolists\Components\TextEntry::make('value')->label(__('Value')),
+                                                                    Infolists\Components\TextEntry::make('unit')->label(__('Unit'))->placeholder(__('No unit')),
+                                                                    Infolists\Components\TextEntry::make('notes')->label(__('Notes'))->columnSpanFull()->placeholder(__('No notes')),
+                                                                ])->columns(['default' => 1, 'sm' => 2, 'xl' => 4]),
+                                                        ])->columns(['default' => 1, 'sm' => 2, 'xl' => 4]),
+                                                ])->columns(1),
+                                        ])->columns(['default' => 1, 'sm' => 2, 'xl' => 4]),
+                                ])->columns(1),
+                        ]),
+                ]),
         ];
     }
 

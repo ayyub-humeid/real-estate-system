@@ -40,16 +40,16 @@ class EmployeeResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make(__('Account Information'))
+                Forms\Components\Section::make(__('employee.sections.account'))
                     ->description(__('Login credentials for this employee'))
                     ->schema([
                         Forms\Components\TextInput::make('user.name')
-                            ->label('Full Name')
+                            ->label(__('employee.fields.full_name'))
                             ->required()
                             ->maxLength(255),
 
                         Forms\Components\TextInput::make('user.email')
-                            ->label('Email')
+                            ->label(__('employee.fields.email'))
                             ->email()
                             ->required()
                             ->unique(
@@ -63,12 +63,12 @@ class EmployeeResource extends Resource
                             ->maxLength(255),
 
                         Forms\Components\TextInput::make('user.phone')
-                            ->label('Phone')
+                            ->label(__('employee.fields.phone'))
                             ->tel()
                             ->maxLength(255),
 
                         Forms\Components\TextInput::make('user.password')
-                            ->label('Password')
+                            ->label(__('employee.fields.password'))
                             ->password()
                             ->revealable()
                             ->required(fn(string $context) => $context === 'create')
@@ -77,12 +77,12 @@ class EmployeeResource extends Resource
                             ->helperText(
                                 fn(string $context) =>
                                 $context === 'create'
-                                    ? 'Employee will use this to login'
-                                    : 'Leave empty to keep current password'
+                                    ? __('employee.help.login_password')
+                                    : __('employee.help.keep_password')
                             ),
 
                         Forms\Components\Select::make('user.role_id')
-                            ->label('System Role')
+                            ->label(__('employee.fields.system_role'))
                             ->options(function (Forms\Get $get): array {
                                 $companyId = $get('user.company_id') ?: auth()->user()->company_id;
                                 if (! $companyId) return [];
@@ -100,7 +100,7 @@ class EmployeeResource extends Resource
                             ->native(false),
 
                         Forms\Components\Select::make('user.company_id')
-                            ->label('Company')
+                            ->label(__('employee.fields.company'))
                             ->relationship('company', 'name')
                             ->searchable()
                             ->preload()
@@ -114,7 +114,7 @@ class EmployeeResource extends Resource
                             ->dehydrated(),
 
                         Forms\Components\FileUpload::make('avatar')
-                            ->label('Employee Photo')
+                            ->label(__('employee.fields.photo'))
                             ->image()
                             ->avatar()
                             ->directory('employees-avatars')
@@ -122,37 +122,32 @@ class EmployeeResource extends Resource
                     ])
                     ->columns(2),
 
-                Forms\Components\Section::make(__('Employment Details'))
+                Forms\Components\Section::make(__('employee.sections.employment'))
                     ->schema([
                         Forms\Components\TextInput::make('employee_id')
-                            ->label('Employee ID')
-                            ->placeholder(__('EMP-001'))
-                            ->unique(ignoreRecord: true)
-                            ->maxLength(255),
+                            ->label(__('employee.fields.employee_number'))
+                            ->placeholder(__('employee.help.number_generated'))
+                            ->disabled()
+                            ->dehydrated(false),
 
                         Forms\Components\TextInput::make('position')
-                            ->label('Position / Job Title')
+                            ->label(__('employee.fields.position'))
                             ->maxLength(255)
                             ->placeholder(__('Property Manager, Accountant, etc.')),
 
                         Forms\Components\Select::make('department')
-                            ->options([
-                                'management' => 'Management',
-                                'operations' => 'Operations',
-                                'finance' => 'Finance',
-                                'maintenance' => 'Maintenance',
-                                'sales' => 'Sales / Leasing',
-                                'customer_service' => 'Customer Service',
-                                'other' => 'Other',
-                            ])
+                            ->label(__('employee.fields.department'))
+                            ->options(static::departmentOptions())
                             ->native(false)
                             ->searchable(),
 
                         Forms\Components\DatePicker::make('hire_date')
+                            ->label(__('employee.fields.hire_date'))
                             ->native(false)
                             ->default(now()),
 
                         Forms\Components\TextInput::make('salary')
+                            ->label(__('employee.fields.salary'))
                             ->numeric()
                             ->prefix('$')
                             ->step(0.01)
@@ -161,36 +156,36 @@ class EmployeeResource extends Resource
                     ])
                     ->columns(2),
 
-                Forms\Components\Section::make(__('Emergency Contact'))
+                Forms\Components\Section::make(__('employee.sections.emergency'))
                     ->schema([
                         Forms\Components\TextInput::make('emergency_contact_name')
+                            ->label(__('employee.fields.contact_name'))
                             ->maxLength(255),
 
                         Forms\Components\TextInput::make('emergency_contact_phone')
+                            ->label(__('employee.fields.contact_phone'))
                             ->tel()
                             ->maxLength(255),
 
                         Forms\Components\TextInput::make('emergency_contact_relationship')
+                            ->label(__('employee.fields.relationship'))
                             ->maxLength(255)
                             ->placeholder(__('Father, Mother, Spouse, etc.')),
                     ])
                     ->columns(3)
                     ->collapsible(),
 
-                Forms\Components\Section::make(__('Additional Information'))
+                Forms\Components\Section::make(__('employee.sections.additional'))
                     ->schema([
                         Forms\Components\Select::make('status')
-                            ->options([
-                                'active' => 'Active',
-                                'inactive' => 'Inactive',
-                                'on_leave' => 'On Leave',
-                                'terminated' => 'Terminated',
-                            ])
+                            ->label(__('employee.fields.status'))
+                            ->options(static::statusOptions())
                             ->default('active')
                             ->required()
                             ->native(false),
 
                         Forms\Components\Textarea::make('notes')
+                            ->label(__('employee.fields.notes'))
                             ->rows(3)
                             ->columnSpanFull(),
                     ])
@@ -217,25 +212,25 @@ class EmployeeResource extends Resource
 
                             Infolists\Components\Group::make([
                                 Infolists\Components\TextEntry::make('user.name')
-                                    ->label('Full Name')
+                                    ->label(__('employee.fields.full_name'))
                                     ->size(Infolists\Components\TextEntry\TextEntrySize::Large)
                                     ->weight('bold')
                                     ->icon('heroicon-m-user')
                                     ->color('primary'),
 
                                 Infolists\Components\TextEntry::make('user.email')
-                                    ->label('Email')
+                                    ->label(__('employee.fields.email'))
                                     ->icon('heroicon-m-envelope')
                                     ->copyable(),
 
                                 Infolists\Components\TextEntry::make('user.phone')
-                                    ->label('Phone')
+                                    ->label(__('employee.fields.phone'))
                                     ->icon('heroicon-m-phone')
                                     ->placeholder(__('—'))
                                     ->copyable(),
 
                                 Infolists\Components\TextEntry::make('user.role')
-                                    ->label('System Role')
+                                    ->label(__('employee.fields.system_role'))
                                     ->badge()
                                     ->colors([
                                         'danger' => 'super_admin',
@@ -250,33 +245,36 @@ class EmployeeResource extends Resource
                     ])
                     ->columnSpanFull(),
 
-                Infolists\Components\Section::make(__('Employment Details'))
+                Infolists\Components\Section::make(__('employee.sections.employment'))
                     ->schema([
                         Infolists\Components\TextEntry::make('employee_id')
-                            ->label('Employee ID')
+                            ->label(__('employee.fields.employee_number'))
                             ->badge()
                             ->color('info')
                             ->placeholder(__('—')),
 
                         Infolists\Components\TextEntry::make('position')
-                            ->label('Position')
+                            ->label(__('employee.fields.position'))
                             ->placeholder(__('—')),
 
                         Infolists\Components\TextEntry::make('department')
+                            ->label(__('employee.fields.department'))
                             ->badge()
-                            ->formatStateUsing(fn(?string $state) => $state ? ucwords(str_replace('_', ' ', $state)) : '—'),
+                            ->formatStateUsing(fn(?string $state) => $state ? __('employee.departments.'.$state) : __('—')),
 
                         Infolists\Components\TextEntry::make('company.name')
-                            ->label('Company')
+                            ->label(__('employee.fields.company'))
                             ->icon('heroicon-m-building-office')
                             ->badge()
                             ->color('primary'),
 
                         Infolists\Components\TextEntry::make('hire_date')
+                            ->label(__('employee.fields.hire_date'))
                             ->date()
                             ->icon('heroicon-m-calendar'),
 
                         Infolists\Components\TextEntry::make('salary')
+                            ->label(__('employee.fields.salary'))
                             ->money('USD')
                             ->badge()
                             ->color('success')
@@ -285,37 +283,40 @@ class EmployeeResource extends Resource
                     ->columns(3)
                     ->collapsible(),
 
-                Infolists\Components\Section::make(__('Emergency Contact'))
+                Infolists\Components\Section::make(__('employee.sections.emergency'))
                     ->schema([
                         Infolists\Components\TextEntry::make('emergency_contact_name')
-                            ->label('Contact Name')
+                            ->label(__('employee.fields.contact_name'))
                             ->placeholder(__('—')),
 
                         Infolists\Components\TextEntry::make('emergency_contact_phone')
-                            ->label('Contact Phone')
+                            ->label(__('employee.fields.contact_phone'))
                             ->placeholder(__('—'))
                             ->copyable(),
 
                         Infolists\Components\TextEntry::make('emergency_contact_relationship')
-                            ->label('Relationship')
+                            ->label(__('employee.fields.relationship'))
                             ->placeholder(__('—')),
                     ])
                     ->columns(3)
                     ->collapsible()
                     ->collapsed(),
 
-                Infolists\Components\Section::make(__('Additional Information'))
+                Infolists\Components\Section::make(__('employee.sections.additional'))
                     ->schema([
                         Infolists\Components\TextEntry::make('status')
+                            ->label(__('employee.fields.status'))
                             ->badge()
                             ->colors([
                                 'success' => 'active',
                                 'gray' => 'inactive',
                                 'warning' => 'on_leave',
                                 'danger' => 'terminated',
-                            ]),
+                            ])
+                            ->formatStateUsing(fn (?string $state) => $state ? __('employee.statuses.'.$state) : __('—')),
 
                         Infolists\Components\TextEntry::make('notes')
+                            ->label(__('employee.fields.notes'))
                             ->placeholder(__('No notes added'))
                             ->columnSpanFull(),
                     ])
@@ -328,7 +329,7 @@ class EmployeeResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('id')
-                    ->label('ID')
+                    ->label(__('ID'))
                     ->sortable()
                     ->searchable(),
 
@@ -337,20 +338,20 @@ class EmployeeResource extends Resource
                     ->defaultImageUrl(fn($record) => "https://ui-avatars.com/api/?name=" . urlencode($record->user->name ?? 'E') . "&background=6366f1&color=fff"),
 
                 Tables\Columns\TextColumn::make('user.name')
-                    ->label('Name')
+                    ->label(__('employee.fields.full_name'))
                     ->searchable()
                     ->sortable()
                     ->weight('bold')
                     ->icon('heroicon-m-user'),
 
                 Tables\Columns\TextColumn::make('user.email')
-                    ->label('Email')
+                    ->label(__('employee.fields.email'))
                     ->searchable()
                     ->copyable()
                     ->icon('heroicon-m-envelope'),
 
                 Tables\Columns\TextColumn::make('employee_id')
-                    ->label('Emp. ID')
+                    ->label(__('employee.fields.employee_number'))
                     ->searchable()
                     ->badge()
                     ->color('info')
@@ -362,29 +363,32 @@ class EmployeeResource extends Resource
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('department')
+                    ->label(__('employee.fields.department'))
                     ->badge()
                     ->toggleable()
-                    ->formatStateUsing(fn(?string $state) => $state ? ucwords(str_replace('_', ' ', $state)) : '—'),
+                    ->formatStateUsing(fn(?string $state) => $state ? __('employee.departments.'.$state) : __('—')),
 
                 Tables\Columns\TextColumn::make('company.name')
-                    ->label('Company')
+                    ->label(__('employee.fields.company'))
                     ->searchable()
                     ->sortable()
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('hire_date')
+                    ->label(__('employee.fields.hire_date'))
                     ->date()
                     ->sortable()
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('salary')
+                    ->label(__('employee.fields.salary'))
                     ->money('USD')
                     ->sortable()
                     ->toggleable()
                     ->visible(fn() => in_array(auth()->user()->role, ['super_admin', 'company_admin'])),
 
                 Tables\Columns\TextColumn::make('user.role')
-                    ->label('Role')
+                    ->label(__('employee.fields.system_role'))
                     ->badge()
                     ->colors([
                         'danger' => 'super_admin',
@@ -396,6 +400,7 @@ class EmployeeResource extends Resource
                     ),
 
                 Tables\Columns\TextColumn::make('status')
+                    ->label(__('employee.fields.status'))
                     ->badge()
                     ->colors([
                         'success' => 'active',
@@ -403,6 +408,7 @@ class EmployeeResource extends Resource
                         'warning' => 'on_leave',
                         'danger' => 'terminated',
                     ])
+                    ->formatStateUsing(fn (?string $state) => $state ? __('employee.statuses.'.$state) : __('—'))
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('created_at')
@@ -413,24 +419,14 @@ class EmployeeResource extends Resource
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
-                    ->options([
-                        'active' => 'Active',
-                        'inactive' => 'Inactive',
-                        'on_leave' => 'On Leave',
-                        'terminated' => 'Terminated',
-                    ])
+                    ->label(__('employee.fields.status'))
+                    ->options(static::statusOptions())
                     ->native(false)
                     ->multiple(),
 
                 Tables\Filters\SelectFilter::make('department')
-                    ->options([
-                        'management' => 'Management',
-                        'operations' => 'Operations',
-                        'finance' => 'Finance',
-                        'maintenance' => 'Maintenance',
-                        'sales' => 'Sales / Leasing',
-                        'customer_service' => 'Customer Service',
-                    ])
+                    ->label(__('employee.fields.department'))
+                    ->options(static::departmentOptions())
                     ->native(false),
 
                 Tables\Filters\SelectFilter::make('company')
@@ -456,6 +452,24 @@ class EmployeeResource extends Resource
     public static function getRelations(): array
     {
         return [];
+    }
+
+    public static function departmentOptions(): array
+    {
+        return collect([
+            'management', 'operations', 'finance', 'maintenance',
+            'sales', 'customer_service', 'other',
+        ])->mapWithKeys(fn (string $department): array => [
+            $department => __('employee.departments.'.$department),
+        ])->all();
+    }
+
+    public static function statusOptions(): array
+    {
+        return collect(['active', 'inactive', 'on_leave', 'terminated'])
+            ->mapWithKeys(fn (string $status): array => [
+                $status => __('employee.statuses.'.$status),
+            ])->all();
     }
 
     public static function getPages(): array

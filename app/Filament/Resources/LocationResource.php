@@ -27,20 +27,20 @@ class LocationResource extends Resource
                     ->description(__('Define hierarchical location structure'))
                     ->schema([
                         Forms\Components\Select::make('type')
-                            ->label('Location Type')
+                            ->label(__('Location Type'))
                             ->required()
                             ->options([
-                                'country' => '🌍 Country',
-                                'city' => '🏙️ City',
-                                'district' => '🏘️ District',
-                                'neighborhood' => '🏡 Neighborhood',
+                                'country' => __('🌍 Country'),
+                                'city' => __('🏙️ City'),
+                                'district' => __('🏘️ District'),
+                                'neighborhood' => __('🏡 Neighborhood'),
                             ])
                             ->native(false)
                             ->live()
                             ->afterStateUpdated(fn (Forms\Set $set) => $set('parent_id', null)),
                         
                         Forms\Components\Select::make('parent_id')
-                            ->label('Parent Location')
+                            ->label(__('Parent Location'))
                             ->relationship(
                                 'parent', 
                                 'name',
@@ -61,14 +61,14 @@ class LocationResource extends Resource
                             ->visible(fn (Forms\Get $get) => $get('type') !== 'country')
                             ->required(fn (Forms\Get $get) => $get('type') !== 'country')
                             ->helperText(fn (Forms\Get $get) => match($get('type')) {
-                                'city' => '📍 Select a country',
-                                'district' => '📍 Select a city',
-                                'neighborhood' => '📍 Select a district',
+                                'city' => __('📍 Select a country'),
+                                'district' => __('📍 Select a city'),
+                                'neighborhood' => __('📍 Select a district'),
                                 default => '',
                             }),
                         
                         Forms\Components\TextInput::make('name')
-                            ->label('Location Name')
+                            ->label(__('Location Name'))
                             ->required()
                             ->maxLength(255)
                             ->live(onBlur: true)
@@ -99,14 +99,14 @@ class LocationResource extends Resource
                             ]),
                         
                         Forms\Components\Placeholder::make('map_preview')
-                            ->label('📍 Location on Map')
+                            ->label(__('📍 Location on Map'))
                             ->content(function (Forms\Get $get) {
                                 $lat = $get('latitude');
                                 $lng = $get('longitude');
                                 
                                 if (!$lat || !$lng) {
                                     return new \Illuminate\Support\HtmlString(
-                                        '<div class="text-gray-400 text-sm">Enter coordinates to see map preview</div>'
+                                        '<div class="text-gray-400 text-sm">'.e(__('Enter coordinates to see map preview')).'</div>'
                                     );
                                 }
                                 
@@ -123,7 +123,7 @@ class LocationResource extends Resource
                                         style='border: 1px solid #e5e7eb; border-radius: 8px;'>
                                     </iframe>
                                     <div class='mt-2 text-sm text-gray-600'>
-                                        📌 Coordinates: {$lat}, {$lng}
+                                        📌 ".e(__('Coordinates')).": {$lat}, {$lng}
                                     </div>
                                 ");
                             })
@@ -141,7 +141,7 @@ class LocationResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('full_path')
-                    ->label('Location')
+                    ->label(__('Location'))
                     ->searchable(['name'])
                     ->sortable()
                     ->icon('heroicon-m-map-pin')
@@ -162,7 +162,7 @@ class LocationResource extends Resource
                         'district' => 'heroicon-o-building-office',
                         'neighborhood' => 'heroicon-o-home',
                     ])
-                    ->formatStateUsing(fn (string $state): string => ucfirst($state)),
+                    ->formatStateUsing(fn (string $state): string => __('locations.types.'.$state)),
                 
                 Tables\Columns\TextColumn::make('latitude')
                     ->toggleable()
@@ -178,7 +178,7 @@ class LocationResource extends Resource
                 
                 Tables\Columns\TextColumn::make('children_count')
                     ->counts('children')
-                    ->label('Sub-locations')
+                    ->label(__('Sub-locations'))
                     ->badge()
                     ->color('gray')
                     ->icon('heroicon-o-folder'),
@@ -192,16 +192,16 @@ class LocationResource extends Resource
             ->filters([
                 Tables\Filters\SelectFilter::make('type')
                     ->options([
-                        'country' => 'Country',
-                        'city' => 'City',
-                        'district' => 'District',
-                        'neighborhood' => 'Neighborhood',
+                        'country' => __('locations.types.country'),
+                        'city' => __('locations.types.city'),
+                        'district' => __('locations.types.district'),
+                        'neighborhood' => __('locations.types.neighborhood'),
                     ])
                     ->multiple()
                     ->native(false),
                 
                 Tables\Filters\SelectFilter::make('parent_id')
-                    ->label('Parent Location')
+                    ->label(__('Parent Location'))
                     ->relationship('parent', 'name')
                     ->searchable()
                     ->preload()

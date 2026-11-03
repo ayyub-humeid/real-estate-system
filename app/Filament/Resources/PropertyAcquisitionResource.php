@@ -38,7 +38,11 @@ class PropertyAcquisitionResource extends Resource
     {
         return $form->schema([
             self::companyField(),
-            Forms\Components\TextInput::make('reference_number')->label(__('Reference Number')),
+            Forms\Components\TextInput::make('reference_number')
+                ->label(__('Reference Number'))
+                ->placeholder(__('Generated automatically after creation.'))
+                ->disabled()
+                ->dehydrated(false),
             Forms\Components\Select::make('type')
                 ->label(__('Type'))
                 ->options([

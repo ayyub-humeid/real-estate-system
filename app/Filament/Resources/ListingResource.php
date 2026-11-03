@@ -114,7 +114,7 @@ class ListingResource extends Resource
     public static function infolist(Infolist $infolist): Infolist
     {
         return $infolist->schema([
-            Components\Section::make(__('Listing overview'))->schema([
+            Components\Section::make(__('Listing overview'))->columnSpanFull()->schema([
                 Components\TextEntry::make('title')->label(__('Title'))->weight('bold'),
                 Components\TextEntry::make('target_label')->label(__('Commercial target'))->state(fn(Listing $record) => $record->target_label),
                 Components\TextEntry::make('listing_type')->label(__('Listing type'))->badge()->formatStateUsing(fn(ListingType $state) => $state->getLabel()),
@@ -129,11 +129,11 @@ class ListingResource extends Resource
                 Components\TextEntry::make('security_deposit')->label(__('Security deposit'))->money(fn(Listing $record) => $record->currency)->placeholder(__('—')),
                 Components\TextEntry::make('minimum_lease_months')->label(__('Minimum lease months'))->suffix(' ' . __('months'))->placeholder(__('—')),
             ])->columns(3),
-            Components\Section::make(__('Marketing copy'))->schema([
+            Components\Section::make(__('Marketing copy'))->columnSpanFull()->schema([
                 Components\TextEntry::make('description')->label(__('Description'))->placeholder(__('—'))->columnSpanFull(),
                 Components\TextEntry::make('availability_notes')->label(__('Availability notes'))->placeholder(__('—'))->columnSpanFull(),
             ]),
-            Components\Section::make(__('Lifecycle timestamps'))->schema([
+            Components\Section::make(__('Lifecycle timestamps'))->columnSpanFull()->schema([
                 Components\TextEntry::make('published_at')->label(__('Published At'))->dateTime()->placeholder(__('Not published')),
                 Components\TextEntry::make('paused_at')->label(__('Paused At'))->dateTime()->placeholder(__('—')),
                 Components\TextEntry::make('archived_at')->label(__('Archived At'))->dateTime()->placeholder(__('—')),

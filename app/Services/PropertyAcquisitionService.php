@@ -1,7 +1,7 @@
 <?php
 namespace App\Services;
 
-use App\Models\{AcquisitionParty,AcquisitionProperty,Company,DueDiligenceCase,DueDiligenceItem,Party,Property,PropertyAcquisition,PropertyOwnership,User};
+use App\Models\{AcquisitionParty,AcquisitionProperty,Company,DueDiligenceCase,DueDiligenceItem,Party,Property,PropertyAcquisition,PropertyAcquisitionNumberSequence,PropertyOwnership,User};
 use App\Notifications\AcquisitionWorkflowNotification;
 use Carbon\CarbonInterface;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -10,6 +10,28 @@ use Illuminate\Validation\ValidationException;
 
 class PropertyAcquisitionService
 {
+    /** Creates a standalone acquisition with a server-controlled reference. */
+    public function create(User $actor, array $attributes): PropertyAcquisition
+    {
+        $companyId = $actor->isSuperAdmin() ? (int) ($attributes['company_id'] ?? 0) : (int) $actor->company_id;
+        if (! $companyId) {
+            throw ValidationException::withMessages(['company_id' => __('Select a company before creating an acquisition.')]);
+        }
+
+        $this->authorize($actor, 'create', new PropertyAcquisition(['company_id' => $companyId]));
+
+        return DB::transaction(function () use ($companyId, $attributes): PropertyAcquisition {
+            Company::withoutGlobalScopes()->lockForUpdate()->findOrFail($companyId);
+
+            return PropertyAcquisition::withoutGlobalScopes()->create([
+                ...collect($attributes)->except(['company_id', 'reference_number'])->all(),
+                'company_id' => $companyId,
+                'reference_number' => $this->nextReference($companyId),
+                'status' => 'draft',
+            ]);
+        });
+    }
+
     public function createDueDiligenceCase(User $actor, PropertyAcquisition $acquisition, array $attributes): DueDiligenceCase
     {
         $this->authorize($actor, 'create', new DueDiligenceCase(['company_id' => $acquisition->company_id]));
@@ -83,8 +105,12 @@ class PropertyAcquisitionService
         $this->authorize($actor, 'create', new PropertyAcquisition(['company_id' => $property->company_id]));
 
         return DB::transaction(function () use ($property, $attributes) {
-            $acquisition = PropertyAcquisition::create(array_merge($attributes, [
+            // Locking the company serializes reference allocation across both
+            // top-level and property-context creation requests.
+            Company::withoutGlobalScopes()->lockForUpdate()->findOrFail($property->company_id);
+            $acquisition = PropertyAcquisition::create(array_merge(collect($attributes)->except('reference_number')->all(), [
                 'company_id' => $property->company_id,
+                'reference_number' => $this->nextReference($property->company_id),
                 'status' => 'draft',
             ]));
             $property->propertyAcquisitions()->attach($acquisition->id, [
@@ -93,6 +119,43 @@ class PropertyAcquisitionService
 
             return $acquisition;
         });
+    }
+
+    private function nextReference(int $companyId): string
+    {
+        $year = (int) now()->format('Y');
+        $sequence = PropertyAcquisitionNumberSequence::withoutGlobalScopes()
+            ->where('company_id', $companyId)
+            ->where('year', $year)
+            ->lockForUpdate()
+            ->first();
+
+        if (! $sequence) {
+            // Existing installations may contain manually-entered references.
+            // Start beyond this year's highest compatible legacy number before
+            // the sequence takes ownership of every future reference.
+            $highestExisting = PropertyAcquisition::withoutGlobalScopes()
+                ->where('company_id', $companyId)
+                ->where('reference_number', 'like', "ACQ-{$year}-%")
+                ->pluck('reference_number')
+                ->map(function (string $reference): int {
+                    preg_match('/(\d+)$/', $reference, $matches);
+
+                    return (int) ($matches[1] ?? 0);
+                })
+                ->max() ?? 0;
+            $number = $highestExisting + 1;
+            $sequence = PropertyAcquisitionNumberSequence::withoutGlobalScopes()->create([
+                'company_id' => $companyId,
+                'year' => $year,
+                'next_number' => $number + 1,
+            ]);
+        } else {
+            $number = $sequence->next_number;
+            $sequence->increment('next_number');
+        }
+
+        return sprintf('ACQ-%d-%06d', $year, $number);
     }
 
     public function attachProperty(User $actor, PropertyAcquisition $acquisition, Property $property, array $attributes=[]): AcquisitionProperty

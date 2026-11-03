@@ -25,6 +25,16 @@ return [
         'draft' => 'مسودة',
         'effective' => 'نافذ',
     ],
+    'history_actions' => [
+        'created' => 'تم إنشاء العقد',
+        'submitted' => 'تم الإرسال للمراجعة',
+        'submitted_for_review' => 'تم الإرسال للمراجعة',
+        'approved' => 'تم اعتماد الإصدار',
+        'revision_requested' => 'طُلب تعديل',
+        'revision_created' => 'تم إنشاء إصدار تعديل',
+        'activated' => 'تم تفعيل العقد',
+        'amendment_created' => 'تم إنشاء ملحق',
+    ],
     'documents' => [
         'no_version' => 'لا توجد نسخة عقد متاحة لإرفاق المستند بها.',
         'submit_then_approve' => 'أرسل نسخة العقد للمراجعة ثم اعتمدها لإتاحة رفع المستند القانوني.',

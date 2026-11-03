@@ -24,22 +24,25 @@ class ProjectDesignPackageResource extends Resource
     public static function form(Form $form): Form
     {
         return $form->schema([
-            Forms\Components\TextInput::make('name')->required(),
-            Forms\Components\TextInput::make('code'),
-            Forms\Components\Select::make('discipline')->options(ProjectDesignPackage::DISCIPLINES),
-            Forms\Components\DatePicker::make('target_submission_date'),
-            Forms\Components\Textarea::make('description')->columnSpanFull(),
-            Forms\Components\Placeholder::make('status')->content(fn(?ProjectDesignPackage $record) => $record ? str_replace('_', ' ', $record->status) : 'Created through a Project'),
+            Forms\Components\TextInput::make('name')->label(__('Name'))->required(),
+            Forms\Components\TextInput::make('code')->label(__('Code'))->helperText(__('project.design_package_help.code')),
+            Forms\Components\Select::make('discipline')->label(__('Discipline'))->options(ProjectDesignPackage::disciplineOptions())->native(false),
+            Forms\Components\DatePicker::make('target_submission_date')->label(__('Target Submission Date')),
+            Forms\Components\Textarea::make('description')->label(__('Description'))->columnSpanFull(),
+            Forms\Components\Placeholder::make('status')->label(__('Status'))->content(fn(?ProjectDesignPackage $record) => $record ? __('project.statuses.'.$record->status) : __('Created through a Project')),
         ]);
     }
 
     public static function table(Table $table): Table
     {
         return $table->columns([
-            Tables\Columns\TextColumn::make('project.name')->searchable(),
-            Tables\Columns\TextColumn::make('name')->searchable(),
-            Tables\Columns\TextColumn::make('status')->badge(),
-            Tables\Columns\TextColumn::make('target_submission_date')->date(),
+            Tables\Columns\TextColumn::make('project.name')->label(__('Project'))->searchable(),
+            Tables\Columns\TextColumn::make('name')->label(__('Name'))->searchable(),
+            Tables\Columns\TextColumn::make('discipline')->label(__('Discipline'))->badge()
+                ->formatStateUsing(fn (?string $state): string => ProjectDesignPackage::disciplineLabel($state)),
+            Tables\Columns\TextColumn::make('status')->label(__('Status'))->badge()
+                ->formatStateUsing(fn (?string $state): string => $state ? __('project.statuses.'.$state) : __('—')),
+            Tables\Columns\TextColumn::make('target_submission_date')->label(__('Target Submission Date'))->date(),
         ])->actions([Tables\Actions\ViewAction::make(), Tables\Actions\EditAction::make()]);
     }
 

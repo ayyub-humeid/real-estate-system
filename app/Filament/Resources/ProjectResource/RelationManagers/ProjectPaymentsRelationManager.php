@@ -17,6 +17,9 @@ class ProjectPaymentsRelationManager extends RelationManager
     protected static string $relationship = 'payments';
     protected static ?string $title = 'Payments';
 
+    public static function getModelLabel(): string { return __('Payment'); }
+    public static function getPluralModelLabel(): string { return __('Payments'); }
+
     public static function getTitle(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): string
     {
         return __('Payments');

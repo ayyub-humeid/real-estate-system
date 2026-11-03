@@ -1,7 +1,7 @@
 <?php
 return [
     'navigation' => ['crm' => 'CRM', 'leads' => 'Leads', 'opportunities' => 'Opportunities', 'pipelines' => 'CRM Pipelines', 'stages' => 'Stages', 'requirements' => 'Stage requirements', 'stage_history' => 'Stage history', 'requirement_completions' => 'Requirement completions', 'kanban' => 'CRM Kanban'],
-    'models' => ['pipeline' => 'CRM Pipeline', 'pipelines' => 'CRM Pipelines', 'lead' => 'Lead', 'leads' => 'Leads', 'opportunity' => 'Opportunity', 'opportunities' => 'Opportunities'],
+    'models' => ['pipeline' => 'CRM Pipeline', 'pipelines' => 'CRM Pipelines', 'pipeline_stage' => 'CRM Pipeline stage', 'pipeline_stages' => 'CRM Pipeline stages', 'lead' => 'Lead', 'leads' => 'Leads', 'opportunity' => 'Opportunity', 'opportunities' => 'Opportunities'],
     'lead_status' => ['active' => 'Active', 'inactive' => 'Inactive'],
     'assignment_modes' => ['manual' => 'Manual', 'round_robin' => 'Round robin', 'unassigned_queue' => 'Unassigned queue'],
     'sources' => ['phone' => 'Phone', 'whatsapp' => 'WhatsApp', 'facebook' => 'Facebook', 'instagram' => 'Instagram', 'website' => 'Website', 'walk_in' => 'Walk-in', 'manual' => 'Manual', 'other' => 'Other'],

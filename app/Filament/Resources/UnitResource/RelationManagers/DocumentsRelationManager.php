@@ -11,6 +11,9 @@ class DocumentsRelationManager extends RelationManager
 {
     protected static string $relationship = 'documents';
 
+    public static function getModelLabel(): string { return __('Document'); }
+    public static function getPluralModelLabel(): string { return __('Documents'); }
+
     public static function getTitle(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): string
     {
         return __('Documents');

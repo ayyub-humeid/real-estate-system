@@ -6,6 +6,7 @@ use App\Enums\ContractStatus;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Support\Str;
 
 class StatusHistoriesRelationManager extends RelationManager
 {
@@ -41,19 +42,7 @@ class StatusHistoriesRelationManager extends RelationManager
                 ->formatStateUsing(fn (string $state): string => ContractStatus::tryFrom($state)?->getLabel() ?? __(ucwords(str_replace('_', ' ', $state))))
                 ->badge(),
             Tables\Columns\TextColumn::make('action')->label(__('Action'))
-                ->formatStateUsing(fn (string $state): string => match ($state) {
-                    'submit' => __('Submit for review'),
-                    'approve' => __('Approve version'),
-                    'request_revision' => __('Request revision'),
-                    'create_revision' => __('Create revision'),
-                    'attach_document' => __('Attach legal document'),
-                    'record_signature' => __('Record signature'),
-                    'activate' => __('Activate contract'),
-                    'create_amendment' => __('Create amendment'),
-                    'create' => __('Create contract'),
-                    'update' => __('Update contract'),
-                    default => __(ucwords(str_replace('_', ' ', $state))),
-                }),
+                ->formatStateUsing(fn (string $state): string => __('contract_domain.history_actions.'.Str::snake($state))),
             Tables\Columns\TextColumn::make('actor.name')->label(__('Changed by'))->placeholder('—'),
             Tables\Columns\TextColumn::make('changed_at')->label(__('Changed at'))->dateTime(),
         ])->defaultSort('changed_at', 'desc');

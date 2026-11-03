@@ -61,8 +61,136 @@
     }
 
     /* ── Tabs (infolist / form tabs inside cards) ── */
-    html.dark .fi-tabs {
+    html.dark .fi-tabs,
+    html.dark .fi-in-tabs,
+    html.dark .fi-in-tabs-tab {
         background-color: #1C1C1F !important;
+    }
+
+    /* Infolist tabs power resource overviews and relation details. They use
+       different classes from form tabs, so colour both their frame and body. */
+    html.dark .fi-in-tabs {
+        border: 1px solid rgba(148, 163, 184, .16) !important;
+        border-radius: 1rem !important;
+        overflow: hidden;
+    }
+    html.dark .fi-in-tabs-tab {
+        min-height: 100%;
+    }
+
+    /* Dialogs and slide-overs render outside resource cards. Style them here
+       once so every Resource and relation action uses the Madar surface. */
+    html.dark .fi-modal-window,
+    html.dark .fi-modal-window .fi-section,
+    html.dark .fi-modal-window .fi-ta-ctn,
+    html.dark .fi-modal-window .fi-tabs,
+    html.dark .fi-modal-window .fi-in-tabs,
+    html.dark .fi-modal-window .fi-in-tabs-tab {
+        background-color: #1C1C1F !important;
+        border-color: rgba(148, 163, 184, .16) !important;
+    }
+    html.dark .fi-modal-window {
+        border-radius: 1rem !important;
+        box-shadow: 0 24px 80px rgba(0, 0, 0, .48) !important;
+    }
+    html.dark .fi-modal-header,
+    html.dark .fi-modal-footer {
+        background-color: #1C1C1F !important;
+        border-color: rgba(148, 163, 184, .14) !important;
+    }
+    html.dark .fi-modal-content,
+    html.dark .fi-modal-window .fi-in,
+    html.dark .fi-modal-window .fi-fo-component-ctn {
+        background-color: #1C1C1F !important;
+    }
+    html.dark .fi-modal-window .fi-in-entry-wrp,
+    html.dark .fi-modal-window .fi-fo-repeater-item {
+        background: linear-gradient(145deg, #2A2A30, #232328) !important;
+        border: 1px solid rgba(148, 163, 184, .22) !important;
+        border-radius: .75rem !important;
+        padding: .875rem 1rem !important;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, .035), 0 4px 14px rgba(0, 0, 0, .14) !important;
+    }
+    html.dark .fi-modal-window .fi-in-entry-wrp-label {
+        color: #a8b4c7 !important;
+        font-weight: 700 !important;
+    }
+    html.dark .fi-modal-window .fi-in-entry-wrp-content,
+    html.dark .fi-modal-window .fi-in-text-item {
+        color: #f8fafc !important;
+    }
+    html.dark .fi-modal-window .fi-in-repeatable-item {
+        background-color: #202025 !important;
+        border: 1px solid rgba(148, 163, 184, .17) !important;
+        border-radius: .85rem !important;
+        padding: .75rem !important;
+    }
+    /* Relation actions and resource actions share the same comfortable,
+       responsive spacing instead of falling back to Filament's tight modal. */
+    @media (min-width: 640px) {
+        html.dark .fi-modal-header,
+        html.dark .fi-modal-content,
+        html.dark .fi-modal-footer {
+            padding-inline: 2rem !important;
+        }
+        html.dark .fi-modal-header {
+            padding-block: 1.25rem !important;
+        }
+    }
+    @media (max-width: 639px) {
+        html.dark .fi-modal-header,
+        html.dark .fi-modal-content,
+        html.dark .fi-modal-footer {
+            padding-inline: 1.25rem !important;
+        }
+        html.dark .fi-modal-header {
+            padding-block: 1rem !important;
+        }
+    }
+    html.dark .fi-modal-close-btn { color: #cbd5e1 !important; }
+
+    /* ── Select option menus (Choices.js + native fallback) ───────────
+       Searchable, multi-select, and regular select fields must share the
+       same Madar surface; Choices renders its menu outside the input wrapper. */
+    html.dark .fi-fo-select .choices__list--dropdown,
+    html.dark .fi-fo-select .choices__list[aria-expanded] {
+        background-color: #202024 !important;
+        border: 1px solid rgba(148, 163, 184, .20) !important;
+        box-shadow: 0 18px 42px rgba(0, 0, 0, .42) !important;
+    }
+    html.dark .fi-fo-select .choices__list--dropdown .choices__input,
+    html.dark .fi-fo-select .choices__list[aria-expanded] .choices__input {
+        color: #f8fafc !important;
+        background-color: #17171A !important;
+        border-radius: .5rem !important;
+    }
+    html.dark .fi-fo-select .choices__item--choice,
+    html.dark .fi-fo-select .choices__item--choice.choices__item--selectable {
+        color: #e2e8f0 !important;
+        border-radius: .5rem !important;
+    }
+    html.dark .fi-fo-select .choices__list--dropdown .choices__item--selectable.is-highlighted,
+    html.dark .fi-fo-select .choices__list[aria-expanded] .choices__item--selectable.is-highlighted {
+        background-color: rgba(59, 130, 246, .18) !important;
+        color: #ffffff !important;
+    }
+    html.dark .fi-fo-select .choices__item--choice[aria-selected='true'] {
+        background-color: rgba(37, 99, 235, .24) !important;
+        color: #bfdbfe !important;
+    }
+    html.dark .fi-fo-select .choices__group {
+        color: #94a3b8 !important;
+    }
+    html.dark .fi-fo-select .choices__list--multiple .choices__item {
+        background-color: rgba(59, 130, 246, .18) !important;
+        color: #bfdbfe !important;
+        border-color: rgba(96, 165, 250, .28) !important;
+    }
+    html.dark .fi-fo-select select,
+    html.dark .fi-fo-select select option,
+    html.dark .fi-fo-select select optgroup {
+        background-color: #202024 !important;
+        color: #e2e8f0 !important;
     }
 
     /* =====================================================================

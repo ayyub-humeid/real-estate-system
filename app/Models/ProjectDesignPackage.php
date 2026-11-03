@@ -47,6 +47,21 @@ class ProjectDesignPackage extends Model
         'closed_at' => 'datetime'
     ];
 
+    public static function disciplineOptions(): array
+    {
+        return collect(array_keys(self::DISCIPLINES))
+            ->mapWithKeys(fn (string $discipline): array => [
+                $discipline => __('project.design_disciplines.'.$discipline),
+            ])->all();
+    }
+
+    public static function disciplineLabel(?string $discipline): string
+    {
+        return filled($discipline)
+            ? __('project.design_disciplines.'.$discipline)
+            : __('—');
+    }
+
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);

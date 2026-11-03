@@ -17,6 +17,9 @@ class ProjectActualCostsRelationManager extends RelationManager
     protected static string $relationship = 'actualCosts';
     protected static ?string $title = 'Actual Costs';
 
+    public static function getModelLabel(): string { return __('Actual Cost'); }
+    public static function getPluralModelLabel(): string { return __('Actual Costs'); }
+
     public static function getTitle(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): string
     {
         return __('Actual Costs');

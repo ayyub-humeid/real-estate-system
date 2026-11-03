@@ -18,6 +18,16 @@ class ProjectBudgetsRelationManager extends RelationManager
 
     protected static ?string $title = 'Budget Planning';
 
+    public static function getModelLabel(): string
+    {
+        return __('Project Budget');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('Project Budgets');
+    }
+
     public static function getTitle(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): string
     {
         return __('Budget Planning');

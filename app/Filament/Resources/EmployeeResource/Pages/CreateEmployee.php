@@ -21,8 +21,8 @@ class CreateEmployee extends CreateRecord
 
         if (!$user->isSuperAdmin() && !$user->company?->canAddEmployee()) {
             Notification::make()
-                ->title(__('Limit Reached'))
-                ->body('Your plan does not allow adding more employees.')
+                ->title(__('employee.notifications.limit_reached'))
+                ->body(__('employee.notifications.plan_limit'))
                 ->danger()
                 ->persistent()
                 ->send();
@@ -38,7 +38,7 @@ class CreateEmployee extends CreateRecord
         try {
             return DB::transaction(function () use ($data) {
                 if (!isset($data['user'])) {
-                    throw new \Exception('User data is required');
+                    throw new \Exception(__('User data is required'));
                 }
 
                 // Extract user data
@@ -48,7 +48,7 @@ class CreateEmployee extends CreateRecord
                 unset($userData['role_id']);
 
                 if (! $roleId) {
-                    throw new \InvalidArgumentException('A company role is required.');
+                    throw new \InvalidArgumentException(__('A company role is required.'));
                 }
 
                 // Hash password
@@ -73,6 +73,13 @@ class CreateEmployee extends CreateRecord
                 // Create Employee
                 $employee = static::getModel()::create($data);
 
+                // The primary key is assigned atomically by the database, so
+                // deriving the visible employee number from it is portable and
+                // cannot produce duplicate numbers under concurrent requests.
+                $employee->forceFill([
+                    'employee_id' => 'EMP-'.str_pad((string) $employee->id, 3, '0', STR_PAD_LEFT),
+                ])->save();
+
                 Log::info('Employee created', [
                     'employee_id' => $employee->id,
                     'user_id' => $user->id,
@@ -84,7 +91,7 @@ class CreateEmployee extends CreateRecord
 
         } catch (\Exception $e) {
             Notification::make()
-                ->title(__('Error creating employee'))
+                ->title(__('employee.notifications.create_failed'))
                 ->body($e->getMessage())
                 ->danger()
                 ->send();
@@ -105,6 +112,6 @@ class CreateEmployee extends CreateRecord
 
     protected function getCreatedNotificationTitle(): ?string
     {
-        return 'Employee created successfully';
+        return __('employee.notifications.created');
     }
 }

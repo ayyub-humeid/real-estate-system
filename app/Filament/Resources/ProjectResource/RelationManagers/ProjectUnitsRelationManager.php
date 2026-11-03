@@ -18,6 +18,9 @@ class ProjectUnitsRelationManager extends RelationManager
 {
     protected static string $relationship = 'units';
 
+    public static function getModelLabel(): string { return __('Actual Unit'); }
+    public static function getPluralModelLabel(): string { return __('Actual Units'); }
+
     public static function getTitle(Model $ownerRecord, string $pageClass): string
     {
         return __('Actual Units');

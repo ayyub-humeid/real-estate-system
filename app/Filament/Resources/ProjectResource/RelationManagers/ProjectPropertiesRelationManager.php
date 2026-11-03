@@ -18,6 +18,16 @@ class ProjectPropertiesRelationManager extends RelationManager
 {
     protected static string $relationship = 'projectProperties';
 
+    public static function getModelLabel(): string
+    {
+        return __('Project Property');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('Project Properties');
+    }
+
     public static function getTitle(Model $ownerRecord, string $pageClass): string
     {
         return __('Project Properties');

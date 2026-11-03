@@ -11,6 +11,8 @@ use Filament\Tables;
 class FollowUpTasksRelationManager extends RelationManager
 {
     protected static string $relationship = 'followUpTasks';
+    public static function getModelLabel(): string { return __('crm.tasks.models.task'); }
+    public static function getPluralModelLabel(): string { return __('crm.tasks.models.tasks'); }
     public static function getTitle(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): string { return __('crm.tasks.models.tasks'); }
     public function isReadOnly(): bool { return false; }
     public function form(Forms\Form $form): Forms\Form { return $form->schema(CrmFollowUpTaskResource::formSchema()); }

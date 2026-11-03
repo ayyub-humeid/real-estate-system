@@ -14,6 +14,9 @@ class MaintenanceRequestsRelationManager extends RelationManager
 {
     protected static string $relationship = 'maintenanceRequests';
 
+    public static function getModelLabel(): string { return __('Maintenance request'); }
+    public static function getPluralModelLabel(): string { return __('Maintenance requests'); }
+
     /** Authorized users may record maintenance requests without leaving View Unit. */
     public function isReadOnly(): bool
     {

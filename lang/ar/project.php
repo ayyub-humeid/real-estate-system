@@ -1,6 +1,22 @@
 <?php
 
 return [
+    'design_disciplines' => [
+        'architectural' => 'تصميم معماري',
+        'structural' => 'هندسة إنشائية',
+        'electrical' => 'هندسة كهربائية',
+        'mechanical' => 'هندسة ميكانيكية',
+        'civil' => 'هندسة مدنية',
+        'interior' => 'تصميم داخلي',
+        'other' => 'أخرى / متعددة التخصصات',
+    ],
+    'design_package_help' => [
+        'name' => 'اكتب اسمًا واضحًا لحزمة المخرجات المطلوبة.',
+        'code' => 'مرجع اختياري من الشركة أو المكتب الهندسي. اتركه فارغًا إن لم يكن لديك رمز رسمي.',
+        'discipline' => 'اختر التخصص الرئيسي. استخدم «أخرى» للحزمة متعددة التخصصات.',
+        'target_date' => 'التاريخ المستهدف لتسليم المكتب الهندسي مخرجات الحزمة.',
+        'description' => 'وضّح باختصار مخرجات الحزمة؛ وتُضاف المهام التفصيلية لاحقًا ضمن عناصر النطاق.',
+    ],
     'statuses' => [
         'planning' => 'قيد التخطيط', 'planned' => 'مخطط', 'assigned' => 'تم الإسناد', 'reviewed' => 'تمت المراجعة',
         'in_progress' => 'قيد التنفيذ', 'in_review' => 'قيد المراجعة', 'pending' => 'قيد الانتظار', 'pending_approval' => 'بانتظار الاعتماد',
@@ -12,13 +28,20 @@ return [
         'awaiting_inspection' => 'بانتظار الفحص', 'passed' => 'تم الاجتياز', 'resolved' => 'تم الحل',
         'passed_with_notes' => 'تم الاجتياز مع ملاحظات', 'failed' => 'فشل', 'voided' => 'ملغى',
         'addressed' => 'تمت المعالجة', 'accepted' => 'مقبول', 'waived' => 'تم التنازل عنه',
-        'open' => 'مفتوح', 'superseded' => 'تم استبداله',
+        'open' => 'مفتوح', 'superseded' => 'تم استبداله', 'converted' => 'تم تحويلها إلى وحدة فعلية',
     ],
     'building_types' => [
         'residential_tower' => 'برج سكني', 'villa' => 'فيلا', 'townhouse_block' => 'مجموعة تاون هاوس',
         'commercial' => 'مبنى تجاري', 'mixed_use' => 'مبنى متعدد الاستخدامات', 'retail' => 'مبنى تجزئة',
         'office' => 'مبنى مكاتب', 'warehouse' => 'مستودع', 'parking' => 'مبنى مواقف',
         'amenities' => 'مبنى مرافق', 'other' => 'أخرى',
+    ],
+    'project_types' => [
+        'residential' => 'سكني', 'commercial' => 'تجاري', 'mixed_use' => 'متعدد الاستخدامات',
+        'industrial' => 'صناعي', 'hospitality' => 'ضيافة', 'land_development' => 'تطوير أراضٍ', 'other' => 'أخرى',
+    ],
+    'finding_severities' => [
+        'info' => 'معلومة', 'minor' => 'ملاحظة بسيطة', 'major' => 'ملاحظة رئيسية', 'critical' => 'ملاحظة حرجة',
     ],
     'member_roles' => [
         'project_manager' => 'مدير المشروع', 'project_director' => 'مدير المشاريع',

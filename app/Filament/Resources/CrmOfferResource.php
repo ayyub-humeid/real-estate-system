@@ -122,7 +122,7 @@ class CrmOfferResource extends Resource
     public static function infolist(Infolist $infolist): Infolist
     {
         return $infolist->schema([
-            Components\Section::make(__('crm.offers.sections.overview'))->schema([
+            Components\Section::make(__('crm.offers.sections.overview'))->columnSpanFull()->schema([
                 Components\TextEntry::make('reference_number')->label(__('crm.offers.fields.reference_number'))->weight('bold'),
                 Components\TextEntry::make('opportunity.lead.name')->label(__('crm.fields.lead')),
                 Components\TextEntry::make('listing.title')->label(__('crm.fields.listing'))->placeholder(__('—')),
@@ -131,7 +131,7 @@ class CrmOfferResource extends Resource
                 Components\TextEntry::make('assignedTo.name')->label(__('crm.offers.fields.negotiator'))->placeholder(__('—')),
                 Components\TextEntry::make('createdBy.name')->label(__('crm.offers.fields.created_by'))->placeholder(__('—')),
             ])->columns(3),
-            Components\Section::make(__('crm.offers.sections.agreement'))->schema([
+            Components\Section::make(__('crm.offers.sections.agreement'))->columnSpanFull()->schema([
                 Components\TextEntry::make('agreedRevision.revision_number')->label(__('crm.offers.fields.agreed_revision'))->formatStateUsing(fn($state) => $state ? __('crm.offers.revision_number', ['number' => $state]) : '—'),
                 Components\TextEntry::make('agreedRevision.amount')->label(__('crm.offers.fields.agreed_amount'))->money(fn(CrmOffer $record) => $record->agreedRevision?->currency ?? 'USD')->placeholder(__('—')),
                 Components\TextEntry::make('agreedRevision.confirmedBy.name')->label(__('crm.offers.fields.confirmed_by'))->placeholder(__('—')),

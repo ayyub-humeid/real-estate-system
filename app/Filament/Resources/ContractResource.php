@@ -243,23 +243,45 @@ class ContractResource extends Resource
     {
         return $infolist->schema([
             Infolists\Components\Tabs::make(__('Contract overview'))
+                ->columnSpanFull()
                 ->tabs([
                     Infolists\Components\Tabs\Tab::make(__('Overview'))
                         ->schema([
-                            Infolists\Components\TextEntry::make('contract_number')->label(__('Contract number'))->copyable(),
-                            Infolists\Components\TextEntry::make('contract_type')->label(__('Contract type'))->formatStateUsing(fn ($state): string => $state instanceof ContractType ? $state->getLabel() : ContractType::tryFrom((string) $state)?->getLabel() ?? (string) $state)->badge(),
-                            Infolists\Components\TextEntry::make('status')->label(__('Status'))->formatStateUsing(fn ($state): string => $state instanceof ContractStatus ? $state->getLabel() : ContractStatus::tryFrom((string) $state)?->getLabel() ?? (string) $state)->color(fn ($state): ?string => $state instanceof ContractStatus ? $state->color() : ContractStatus::tryFrom((string) $state)?->color())->badge(),
-                            Infolists\Components\TextEntry::make('createdBy.name')->label(__('Created by'))->placeholder('—'),
-                            Infolists\Components\TextEntry::make('created_at')->label(__('Created at'))->dateTime(),
-                        ])->columns(3),
+                            Infolists\Components\Section::make(__('Contract summary'))
+                                ->icon('heroicon-o-document-text')
+                                ->schema([
+                                    Infolists\Components\TextEntry::make('contract_number')
+                                        ->label(__('Contract number'))
+                                        ->size(Infolists\Components\TextEntry\TextEntrySize::Large)
+                                        ->weight('bold')
+                                        ->copyable(),
+                                    Infolists\Components\TextEntry::make('contract_type')
+                                        ->label(__('Contract type'))
+                                        ->formatStateUsing(fn ($state): string => $state instanceof ContractType ? $state->getLabel() : ContractType::tryFrom((string) $state)?->getLabel() ?? (string) $state)
+                                        ->badge(),
+                                    Infolists\Components\TextEntry::make('status')
+                                        ->label(__('Status'))
+                                        ->formatStateUsing(fn ($state): string => $state instanceof ContractStatus ? $state->getLabel() : ContractStatus::tryFrom((string) $state)?->getLabel() ?? (string) $state)
+                                        ->color(fn ($state): ?string => $state instanceof ContractStatus ? $state->color() : ContractStatus::tryFrom((string) $state)?->color())
+                                        ->badge(),
+                                    Infolists\Components\TextEntry::make('createdBy.name')->label(__('Created by'))->placeholder('—'),
+                                    Infolists\Components\TextEntry::make('created_at')->label(__('Created at'))->dateTime(),
+                                ])
+                                ->columns(['default' => 1, 'sm' => 2, 'xl' => 5]),
+                        ]),
                     Infolists\Components\Tabs\Tab::make(__('Target'))
                         ->schema([
-                            Infolists\Components\TextEntry::make('reservation.reservation_number')->label(__('Source reservation'))->placeholder('—'),
-                            Infolists\Components\TextEntry::make('property.name')->label(__('Property'))->placeholder('—'),
-                            Infolists\Components\TextEntry::make('project.name')->label(__('Project'))->placeholder('—'),
-                            Infolists\Components\TextEntry::make('unit.unit_number')->label(__('Actual unit'))->placeholder('—'),
-                            Infolists\Components\TextEntry::make('plannedUnit.code')->label(__('Planned unit'))->placeholder('—'),
-                        ])->columns(3),
+                            Infolists\Components\Section::make(__('Contract target'))
+                                ->icon('heroicon-o-map-pin')
+                                ->schema([
+                                    Infolists\Components\TextEntry::make('reservation.reservation_number')->label(__('Source reservation'))->placeholder('—'),
+                                    Infolists\Components\TextEntry::make('property.name')->label(__('Property'))->placeholder('—'),
+                                    Infolists\Components\TextEntry::make('project.name')->label(__('Project'))->placeholder('—'),
+                                    Infolists\Components\TextEntry::make('unit.unit_number')->label(__('Actual unit'))->placeholder('—'),
+                                    Infolists\Components\TextEntry::make('plannedUnit.code')->label(__('Planned unit'))->placeholder('—'),
+                                ])
+                                ->columns(['default' => 1, 'sm' => 2, 'xl' => 5]),
+                        ]),
                 ]),
         ]);
     }

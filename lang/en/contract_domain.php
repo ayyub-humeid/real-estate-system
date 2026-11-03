@@ -25,6 +25,16 @@ return [
         'draft' => 'Draft',
         'effective' => 'Effective',
     ],
+    'history_actions' => [
+        'created' => 'Contract created',
+        'submitted' => 'Submitted for review',
+        'submitted_for_review' => 'Submitted for review',
+        'approved' => 'Version approved',
+        'revision_requested' => 'Revision requested',
+        'revision_created' => 'Revision created',
+        'activated' => 'Contract activated',
+        'amendment_created' => 'Amendment created',
+    ],
     'documents' => [
         'no_version' => 'No contract version is available to receive a document.',
         'submit_then_approve' => 'Submit the contract version for review, then approve it before uploading the legal document.',

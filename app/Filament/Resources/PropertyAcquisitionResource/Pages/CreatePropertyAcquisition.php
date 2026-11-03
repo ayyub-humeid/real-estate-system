@@ -3,6 +3,8 @@
 namespace App\Filament\Resources\PropertyAcquisitionResource\Pages;
 
 use App\Filament\Resources\PropertyAcquisitionResource;
+use App\Models\PropertyAcquisition;
+use App\Services\PropertyAcquisitionService;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Facades\Validator;
 
@@ -24,5 +26,10 @@ class CreatePropertyAcquisition extends CreateRecord
         }
 
         return $data;
+    }
+
+    protected function handleRecordCreation(array $data): \Illuminate\Database\Eloquent\Model
+    {
+        return app(PropertyAcquisitionService::class)->create(auth()->user(), $data);
     }
 }

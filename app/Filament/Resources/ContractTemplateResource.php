@@ -45,6 +45,7 @@ class ContractTemplateResource extends Resource
     {
         return $infolist->schema([
             Infolists\Components\Section::make(__('Contract template'))
+                ->columnSpanFull()
                 ->schema([
                     Infolists\Components\TextEntry::make('name')->label(__('Name'))->weight('bold'),
                     Infolists\Components\TextEntry::make('contract_type')->label(__('Contract type'))->formatStateUsing(fn ($state): string => $state instanceof ContractType ? $state->getLabel() : ContractType::tryFrom((string) $state)?->getLabel() ?? (string) $state)->badge(),

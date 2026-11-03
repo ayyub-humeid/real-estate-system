@@ -18,6 +18,9 @@ class ProjectMembersRelationManager extends RelationManager
 {
     protected static string $relationship = 'members';
 
+    public static function getModelLabel(): string { return __('Project Member'); }
+    public static function getPluralModelLabel(): string { return __('Project Members'); }
+
     public static function getTitle(Model $ownerRecord, string $pageClass): string
     {
         return __('Project Members');

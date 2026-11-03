@@ -17,6 +17,9 @@ class ProjectCommitmentsRelationManager extends RelationManager
     protected static string $relationship = 'commitments';
     protected static ?string $title = 'Financial Commitments';
 
+    public static function getModelLabel(): string { return __('Financial Commitment'); }
+    public static function getPluralModelLabel(): string { return __('Financial Commitments'); }
+
     public static function getTitle(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): string
     {
         return __('Financial Commitments');

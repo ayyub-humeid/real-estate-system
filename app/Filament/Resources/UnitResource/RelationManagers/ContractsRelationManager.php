@@ -13,6 +13,9 @@ class ContractsRelationManager extends RelationManager
 {
     protected static string $relationship = 'contracts';
 
+    public static function getModelLabel(): string { return __('Contract'); }
+    public static function getPluralModelLabel(): string { return __('Contracts'); }
+
     public static function getTitle($ownerRecord, string $pageClass): string
     {
         return __('Contracts');

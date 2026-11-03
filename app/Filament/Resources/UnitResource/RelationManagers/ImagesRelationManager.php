@@ -15,6 +15,9 @@ class ImagesRelationManager extends RelationManager
     // Filament scopes automatically by imageable_type=Unit + imageable_id.
     protected static string $relationship = 'images';
 
+    public static function getModelLabel(): string { return __('Unit image'); }
+    public static function getPluralModelLabel(): string { return __('Unit images'); }
+
     /** The gallery is intentionally manageable from the Unit view page. */
     public function isReadOnly(): bool
     {

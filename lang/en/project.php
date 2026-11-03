@@ -1,6 +1,22 @@
 <?php
 
 return [
+    'design_disciplines' => [
+        'architectural' => 'Architectural design',
+        'structural' => 'Structural engineering',
+        'electrical' => 'Electrical engineering',
+        'mechanical' => 'Mechanical engineering',
+        'civil' => 'Civil engineering',
+        'interior' => 'Interior design',
+        'other' => 'Other / multidisciplinary',
+    ],
+    'design_package_help' => [
+        'name' => 'Use a clear business name for the deliverable package.',
+        'code' => 'Optional reference from your company or engineering office. Leave blank if no formal code exists.',
+        'discipline' => 'Choose the primary design discipline. Use Other for a combined package.',
+        'target_date' => 'The intended date for the engineering office to submit its deliverables.',
+        'description' => 'Briefly state what this package must deliver; detailed tasks are added later as scope items.',
+    ],
     'statuses' => [
         'planning' => 'Planning', 'planned' => 'Planned', 'assigned' => 'Assigned', 'reviewed' => 'Reviewed',
         'in_progress' => 'In progress', 'in_review' => 'In review', 'pending' => 'Pending', 'pending_approval' => 'Pending approval',
@@ -12,13 +28,20 @@ return [
         'awaiting_inspection' => 'Awaiting inspection', 'passed' => 'Passed', 'resolved' => 'Resolved',
         'passed_with_notes' => 'Passed with notes', 'failed' => 'Failed', 'voided' => 'Voided',
         'addressed' => 'Addressed', 'accepted' => 'Accepted', 'waived' => 'Waived',
-        'open' => 'Open', 'superseded' => 'Superseded',
+        'open' => 'Open', 'superseded' => 'Superseded', 'converted' => 'Converted to actual unit',
     ],
     'building_types' => [
         'residential_tower' => 'Residential tower', 'villa' => 'Villa', 'townhouse_block' => 'Townhouse block',
         'commercial' => 'Commercial building', 'mixed_use' => 'Mixed-use building', 'retail' => 'Retail building',
         'office' => 'Office building', 'warehouse' => 'Warehouse', 'parking' => 'Parking structure',
         'amenities' => 'Amenities building', 'other' => 'Other',
+    ],
+    'project_types' => [
+        'residential' => 'Residential', 'commercial' => 'Commercial', 'mixed_use' => 'Mixed-use',
+        'industrial' => 'Industrial', 'hospitality' => 'Hospitality', 'land_development' => 'Land development', 'other' => 'Other',
+    ],
+    'finding_severities' => [
+        'info' => 'Informational', 'minor' => 'Minor', 'major' => 'Major', 'critical' => 'Critical',
     ],
     'member_roles' => [
         'project_manager' => 'Project manager', 'project_director' => 'Project director',

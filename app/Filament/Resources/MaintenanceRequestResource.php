@@ -50,7 +50,7 @@ public static function canViewAny(): bool
     private static function companyField(): Forms\Components\Component
     {
         return Forms\Components\Select::make('company_id')
-            ->label('Company')
+            ->label(__('Company'))
             ->relationship('company', 'name')
             ->searchable()
             ->preload()
@@ -71,6 +71,7 @@ public static function canViewAny(): bool
                                     self::companyField(),
                                     
                                     Forms\Components\Select::make('unit_id')
+                                        ->label(__('Unit'))
                                         ->relationship('unit', 'unit_number', function (Builder $query, Forms\Get $get) {
                                             $query->with('property');
                                             if ($get('company_id')) {
@@ -83,10 +84,12 @@ public static function canViewAny(): bool
                                         ->required(),
 
                                     Forms\Components\TextInput::make('title')
+                                        ->label(__('Title'))
                                         ->required()
                                         ->maxLength(255),
 
                                     Forms\Components\Textarea::make('description')
+                                        ->label(__('Description'))
                                         ->required()
                                         ->rows(5)
                                         ->columnSpanFull(),
@@ -96,7 +99,7 @@ public static function canViewAny(): bool
                                 ->description(__('Internal details and findings'))
                                 ->schema([
                                     Forms\Components\Textarea::make('internal_notes')
-                                        ->label('Repair Progress / Notes')
+                                        ->label(__('Repair Progress / Notes'))
                                         ->rows(4)
                                         ->placeholder(__('Notes for internal use or technician findings...'))
                                         ->columnSpanFull(),
@@ -105,11 +108,12 @@ public static function canViewAny(): bool
                             Forms\Components\Section::make(__('Evidence'))
                                 ->description(__('Upload photos of the issue'))
                                 ->schema([
-                                    Forms\Components\Repeater::make('images')
+                                        Forms\Components\Repeater::make('images')
+                                            ->label(__('Images'))
                                         ->relationship('images')
                                         ->schema([
                                             Forms\Components\FileUpload::make('path')
-                                                ->label('Photo')
+                                                ->label(__('Photo'))
                                                 ->image()
                                                 ->directory('maintenance/images')
                                                 ->required(),
@@ -127,30 +131,21 @@ public static function canViewAny(): bool
                             Forms\Components\Section::make(__('Status & Assignment'))
                                 ->schema([
                                     Forms\Components\Select::make('status')
-                                        ->options([
-                                            'new' => 'New',
-                                            'pending' => 'Pending',
-                                            'in_progress' => 'In Progress',
-                                            'resolved' => 'Resolved',
-                                            'cancelled' => 'Cancelled',
-                                        ])
+                                        ->label(__('Status'))
+                                        ->options(static::statusOptions())
                                         ->default('new')
                                         ->required()
                                         ->native(false),
 
                                     Forms\Components\Select::make('priority')
-                                        ->options([
-                                            'low' => 'Low',
-                                            'medium' => 'Medium',
-                                            'high' => 'High',
-                                            'emergency' => 'Emergency',
-                                        ])
+                                        ->label(__('Priority'))
+                                        ->options(static::priorityOptions())
                                         ->default('medium')
                                         ->required()
                                         ->native(false),
 
                                     Forms\Components\Select::make('assigned_to_id')
-                                        ->label('Assigned Technician')
+                                        ->label(__('Assigned Technician'))
                                         ->relationship('technician', 'name')
                                         ->searchable()
                                         ->preload()
@@ -163,17 +158,21 @@ public static function canViewAny(): bool
                             Forms\Components\Section::make(__('Financials'))
                                 ->schema([
                                     Forms\Components\TextInput::make('estimated_cost')
+                                        ->label(__('Estimated Cost'))
                                         ->numeric()
                                         ->prefix('$'),
                                     Forms\Components\TextInput::make('actual_cost')
+                                        ->label(__('Actual Cost'))
                                         ->numeric()
                                         ->prefix('$'),
                                 ]),
 
                             Forms\Components\Section::make(__('Scheduling'))
                                 ->schema([
-                                    Forms\Components\DateTimePicker::make('scheduled_at'),
-                                    Forms\Components\DateTimePicker::make('completed_at'),
+                                    Forms\Components\DateTimePicker::make('scheduled_at')
+                                        ->label(__('Scheduled at')),
+                                    Forms\Components\DateTimePicker::make('completed_at')
+                                        ->label(__('Completed at')),
                                 ]),
                         ])->columnSpan(1),
                     ])
@@ -185,11 +184,11 @@ public static function canViewAny(): bool
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('unit.property.name')
-                    ->label('Property')
+                    ->label(__('Property'))
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('unit.unit_number')
-                    ->label('Unit #')
+                    ->label(__('Unit #'))
                     ->sortable()
                     ->searchable()
                     ->badge(),
@@ -197,12 +196,13 @@ public static function canViewAny(): bool
                     ->searchable()
                     ->wrap(),
                 Tables\Columns\TextColumn::make('technician.name')
-                    ->label('Assigned To')
+                    ->label(__('Assigned To'))
                     ->sortable()
                     ->placeholder(__('Unassigned'))
                     ->badge()
                     ->color('info'),
                 Tables\Columns\TextColumn::make('status')
+                    ->label(__('Status'))
                     ->badge()
                     ->colors([
                         'gray' => 'new',
@@ -210,16 +210,20 @@ public static function canViewAny(): bool
                         'info' => 'in_progress',
                         'success' => 'resolved',
                         'danger' => 'cancelled',
-                    ]),
+                    ])
+                    ->formatStateUsing(fn (?string $state) => $state ? __('maintenance.statuses.'.$state) : __('—')),
                 Tables\Columns\TextColumn::make('priority')
+                    ->label(__('Priority'))
                     ->badge()
                     ->colors([
                         'gray' => 'low',
                         'info' => 'medium',
                         'warning' => 'high',
                         'danger' => 'emergency',
-                    ]),
+                    ])
+                    ->formatStateUsing(fn (?string $state) => $state ? __('maintenance.priorities.'.$state) : __('—')),
                 Tables\Columns\TextColumn::make('actual_cost')
+                    ->label(__('Actual Cost'))
                     ->money('USD')
                     ->sortable()
                     ->summarize(Tables\Columns\Summarizers\Sum::make()->money()),
@@ -230,26 +234,17 @@ public static function canViewAny(): bool
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
-                    ->options([
-                        'new' => 'New',
-                        'pending' => 'Pending',
-                        'in_progress' => 'In Progress',
-                        'resolved' => 'Resolved',
-                        'cancelled' => 'Cancelled',
-                    ]),
+                    ->label(__('Status'))
+                    ->options(static::statusOptions()),
                 Tables\Filters\SelectFilter::make('priority')
-                    ->options([
-                        'low' => 'Low',
-                        'medium' => 'Medium',
-                        'high' => 'High',
-                        'emergency' => 'Emergency',
-                    ]),
+                    ->label(__('Priority'))
+                    ->options(static::priorityOptions()),
                 Tables\Filters\Filter::make('open_only')
-                    ->label('Open Only')
+                    ->label(__('Open Only'))
                     ->query(fn (Builder $query): Builder => $query->open())
                     ->toggle(),
                 Tables\Filters\Filter::make('my_tasks')
-                    ->label('My Tasks')
+                    ->label(__('My Tasks'))
                     ->query(fn (Builder $query): Builder => $query->byTechnician(auth()->id()))
                     ->toggle(),
             ])
@@ -269,6 +264,20 @@ public static function canViewAny(): bool
         return [
             //
         ];
+    }
+
+    private static function statusOptions(): array
+    {
+        return collect(['new', 'pending', 'in_progress', 'resolved', 'cancelled'])
+            ->mapWithKeys(fn (string $status) => [$status => __('maintenance.statuses.'.$status)])
+            ->all();
+    }
+
+    private static function priorityOptions(): array
+    {
+        return collect(['low', 'medium', 'high', 'emergency'])
+            ->mapWithKeys(fn (string $priority) => [$priority => __('maintenance.priorities.'.$priority)])
+            ->all();
     }
 
     public static function getPages(): array

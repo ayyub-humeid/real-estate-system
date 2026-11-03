@@ -28,14 +28,14 @@ class CompanySettingResource extends Resource
                     ->description(__('Upload company logo, lease background, and signature'))
                     ->schema([
                         Forms\Components\FileUpload::make('logo')
-                            ->label('Company Logo')
+                            ->label(__('Company Logo'))
                             ->image()
                             ->directory('company-settings/logos')
                             ->imageEditor()
                             ->maxSize(2048),
 
                         Forms\Components\FileUpload::make('lease_background')
-                            ->label('Lease Background Image')
+                            ->label(__('Lease Background Image'))
                             ->image()
                             ->directory('company-settings/backgrounds')
                             ->imageEditor()
@@ -43,7 +43,7 @@ class CompanySettingResource extends Resource
                             ->helperText(__('Watermark or background image for lease documents')),
 
                         Forms\Components\FileUpload::make('signature')
-                            ->label('Company Signature')
+                            ->label(__('Company Signature'))
                             ->image()
                             ->directory('company-settings/signatures')
                             ->imageEditor()
@@ -57,35 +57,40 @@ class CompanySettingResource extends Resource
                     ->description(__('Legal information for contracts and invoices'))
                     ->schema([
                         Forms\Components\Select::make('company_id')
+                            ->label(__('Company'))
                             ->relationship('company', 'name')
                             ->required()
                             ->disabled(fn() => !auth()->user()->isSuperAdmin())
                             ->default(fn() => auth()->user()->company_id),
 
                         Forms\Components\TextInput::make('company_legal_name')
-                            ->label('Legal Name')
+                            ->label(__('Legal Name'))
                             ->maxLength(255),
 
                         Forms\Components\Textarea::make('company_address')
+                            ->label(__('Company Address'))
                             ->rows(2),
 
                         Forms\Components\TextInput::make('company_phone')
+                            ->label(__('Company Phone'))
                             ->tel()
                             ->maxLength(255),
 
                         Forms\Components\TextInput::make('company_email')
+                            ->label(__('Company Email'))
                             ->email()
                             ->maxLength(255),
 
                         Forms\Components\TextInput::make('tax_id')
-                            ->label('Tax ID / VAT Number')
+                            ->label(__('Tax ID / VAT Number'))
                             ->maxLength(255),
 
                         Forms\Components\TextInput::make('registration_number')
-                            ->label('Commercial Registration')
+                            ->label(__('Commercial Registration'))
                             ->maxLength(255),
 
                         Forms\Components\TextInput::make('website')
+                            ->label(__('Website'))
                             ->url()
                             ->maxLength(255),
                     ])
@@ -95,21 +100,21 @@ class CompanySettingResource extends Resource
                 Forms\Components\Section::make(__('Lease Document Settings'))
                     ->schema([
                         Forms\Components\Textarea::make('lease_terms')
-                            ->label('Default Lease Terms & Conditions')
+                            ->label(__('Default Lease Terms & Conditions'))
                             ->rows(5)
                             ->helperText(__('These terms will appear in all lease contracts')),
 
                         Forms\Components\Textarea::make('lease_footer_text')
-                            ->label('Lease Footer Text')
+                            ->label(__('Lease Footer Text'))
                             ->rows(2)
                             ->placeholder(__('This contract is legally binding...')),
 
                         Forms\Components\ColorPicker::make('lease_header_color')
-                            ->label('Lease Header Color')
+                            ->label(__('Lease Header Color'))
                             ->default('#1e40af'),
 
                         Forms\Components\Toggle::make('show_company_stamp')
-                            ->label('Show Company Stamp/Seal')
+                            ->label(__('Show Company Stamp/Seal'))
                             ->default(true),
                     ])
                     ->columns(2)
@@ -118,9 +123,11 @@ class CompanySettingResource extends Resource
                 Forms\Components\Section::make(__('Receipt Settings'))
                     ->schema([
                         Forms\Components\Textarea::make('receipt_terms')
+                            ->label(__('Receipt Terms'))
                             ->rows(3),
 
                         Forms\Components\ColorPicker::make('receipt_header_color')
+                            ->label(__('Receipt Header Color'))
                             ->default('#059669'),
                     ])
                     ->columns(2)
@@ -139,14 +146,14 @@ class CompanySettingResource extends Resource
                 Forms\Components\Section::make(__('Payment Policies'))
                     ->schema([
                         Forms\Components\TextInput::make('payment_grace_period_days')
-                            ->label('Grace Period (Days)')
+                            ->label(__('Grace Period (Days)'))
                             ->numeric()
                             ->default(5)
                             ->minValue(0)
                             ->helperText(__('Days allowed after due date before marking overdue')),
 
                         Forms\Components\TextInput::make('late_payment_fee_percentage')
-                            ->label('Late Payment Fee (%)')
+                            ->label(__('Late Payment Fee (%)'))
                             ->numeric()
                             ->default(0)
                             ->minValue(0)
@@ -154,7 +161,7 @@ class CompanySettingResource extends Resource
                             ->helperText(__('Percentage fee for late payments')),
 
                         Forms\Components\Toggle::make('allow_maintenance_unit_marketing')
-                            ->label('Allow marketing during maintenance')
+                            ->label(__('Allow marketing during maintenance'))
                             ->helperText(__('Published Listings for maintenance Units are blocked unless enabled.'))
                             ->default(false),
                     ])
@@ -168,7 +175,7 @@ class CompanySettingResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('company.name')
-                    ->label('Company')
+                    ->label(__('Company'))
                     ->searchable()
                     ->sortable(),
 
@@ -179,7 +186,7 @@ class CompanySettingResource extends Resource
                     ),
 
                 Tables\Columns\IconColumn::make('signature')
-                    ->label('Signature')
+                    ->label(__('Signature'))
                     ->boolean()
                     ->trueIcon('heroicon-o-check-circle')
                     ->falseIcon('heroicon-o-x-circle')
@@ -188,7 +195,7 @@ class CompanySettingResource extends Resource
                     ->state(fn($record) => filled($record->signature)),
 
                 Tables\Columns\TextColumn::make('tax_id')
-                    ->label('Tax ID')
+                    ->label(__('Tax ID'))
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('updated_at')

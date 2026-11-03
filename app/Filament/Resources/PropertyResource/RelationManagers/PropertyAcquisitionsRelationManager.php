@@ -28,7 +28,7 @@ class PropertyAcquisitionsRelationManager extends RelationManager
     public function form(Form $form): Form
     {
         return $form->schema([
-            Forms\Components\TextInput::make('reference_number')->label(__('Reference Number')),
+            Forms\Components\TextInput::make('reference_number')->label(__('Reference Number'))->placeholder(__('Generated automatically after creation.'))->disabled()->dehydrated(false),
             Forms\Components\Select::make('type')
                 ->label(__('Type'))
                 ->options([
@@ -84,7 +84,7 @@ class PropertyAcquisitionsRelationManager extends RelationManager
                     ->label(__('Create acquisition'))
                     ->visible(fn (): bool => auth()->user()->can('create', PropertyAcquisition::class))
                     ->form([
-                        Forms\Components\TextInput::make('reference_number')->label(__('Reference Number')),
+                        Forms\Components\TextInput::make('reference_number')->label(__('Reference Number'))->placeholder(__('Generated automatically after creation.'))->disabled()->dehydrated(false),
                         Forms\Components\Select::make('type')
                             ->label(__('Type'))
                             ->options([

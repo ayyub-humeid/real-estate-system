@@ -17,6 +17,16 @@ class StagesRelationManager extends RelationManager
 {
     protected static string $relationship = 'stages';
 
+    public static function getModelLabel(): string
+    {
+        return __('crm.models.pipeline_stage');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('crm.navigation.stages');
+    }
+
     public function isReadOnly(): bool
     {
         // Pipeline configuration is deliberately manageable on a parent View

@@ -34,11 +34,7 @@ class PartyResource extends Resource
             self::companyField(),
             Forms\Components\Select::make('type')
                 ->label(__('Type'))
-                ->options([
-                    'individual' => __('Individual'),
-                    'company' => __('Company'),
-                    'organization' => __('Organization'),
-                ])
+                ->options(static::partyTypeOptions())
                 ->required(),
             Forms\Components\TextInput::make('name')->label(__('Name'))->required(),
             Forms\Components\TextInput::make('legal_name')->label(__('Legal Name')),
@@ -55,12 +51,7 @@ class PartyResource extends Resource
         return $table->columns([
             Tables\Columns\TextColumn::make('name')->label(__('Name'))->searchable()->sortable(),
             Tables\Columns\TextColumn::make('type')->label(__('Type'))->badge()
-                ->formatStateUsing(fn ($state) => match ($state) {
-                    'individual' => __('Individual'),
-                    'company' => __('Company'),
-                    'organization' => __('Organization'),
-                    default => $state ? __($state) : __('—'),
-                }),
+                ->formatStateUsing(fn (?string $state) => $state ? __('property_domain.party_types.'.$state) : __('—')),
             Tables\Columns\TextColumn::make('phone')->label(__('Phone')),
             Tables\Columns\IconColumn::make('is_active')->label(__('Active'))->boolean(),
         ])->actions([
@@ -91,5 +82,12 @@ class PartyResource extends Resource
             'create' => Pages\CreateParty::route('/create'),
             'edit' => Pages\EditParty::route('/{record}/edit'),
         ];
+    }
+
+    private static function partyTypeOptions(): array
+    {
+        return collect(['person', 'individual', 'company', 'organization'])
+            ->mapWithKeys(fn (string $type): array => [$type => __('property_domain.party_types.'.$type)])
+            ->all();
     }
 }

@@ -12,6 +12,16 @@ class OwnershipsRelationManager extends RelationManager
 {
     protected static string $relationship = 'ownerships';
 
+    public static function getModelLabel(): string
+    {
+        return __('Unit ownership');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('Unit ownerships');
+    }
+
     public static function getTitle(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): string
     {
         return __('Ownership');

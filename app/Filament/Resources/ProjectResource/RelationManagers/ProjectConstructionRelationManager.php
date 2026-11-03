@@ -18,6 +18,9 @@ class ProjectConstructionRelationManager extends RelationManager
     protected static string $relationship = 'constructions';
     protected static ?string $title = 'Construction';
 
+    public static function getModelLabel(): string { return __('Project Construction'); }
+    public static function getPluralModelLabel(): string { return __('Construction'); }
+
     public static function getTitle(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): string
     {
         return __('Construction');

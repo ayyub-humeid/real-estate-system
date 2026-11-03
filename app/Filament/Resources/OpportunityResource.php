@@ -111,12 +111,20 @@ class OpportunityResource extends Resource
                 Tables\Columns\TextColumn::make('lead.name')->label(__('crm.fields.lead'))->searchable(),
                 Tables\Columns\TextColumn::make('listing.title')->label(__('crm.fields.listing'))->placeholder(__('—')),
                 Tables\Columns\TextColumn::make('type')->label(__('crm.fields.type'))->badge()
-                    ->formatStateUsing(fn ($state) => $state instanceof OpportunityType ? $state->getLabel() : __('crm.opportunity_types.' . $state)),
+                    ->formatStateUsing(fn ($state) => $state instanceof OpportunityType ? $state->getLabel() : __('crm.opportunity_types.' . $state))
+                    ->color(fn ($state) => ($state instanceof OpportunityType ? $state : OpportunityType::tryFrom((string) $state)) === OpportunityType::Sale ? 'success' : 'info'),
                 Tables\Columns\TextColumn::make('stage.label')->label(__('crm.fields.stage'))->badge()
-                    ->formatStateUsing(fn ($state, Opportunity $record) => $record->stage?->display_label ?? $state),
+                    ->formatStateUsing(fn ($state, Opportunity $record) => $record->stage?->display_label ?? $state)
+                    ->color(fn ($state, Opportunity $record) => match ($record->stage?->stage_type?->value ?? $record->stage?->stage_type) {
+                        'won' => 'success', 'lost' => 'danger', default => 'warning',
+                    }),
                 Tables\Columns\TextColumn::make('assignedTo.name')->label(__('crm.fields.owner'))->placeholder(__('—')),
                 Tables\Columns\TextColumn::make('source')->label(__('crm.fields.source'))->badge()
-                    ->formatStateUsing(fn ($state) => $state instanceof CrmInquirySource ? $state->getLabel() : __('crm.sources.' . $state)),
+                    ->formatStateUsing(fn ($state) => $state instanceof CrmInquirySource ? $state->getLabel() : __('crm.sources.' . $state))
+                    ->color(fn ($state) => match ($state instanceof CrmInquirySource ? $state->value : $state) {
+                        'website' => 'primary', 'walk_in' => 'warning', 'whatsapp' => 'success',
+                        'phone' => 'info', 'facebook', 'instagram' => 'danger', default => 'gray',
+                    }),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),

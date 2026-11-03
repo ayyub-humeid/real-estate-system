@@ -10,12 +10,23 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Validation\Rules\Unique;
 use Illuminate\Validation\ValidationException;
 
 class DesignPackagesRelationManager extends RelationManager
 {
     protected static string $relationship = 'designPackages';
     protected static ?string $title = 'Design Packages';
+
+    public static function getModelLabel(): string
+    {
+        return __('Project Design Package');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('Project Design Packages');
+    }
 
     public static function getTitle(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): string
     {
@@ -33,7 +44,8 @@ class DesignPackagesRelationManager extends RelationManager
             ->emptyStateHeading(__('No design packages yet'))
             ->emptyStateDescription(__('Create a package, assign an engineering office, define its scope, then begin the formal review workflow.'))
             ->columns([
-                Tables\Columns\TextColumn::make('name')->label(__('Name'))->searchable()->weight('medium')->description(fn(ProjectDesignPackage $record) => $record->discipline),
+                Tables\Columns\TextColumn::make('name')->label(__('Name'))->searchable()->weight('medium')
+                    ->description(fn (ProjectDesignPackage $record): string => ProjectDesignPackage::disciplineLabel($record->discipline)),
                 Tables\Columns\TextColumn::make('code')->label(__('Code'))->badge()->color('gray')->placeholder(__('No code')),
                 Tables\Columns\TextColumn::make('status')->label(__('Status'))->badge()->colors(['gray' => 'planned', 'info' => ['assigned', 'submitted', 'resubmitted'], 'warning' => ['in_progress', 'under_review', 'revision_required'], 'success' => ['approved', 'closed']])
                     ->formatStateUsing(fn (?string $state): string => $state ? __('project.statuses.'.$state) : __('—')),
@@ -105,7 +117,7 @@ class DesignPackagesRelationManager extends RelationManager
                         }),
                     Tables\Actions\Action::make('addFinding')->label(__('Add finding'))->icon('heroicon-o-exclamation-triangle')->color('warning')
                         ->visible(fn() => auth()->user()->can('create_design_finding'))
-                        ->form(fn(ProjectDesignPackage $record) => [Forms\Components\Select::make('review_id')->label(__('Review'))->options($this->reviewOptions($record, 'in_review'))->required(), Forms\Components\Select::make('severity')->label(__('Severity'))->options(array_combine(DesignReviewFinding::SEVERITIES, DesignReviewFinding::SEVERITIES))->required(), Forms\Components\TextInput::make('title')->label(__('Title'))->required(), Forms\Components\Textarea::make('description')->label(__('Description'))->required(), Forms\Components\Select::make('design_package_scope_item_id')->label(__('Scope item'))->options($this->scopeOptions($record)), Forms\Components\Select::make('document_version_id')->label(__('Document version'))->options($this->documentVersionOptions($record))])
+                        ->form(fn(ProjectDesignPackage $record) => [Forms\Components\Select::make('review_id')->label(__('Review'))->options($this->reviewOptions($record, 'in_review'))->required(), Forms\Components\Select::make('severity')->label(__('Severity'))->options($this->severityOptions())->required(), Forms\Components\TextInput::make('title')->label(__('Title'))->required(), Forms\Components\Textarea::make('description')->label(__('Description'))->required(), Forms\Components\Select::make('design_package_scope_item_id')->label(__('Scope item'))->options($this->scopeOptions($record)), Forms\Components\Select::make('document_version_id')->label(__('Document version'))->options($this->documentVersionOptions($record))])
                         ->action(function (ProjectDesignPackage $record, array $data) {
                             $review = DesignPackageReview::withoutGlobalScopes()->findOrFail($data['review_id']);
                             unset($data['review_id']);
@@ -159,11 +171,31 @@ class DesignPackagesRelationManager extends RelationManager
     private function packageForm(): array
     {
         return [
-            Forms\Components\TextInput::make('name')->label(__('Name'))->required(),
-            Forms\Components\TextInput::make('code')->label(__('Code')),
-            Forms\Components\Select::make('discipline')->label(__('Discipline'))->options(ProjectDesignPackage::DISCIPLINES),
-            Forms\Components\DatePicker::make('target_submission_date')->label(__('Target Submission Date')),
-            Forms\Components\Textarea::make('description')->label(__('Description'))->columnSpanFull()
+            Forms\Components\TextInput::make('name')
+                ->label(__('Name'))
+                ->helperText(__('project.design_package_help.name'))
+                ->required(),
+            Forms\Components\TextInput::make('code')
+                ->label(__('Code'))
+                ->helperText(__('project.design_package_help.code'))
+                ->unique(
+                    table: 'project_design_packages',
+                    column: 'code',
+                    ignoreRecord: true,
+                    modifyRuleUsing: fn (Unique $rule) => $rule->where('project_id', $this->getOwnerRecord()->id),
+                ),
+            Forms\Components\Select::make('discipline')
+                ->label(__('Discipline'))
+                ->helperText(__('project.design_package_help.discipline'))
+                ->options(ProjectDesignPackage::disciplineOptions())
+                ->native(false),
+            Forms\Components\DatePicker::make('target_submission_date')
+                ->label(__('Target Submission Date'))
+                ->helperText(__('project.design_package_help.target_date')),
+            Forms\Components\Textarea::make('description')
+                ->label(__('Description'))
+                ->helperText(__('project.design_package_help.description'))
+                ->columnSpanFull()
         ];
     }
     private function scopeForm(): array
@@ -183,7 +215,8 @@ class DesignPackagesRelationManager extends RelationManager
                 ->schema([
                     \Filament\Infolists\Components\TextEntry::make('name')->label(__('Name'))->weight('bold'),
                     \Filament\Infolists\Components\TextEntry::make('code')->label(__('Code'))->placeholder(__('—')),
-                    \Filament\Infolists\Components\TextEntry::make('discipline')->label(__('Discipline'))->badge(),
+                    \Filament\Infolists\Components\TextEntry::make('discipline')->label(__('Discipline'))->badge()
+                        ->formatStateUsing(fn (?string $state): string => ProjectDesignPackage::disciplineLabel($state)),
                     \Filament\Infolists\Components\TextEntry::make('status')->label(__('Status'))->badge()
                         ->colors(['gray' => 'planned', 'info' => ['assigned', 'submitted', 'resubmitted'], 'warning' => ['in_progress', 'under_review', 'revision_required'], 'success' => ['approved', 'closed']])
                         ->formatStateUsing(fn (?string $state): string => $state ? __('project.statuses.'.$state) : __('—')),
@@ -256,7 +289,7 @@ class DesignPackagesRelationManager extends RelationManager
                                             \Filament\Infolists\Components\RepeatableEntry::make('findings')
                                                 ->label(__('Findings'))
                                                 ->schema([
-                                                    \Filament\Infolists\Components\TextEntry::make('severity')->label(__('Severity'))->badge()->colors(['info' => 'info', 'success' => 'minor', 'warning' => 'major', 'danger' => 'critical']),
+                                                    \Filament\Infolists\Components\TextEntry::make('severity')->label(__('Severity'))->badge()->colors(['info' => 'info', 'success' => 'minor', 'warning' => 'major', 'danger' => 'critical'])->formatStateUsing(fn (?string $state): string => $this->severityLabel($state)),
                                                     \Filament\Infolists\Components\TextEntry::make('title')->label(__('Title'))->weight('bold'),
                                                     \Filament\Infolists\Components\TextEntry::make('status')->label(__('Status'))->badge()->colors(['warning' => 'open', 'info' => 'addressed', 'success' => 'accepted', 'gray' => 'waived'])
                                                         ->formatStateUsing(fn (?string $state): string => $state ? __('project.statuses.'.$state) : __('—')),
@@ -284,7 +317,7 @@ class DesignPackagesRelationManager extends RelationManager
     }
     private function scopeOptions(ProjectDesignPackage $package): array
     {
-        return DesignPackageScopeItem::withoutGlobalScopes()->whereIn('design_package_assignment_id', $package->assignments()->select('id'))->orderBy('sort_order')->get()->mapWithKeys(fn($item) => [$item->id => "{$item->title} ({$item->status})"])->all();
+        return DesignPackageScopeItem::withoutGlobalScopes()->whereIn('design_package_assignment_id', $package->assignments()->select('id'))->orderBy('sort_order')->get()->mapWithKeys(fn($item) => [$item->id => "{$item->title} (".$this->statusLabel($item->status).')'])->all();
     }
     private function documentVersionOptions(ProjectDesignPackage $package): array
     {
@@ -299,25 +332,43 @@ class DesignPackagesRelationManager extends RelationManager
         $query = $package->submissions();
         if ($status)
             $query->where('status', $status);
-        return $query->orderByDesc('submission_number')->get()->mapWithKeys(fn($submission) => [$submission->id => "Submission #{$submission->submission_number} ({$submission->status})"])->all();
+        return $query->orderByDesc('submission_number')->get()->mapWithKeys(fn($submission) => [$submission->id => __('Submission').' #'.$submission->submission_number.' ('.$this->statusLabel($submission->status).')'])->all();
     }
     private function reviewOptions(ProjectDesignPackage $package, ?string $status = null): array
     {
         $query = DesignPackageReview::withoutGlobalScopes()->whereIn('design_package_submission_id', $package->submissions()->select('id'));
         if ($status)
             $query->where('status', $status);
-        return $query->get()->mapWithKeys(fn($review) => [$review->id => "Submission #{$review->submission->submission_number} — {$review->status}"])->all();
+        return $query->get()->mapWithKeys(fn($review) => [$review->id => __('Submission').' #'.$review->submission->submission_number.' — '.$this->statusLabel($review->status)])->all();
     }
     private function findingOptions(ProjectDesignPackage $package): array
     {
-        return DesignReviewFinding::withoutGlobalScopes()->whereIn('design_package_review_id', DesignPackageReview::withoutGlobalScopes()->whereIn('design_package_submission_id', $package->submissions()->select('id'))->select('id'))->where('status', 'open')->get()->mapWithKeys(fn($finding) => [$finding->id => "{$finding->severity}: {$finding->title}"])->all();
+        return DesignReviewFinding::withoutGlobalScopes()->whereIn('design_package_review_id', DesignPackageReview::withoutGlobalScopes()->whereIn('design_package_submission_id', $package->submissions()->select('id'))->select('id'))->where('status', 'open')->get()->mapWithKeys(fn($finding) => [$finding->id => $this->severityLabel($finding->severity).": {$finding->title}"])->all();
+    }
+
+    /** @return array<string, string> */
+    private function severityOptions(): array
+    {
+        return collect(DesignReviewFinding::SEVERITIES)
+            ->mapWithKeys(fn (string $severity): array => [$severity => $this->severityLabel($severity)])
+            ->all();
+    }
+
+    private function severityLabel(?string $severity): string
+    {
+        return $severity ? __('project.finding_severities.'.$severity) : __('—');
+    }
+
+    private function statusLabel(?string $status): string
+    {
+        return $status ? __('project.statuses.'.$status) : __('—');
     }
     private function revisionOptions(ProjectDesignPackage $package, ?string $status = null): array
     {
         $query = $package->revisions();
         if ($status)
             $query->where('status', $status);
-        return $query->get()->mapWithKeys(fn($revision) => [$revision->id => "Revision #{$revision->revision_number} ({$revision->status})"])->all();
+        return $query->get()->mapWithKeys(fn($revision) => [$revision->id => __('Revision').' #'.$revision->revision_number.' ('.$this->statusLabel($revision->status).')'])->all();
     }
     private function companyUsers(): array
     {

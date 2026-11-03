@@ -72,14 +72,7 @@ class PropertyResource extends Resource
 
                     Forms\Components\Select::make('type')
                         ->label(__('Property Type'))
-                        ->options([
-                            'Land' => __('Land'),
-                            'Apartment' => __('Apartment'),
-                            'Villa' => __('Villa'),
-                            'House' => __('House'),
-                            'Commercial' => __('Commercial'),
-                            'Other' => __('Other'),
-                        ])
+                        ->options(static::typeOptions())
                         ->searchable()
                         ->preload(),
 
@@ -176,15 +169,7 @@ class PropertyResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->badge()
-                    ->formatStateUsing(fn (?string $state): string => match ($state) {
-                        'Land' => __('Land'),
-                        'Apartment' => __('Apartment'),
-                        'Villa' => __('Villa'),
-                        'House' => __('House'),
-                        'Commercial' => __('Commercial'),
-                        'Other' => __('Other'),
-                        default => $state ?? '—',
-                    }),
+                    ->formatStateUsing(fn (?string $state): string => static::typeLabel($state)),
 
                 Tables\Columns\TextColumn::make('space')
                     ->label(__('Space'))
@@ -265,6 +250,18 @@ class PropertyResource extends Resource
             RelationManagers\OwnershipsRelationManager::class,
             RelationManagers\PropertyAcquisitionsRelationManager::class,
         ];
+    }
+
+    public static function typeOptions(): array
+    {
+        return collect(['land', 'building', 'apartment', 'villa', 'house', 'commercial', 'office', 'warehouse', 'other'])
+            ->mapWithKeys(fn (string $type): array => [$type => __('property_domain.types.'.$type)])
+            ->all();
+    }
+
+    public static function typeLabel(?string $type): string
+    {
+        return filled($type) ? __('property_domain.types.'.strtolower($type)) : __('—');
     }
 
     public static function getPages(): array

@@ -8,6 +8,9 @@ class StatusHistoriesRelationManager extends RelationManager
 {
     protected static string $relationship = 'statusHistories';
 
+    public static function getModelLabel(): string { return __('Unit status history'); }
+    public static function getPluralModelLabel(): string { return __('Unit status history'); }
+
     public static function getTitle(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): string
     {
         return __('Status history');

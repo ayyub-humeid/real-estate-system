@@ -14,6 +14,9 @@ class FeaturesRelationManager extends RelationManager
 {
     protected static string $relationship = 'features';
 
+    public static function getModelLabel(): string { return __('Unit feature'); }
+    public static function getPluralModelLabel(): string { return __('Unit features'); }
+
     /** Features are part of unit setup and remain manageable from View Unit. */
     public function isReadOnly(): bool
     {

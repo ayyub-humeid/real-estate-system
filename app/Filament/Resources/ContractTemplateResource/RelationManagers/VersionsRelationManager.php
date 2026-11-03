@@ -13,6 +13,16 @@ class VersionsRelationManager extends RelationManager
 {
     protected static string $relationship = 'versions';
 
+    public static function getModelLabel(): string
+    {
+        return __('Contract Template Version');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('Contract Template Versions');
+    }
+
     public static function getTitle($ownerRecord, string $pageClass): string
     {
         return __('Template versions');
