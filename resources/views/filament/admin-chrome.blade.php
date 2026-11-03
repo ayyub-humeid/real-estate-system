@@ -49,6 +49,9 @@
     html.dark .fi-wi {
         background-color: #1C1C1F !important;
     }
+    .fi-wi {
+        padding: 15px !important;
+    }
 
     /* ── Dropdowns / Popovers (filter panels, column toggles) ── */
     html.dark .fi-dropdown-panel {
@@ -317,6 +320,25 @@
         background-color: #ffffff !important;
         color: #111827 !important;
     }
+
+    /* ── Dark-mode notifications (toasters) ── */
+    html.dark .fi-no-notification {
+        background-color: #1e1e24 !important;
+        border: 1px solid rgba(148, 163, 184, .12) !important;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, .55) !important;
+        color: #f1f5f9 !important;
+    }
+    html.dark .fi-no-notification-title {
+        color: #f8fafc !important;
+    }
+    html.dark .fi-no-notification-body {
+        color: #94a3b8 !important;
+    }
+    /* Status-tinted left border */
+    html.dark .fi-no-notification[data-color="success"] { border-left: 3px solid #34d399 !important; }
+    html.dark .fi-no-notification[data-color="danger"]  { border-left: 3px solid #f87171 !important; }
+    html.dark .fi-no-notification[data-color="warning"] { border-left: 3px solid #fbbf24 !important; }
+    html.dark .fi-no-notification[data-color="info"]    { border-left: 3px solid #38bdf8 !important; }
 
     /* =====================================================================
        Login page — always dark (static design, immune to theme toggle)
