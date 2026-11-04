@@ -251,30 +251,7 @@ class PropertyAcquisitionService
 
     public function selfPartyForCompany(Company $company): Party
     {
-        return DB::transaction(function () use ($company): Party {
-            $company = Company::query()->lockForUpdate()->findOrFail($company->id);
-
-            if ($company->self_party_id) {
-                $party = Party::withoutGlobalScopes()->find($company->self_party_id);
-                if ($party && (int) $party->company_id === (int) $company->id) {
-                    return $party;
-                }
-            }
-
-            $party = Party::withoutGlobalScopes()->create([
-                'company_id' => $company->id,
-                'type' => 'company',
-                'name' => $company->name,
-                'legal_name' => $company->name,
-                'email' => $company->email,
-                'phone' => $company->phone,
-                'address' => $company->address,
-            ]);
-
-            $company->forceFill(['self_party_id' => $party->id])->save();
-
-            return $party;
-        });
+        return app(CompanyLegalPartyService::class)->resolve($company);
     }
     private function validateAcquisitionPartyShare(PropertyAcquisition $acquisition, string $role, mixed $sharePercentage, ?int $exceptId = null): void
     {

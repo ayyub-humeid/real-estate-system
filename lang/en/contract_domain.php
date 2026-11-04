@@ -30,6 +30,8 @@ return [
         'electronic' => 'Electronic evidence',
         'company_authorized' => 'Authorized company signature',
         'company_authorized_notice' => 'The authorized signature and stamp configured in Company Settings will be used. No image upload is needed.',
+        'company_party_selected' => 'The company legal party is selected automatically for this signature.',
+        'company_party_missing' => 'This approved version does not include the company legal party. Create a draft revision, add the company as a contract party, then submit it for review again.',
     ],
     'content' => [
         'max_template_hint' => 'Maximum :limit characters for reliable PDF generation.',

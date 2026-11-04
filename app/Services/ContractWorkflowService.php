@@ -292,8 +292,10 @@ class ContractWorkflowService
             fclose($stream);
 
             if ($method === 'company_authorized') {
-                $company = Company::withoutGlobalScopes()->findOrFail($locked->company_id);
-                if (! $company->self_party_id || (int) $party->party_id !== (int) $company->self_party_id) {
+                $companyParty = app(CompanyLegalPartyService::class)->resolve(
+                    Company::withoutGlobalScopes()->findOrFail($locked->company_id),
+                );
+                if ((int) $party->party_id !== (int) $companyParty->id) {
                     $this->invalid('contract_party_id', __('Only the company legal party may use the authorized company signature.'));
                 }
                 $setting = CompanySetting::withoutGlobalScopes()->where('company_id', $locked->company_id)->first();

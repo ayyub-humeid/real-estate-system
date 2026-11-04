@@ -5,7 +5,7 @@ namespace Tests\Feature;
 use App\Enums\{ContractApprovalStatus, ContractStatus, ContractType, ContractVersionStatus, OpportunityType, ReservationSource, ReservationStatus};
 use App\Filament\Resources\{ContractResource, ContractTemplateResource};
 use App\Models\{Company, CompanySetting, Contract, ContractTemplate, ContractTemplateVersion, Document, DocumentVersion, Location, Party, Project, ProjectBuilding, ProjectBuildingFloor, ProjectPlannedUnit, Property, Unit, UnitReservation, User};
-use App\Services\{ContractDraftService, ContractPdfService, ContractTemplateService, ContractTemplateTokenService, ContractWorkflowService};
+use App\Services\{CompanyLegalPartyService, ContractDraftService, ContractPdfService, ContractTemplateService, ContractTemplateTokenService, ContractWorkflowService};
 use App\Support\ContractPdfContentLimits;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
@@ -96,6 +96,24 @@ class ContractFoundationTest extends TestCase
         $this->assertSame('Contract Customer', $options[$customer->id]);
         $this->assertArrayNotHasKey($inactive->id, $options);
         $this->assertArrayNotHasKey($foreign->id, $options);
+    }
+
+    public function test_company_legal_party_resolution_reuses_an_existing_company_party_without_duplication(): void
+    {
+        [$company] = $this->companyUserAndUnit('Existing legal party');
+        $existingParty = Party::create([
+            'company_id' => $company->id,
+            'type' => 'company',
+            'name' => $company->name,
+            'legal_name' => $company->name,
+            'is_active' => true,
+        ]);
+
+        $resolved = app(CompanyLegalPartyService::class)->resolve($company);
+
+        $this->assertSame($existingParty->id, $resolved->id);
+        $this->assertSame($existingParty->id, $company->fresh()->self_party_id);
+        $this->assertSame(1, Party::withoutGlobalScopes()->where('company_id', $company->id)->where('type', 'company')->count());
     }
 
     public function test_legacy_blade_echo_tokens_are_normalised_before_contract_pdf_rendering(): void

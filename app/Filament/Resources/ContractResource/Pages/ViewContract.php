@@ -4,7 +4,8 @@ namespace App\Filament\Resources\ContractResource\Pages;
 
 use App\Filament\Resources\ContractResource;
 use App\Enums\{ContractDocumentType, ContractVersionStatus};
-use App\Models\{ContractParty, ContractVersion, Document, DocumentVersion};
+use App\Models\{Company, ContractParty, ContractVersion, Document, DocumentVersion};
+use App\Services\CompanyLegalPartyService;
 use App\Services\ContractWorkflowService;
 use App\Services\ContractPdfService;
 use Filament\Actions;
@@ -171,13 +172,27 @@ class ViewContract extends ViewRecord
                         'tenant' => __('Tenant'),
                         'guarantor' => __('Guarantor'),
                     ];
+                    $parties = $version?->parties()->with('party')->get() ?? collect();
+                    $partyOptions = $parties->mapWithKeys(fn (ContractParty $party): array => [
+                        $party->id => ($roles[$party->role] ?? ($party->role ?: __('Party'))).' — '.($party->snapshot['name'] ?? $party->party?->name ?? '—'),
+                    ])->all();
+                    $company = Company::withoutGlobalScopes()->find($version?->company_id);
+                    $companyLegalPartyId = $company
+                        ? app(CompanyLegalPartyService::class)->resolve($company)->id
+                        : null;
+                    $companyContractPartyId = $parties
+                        ->first(fn (ContractParty $party): bool => (int) $party->party_id === (int) $companyLegalPartyId)
+                        ?->id;
+                    $companyPartyOptions = $companyContractPartyId && isset($partyOptions[$companyContractPartyId])
+                        ? [$companyContractPartyId => $partyOptions[$companyContractPartyId]]
+                        : [];
 
                     return [
                         Forms\Components\Select::make('contract_party_id')
                             ->label(__('Contract party'))
-                            ->options($version?->parties()->with('party')->get()->mapWithKeys(fn ($party): array => [
-                                $party->id => ($roles[$party->role] ?? ($party->role ?: __('Party'))).' — '.($party->snapshot['name'] ?? $party->party?->name ?? '—'),
-                            ])->all() ?? [])
+                            ->options(fn (Forms\Get $get): array => $get('signing_method') === 'company_authorized'
+                                ? $companyPartyOptions
+                                : $partyOptions)
                             ->required(),
                         Forms\Components\Select::make('document_version_id')
                 ->label(__('contract_domain.pdf.official'))
@@ -195,9 +210,10 @@ class ViewContract extends ViewRecord
                             ])
                             ->required()
                             ->live()
-                            ->afterStateUpdated(function ($state, Forms\Set $set): void {
+                            ->afterStateUpdated(function ($state, Forms\Set $set) use ($companyContractPartyId): void {
                                 if ($state === 'company_authorized') {
                                     $set('signature_image_path', null);
+                                    $set('contract_party_id', $companyContractPartyId);
                                 }
                             }),
                         Forms\Components\FileUpload::make('signature_image_path')
@@ -211,6 +227,12 @@ class ViewContract extends ViewRecord
                         Forms\Components\Placeholder::make('company_authorized_signature_notice')
                             ->label(__('Signature image'))
                             ->content(__('contract_domain.signing_methods.company_authorized_notice'))
+                            ->visible(fn (Forms\Get $get): bool => $get('signing_method') === 'company_authorized'),
+                        Forms\Components\Placeholder::make('company_authorized_party_notice')
+                            ->label(__('Contract party'))
+                            ->content($companyContractPartyId
+                                ? __('contract_domain.signing_methods.company_party_selected')
+                                : __('contract_domain.signing_methods.company_party_missing'))
                             ->visible(fn (Forms\Get $get): bool => $get('signing_method') === 'company_authorized'),
                         Forms\Components\Textarea::make('evidence.notes')->label(__('Signature evidence notes')),
                     ];
