@@ -8,6 +8,7 @@ use Filament\Forms;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Validation\ValidationException;
 
 class ScopeItemsRelationManager extends RelationManager
 {
@@ -44,7 +45,12 @@ class ScopeItemsRelationManager extends RelationManager
                     })
                     ->using(function (array $data, ProjectDesignPackage $ownerRecord): DesignPackageScopeItem {
                         $assignment = $ownerRecord->activeAssignment;
-                        abort_unless($assignment, 422, 'Assign an engineering office before adding scope items.');
+                        if (! $assignment) {
+                            throw ValidationException::withMessages([
+                                'assignment' => __('Assign an engineering office before adding scope items.'),
+                            ]);
+                        }
+
                         return app(DesignEngineeringService::class)->addScopeItem(auth()->user(), $assignment, $data);
                     }),
             ])
