@@ -169,6 +169,15 @@
         border: 1px solid rgba(148, 163, 184, .20) !important;
         box-shadow: 0 18px 42px rgba(0, 0, 0, .42) !important;
     }
+    /* Keep long searchable-option lists inside their own viewport. Without
+       this, scrolling a list such as Contract parties can leak into the form
+       page and make upward scrolling feel stuck or jumpy. */
+    html.dark .fi-fo-select .choices__list--dropdown .choices__list,
+    html.dark .fi-fo-select .choices__list[aria-expanded] .choices__list {
+        max-height: min(18rem, 45vh) !important;
+        overflow-y: auto !important;
+        overscroll-behavior: contain;
+    }
     html.dark .fi-fo-select .choices__list--dropdown .choices__input,
     html.dark .fi-fo-select .choices__list[aria-expanded] .choices__input {
         color: #f8fafc !important;
