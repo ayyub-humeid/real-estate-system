@@ -42,6 +42,9 @@ class ViewContract extends ViewRecord
     protected function getHeaderActions(): array
     {
         $latest = fn (): ?ContractVersion => $this->record->versions()->latest('version_number')->first();
+        $hasOfficialPdf = fn (?ContractVersion $version): bool => $version?->documents()
+            ->where('document_type', ContractDocumentType::OfficialApprovedPdf->value)
+            ->exists() ?? false;
         $run = function (callable $callback, string $successTitle, ?string $failureTitle = null): void {
             try {
                 $callback();
@@ -154,8 +157,9 @@ class ViewContract extends ViewRecord
                 ->label(__('Record signature'))
                 ->icon('heroicon-o-pencil-square')
                 ->visible(fn (): bool => $latest()?->status === ContractVersionStatus::Approved
-                    && $latest()?->documents()->where('document_type', ContractDocumentType::OfficialApprovedPdf->value)->exists()
                     && auth()->user()->can('record_contract_signature'))
+                ->disabled(fn (): bool => ! $hasOfficialPdf($latest()))
+                ->tooltip(fn (): ?string => $hasOfficialPdf($latest()) ? null : __('contract_domain.pdf.official_required'))
                 ->modalHeading(__('Record party signature'))
                 ->modalSubmitActionLabel(__('Record signature'))
                 ->form(function () use ($latest): array {
