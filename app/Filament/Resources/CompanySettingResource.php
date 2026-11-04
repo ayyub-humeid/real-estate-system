@@ -32,7 +32,13 @@ class CompanySettingResource extends Resource
                             ->image()
                             ->directory('company-settings/logos')
                             ->imageEditor()
-                            ->maxSize(2048),
+                            ->imageResizeTargetWidth('800')
+                            ->imageResizeTargetHeight('400')
+                            ->imageResizeMode('contain')
+                            ->imageResizeUpscale(false)
+                            ->rules(['dimensions:max_width=4000,max_height=4000'])
+                            ->maxSize(2048)
+                            ->helperText(__('Displayed on draft previews and issued contract PDFs. Upload a PNG or JPG no larger than 2 MB and 4000×4000 pixels.')),
 
                         Forms\Components\FileUpload::make('contract_background')
                             ->label(__('Contract Background Image'))
@@ -50,15 +56,26 @@ class CompanySettingResource extends Resource
                             ->image()
                             ->directory('company-settings/signatures')
                             ->imageEditor()
+                            ->imageResizeTargetWidth('800')
+                            ->imageResizeTargetHeight('300')
+                            ->imageResizeMode('contain')
+                            ->imageResizeUpscale(false)
+                            ->rules(['dimensions:max_width=3000,max_height=1500'])
                             ->maxSize(1024)
-                            ->helperText(__('Used only when an authorized company signature is explicitly recorded.')),
+                            ->helperText(__('Used only when an authorized company signature is explicitly recorded. Upload a PNG or JPG no larger than 1 MB and 3000×1500 pixels.')),
 
                         Forms\Components\FileUpload::make('contract_stamp')
                             ->label(__('Company Contract Stamp'))
                             ->image()
                             ->directory('company-settings/stamps')
                             ->imageEditor()
+                            ->imageResizeTargetWidth('800')
+                            ->imageResizeTargetHeight('800')
+                            ->imageResizeMode('contain')
+                            ->imageResizeUpscale(false)
+                            ->rules(['dimensions:max_width=3000,max_height=3000'])
                             ->maxSize(1024)
+                            ->helperText(__('Upload a PNG or JPG no larger than 1 MB and 3000×3000 pixels.'))
                             ->visible(fn (Forms\Get $get): bool => (bool) $get('show_contract_stamp')),
                     ])
                     ->columns(3)

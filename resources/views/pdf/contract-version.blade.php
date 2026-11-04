@@ -42,6 +42,17 @@
             max-height: 48px;
         }
 
+        .logo-fallback {
+            width: 44px;
+            height: 44px;
+            line-height: 44px;
+            text-align: center;
+            border: 1px solid {{ $settings?->contract_header_color ?? '#b7843b' }};
+            color: {{ $settings?->contract_header_color ?? '#b7843b' }};
+            font-size: 17pt;
+            font-weight: bold;
+        }
+
         .company {
             font-size: 14pt;
             font-weight: bold;
@@ -51,6 +62,13 @@
         .reference {
             color: #6b7280;
             font-size: 8.5pt;
+        }
+
+        .company-meta {
+            color: #64748b;
+            font-size: 7.5pt;
+            margin-top: 2px;
+            line-height: 1.45;
         }
 
         .contract-kind {
@@ -203,18 +221,38 @@
     @if ($draft)
         <div class="watermark">{{ __('Draft') }} / مسودة</div>
     @endif
+    @php
+        $companyName = $settings?->company_legal_name ?: $contract->company?->name;
+        $companyInitial = \Illuminate\Support\Str::substr($companyName ?: 'M', 0, 1);
+        $companyContact = collect([
+            $settings?->company_address,
+            $settings?->company_phone,
+            $settings?->company_email,
+            $settings?->website,
+        ])->filter()->implode(' · ');
+        $companyRegistration = collect([
+            $settings?->registration_number ? __('Commercial Registration').': '.$settings->registration_number : null,
+            $settings?->tax_id ? __('Tax ID / VAT Number').': '.$settings->tax_id : null,
+        ])->filter()->implode(' · ');
+    @endphp
     <table class="header">
         <tr>
             <td style="width:18%">
                 @if ($images['logo'] ?? null)
                     <img class="logo" src="{{ $images['logo'] }}" alt="">
                 @else
-                    &nbsp;
+                    <div class="logo-fallback">{{ $companyInitial }}</div>
                 @endif
             </td>
             <td style="width:82%">
-                <div class="company">{{ $settings?->company_legal_name ?: $contract->company?->name }}</div>
+                <div class="company">{{ $companyName }}</div>
                 <div class="reference">{{ $contract->contract_number }} · V{{ $contractVersion->version_number }}</div>
+                @if ($companyContact)
+                    <div class="company-meta">{{ $companyContact }}</div>
+                @endif
+                @if ($companyRegistration)
+                    <div class="company-meta">{{ $companyRegistration }}</div>
+                @endif
             </td>
         </tr>
     </table>
@@ -284,6 +322,9 @@
                         </span>
                         @if ($images['signature_' . $signature->id] ?? null)
                             <br><img src="{{ $images['signature_' . $signature->id] }}" alt="">
+                        @endif
+                        @if ($signature->signing_method === 'company_authorized' && ($images['stamp_' . $signature->id] ?? null))
+                            <br><img src="{{ $images['stamp_' . $signature->id] }}" alt="">
                         @endif
                     </td>
                 @endforeach

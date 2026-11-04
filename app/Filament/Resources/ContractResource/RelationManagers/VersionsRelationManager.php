@@ -5,6 +5,7 @@ namespace App\Filament\Resources\ContractResource\RelationManagers;
 use App\Enums\ContractVersionStatus;
 use App\Models\{ContractTemplateVersion, ContractVersion, Party};
 use App\Services\ContractDraftService;
+use App\Support\ContractPdfContentLimits;
 use Filament\Forms;
 use Filament\Infolists;
 use Filament\Notifications\Notification;
@@ -216,10 +217,14 @@ class VersionsRelationManager extends RelationManager
                         ->options(['clause' => __('Clause'), 'commercial' => __('Commercial term'), 'legal' => __('Legal term')])
                         ->default('clause')->required(),
                     Forms\Components\TextInput::make('title')->label(__('Term title'))->required(),
-                    Forms\Components\Textarea::make('text')->label(__('Term text'))->columnSpanFull(),
+                    Forms\Components\Textarea::make('text')
+                        ->label(__('Term text'))
+                        ->maxLength(ContractPdfContentLimits::TERM_TEXT_MAX_CHARACTERS)
+                        ->columnSpanFull(),
                 ])
                 ->columns(2)
                 ->defaultItems(1)
+                ->maxItems(ContractPdfContentLimits::TERMS_MAX_COUNT)
                 ->addActionLabel(__('Add term')),
         ];
     }

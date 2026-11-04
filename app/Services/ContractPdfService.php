@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\{ContractDocumentType, ContractVersionStatus};
 use App\Models\{CompanySetting, ContractSignature, ContractVersion, Document, DocumentVersion, User};
+use App\Support\ContractPdfContentLimits;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -115,6 +116,7 @@ class ContractPdfService
 
         $settings = CompanySetting::withoutGlobalScopes()->where('company_id', $version->company_id)->first();
         $body = $this->replacePlaceholders($version->templateVersion->body, $version);
+        $this->assertRenderableContent($version, $body);
         $contractSummary = $this->summary($version);
 
         $temporaryDirectory = storage_path('app/mpdf');
@@ -147,7 +149,7 @@ class ContractPdfService
             $pdf->showWatermarkImage = true;
         }
 
-        $pdf->WriteHTML(view('pdf.contract-version', [
+        $html = view('pdf.contract-version', [
             'contractVersion' => $version,
             'contract' => $version->contract,
             'settings' => $settings,
@@ -156,7 +158,14 @@ class ContractPdfService
             'draft' => $draft,
             'signatures' => $signatures,
             'images' => $this->images($settings, $signatures),
-        ])->render());
+        ])->render();
+
+        try {
+            $pdf->WriteHTML($html);
+        } catch (\Mpdf\MpdfException $exception) {
+            report($exception);
+            $this->invalid('pdf', __('contract_domain.content.too_complex'));
+        }
 
         return $pdf->Output('', Destination::STRING_RETURN);
     }
@@ -192,6 +201,14 @@ class ContractPdfService
         ];
 
         return strtr($body ?: '<h1>{{contract_number}}</h1><p>{{parties}}</p>{{terms}}', $values);
+    }
+
+    private function assertRenderableContent(ContractVersion $version, string $body): void
+    {
+        $termsLength = $version->terms->sum(fn ($term): int => mb_strlen((string) $term->title) + mb_strlen((string) $term->text));
+        if ((mb_strlen($body) + $termsLength) > ContractPdfContentLimits::RENDERED_CONTENT_MAX_CHARACTERS) {
+            $this->invalid('pdf', __('contract_domain.content.too_complex'));
+        }
     }
 
     /** @return array{unit:string,property:string,project:string} */
@@ -242,26 +259,72 @@ class ContractPdfService
     private function images(?CompanySetting $settings, array $signatures): array
     {
         $paths = [
-            'logo' => $settings?->logo,
-            'company_signature' => $settings?->contract_signature,
-            'stamp' => $settings?->show_contract_stamp ? $settings?->contract_stamp : null,
+            'logo' => [$settings?->logo, 800, 400],
         ];
         foreach ($signatures as $signature) {
-            $paths['signature_'.$signature->id] = $signature->signature_image_path;
+            $paths['signature_'.$signature->id] = [$signature->signature_image_path, 800, 300];
+            $paths['stamp_'.$signature->id] = [
+                $signature->signing_method === 'company_authorized'
+                    ? data_get($signature->evidence, 'company_stamp_snapshot')
+                    : null,
+                800,
+                800,
+            ];
         }
 
-        return collect($paths)->map(fn ($path) => $this->dataUri($path))->all();
+        return collect($paths)->map(fn (array $image) => $this->localImageUri(...$image))->all();
     }
 
-    private function dataUri(?string $path): ?string
+    /**
+     * mPDF parses inline Base64 image strings as part of the document HTML.
+     * A small-but-dense logo can exceed its PCRE backtrack limit, so external
+     * storage images are always normalized to a bounded local PNG first.
+     */
+    private function localImageUri(?string $path, int $maxWidth, int $maxHeight): ?string
     {
         if (! $path || ! Storage::disk(config('filesystems.default'))->exists($path)) {
             return null;
         }
-        $disk = Storage::disk(config('filesystems.default'));
-        $mime = $disk->mimeType($path) ?: 'image/png';
 
-        return 'data:'.$mime.';base64,'.base64_encode($disk->get($path));
+        $disk = Storage::disk(config('filesystems.default'));
+        $contents = $disk->get($path);
+        $dimensions = @getimagesizefromstring($contents);
+        if (! $dimensions || ! function_exists('imagecreatefromstring')) {
+            return null;
+        }
+
+        [$width, $height] = $dimensions;
+        if (($width * $height) > 16_000_000) {
+            return null;
+        }
+        $source = @imagecreatefromstring($contents);
+        if (! $source) {
+            return null;
+        }
+
+        $scale = min($maxWidth / $width, $maxHeight / $height, 1);
+        $targetWidth = max(1, (int) round($width * $scale));
+        $targetHeight = max(1, (int) round($height * $scale));
+        $target = imagecreatetruecolor($targetWidth, $targetHeight);
+        imagealphablending($target, false);
+        imagesavealpha($target, true);
+        imagefill($target, 0, 0, imagecolorallocatealpha($target, 255, 255, 255, 127));
+        imagecopyresampled($target, $source, 0, 0, 0, 0, $targetWidth, $targetHeight, $width, $height);
+
+        $directory = storage_path('app/mpdf/images');
+        if (! is_dir($directory)) {
+            mkdir($directory, 0775, true);
+        }
+        $cachedPath = $directory.DIRECTORY_SEPARATOR.hash('sha256', $contents."|{$maxWidth}x{$maxHeight}").'.png';
+        if (! is_file($cachedPath)) {
+            imagepng($target, $cachedPath, 6);
+        }
+        imagedestroy($source);
+        imagedestroy($target);
+
+        return is_file($cachedPath)
+            ? 'file:///'.ltrim(str_replace('\\', '/', $cachedPath), '/')
+            : null;
     }
 
     /**

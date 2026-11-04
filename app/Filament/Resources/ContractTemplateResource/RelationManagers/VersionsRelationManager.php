@@ -6,6 +6,7 @@ use Filament\Forms;
 use App\Models\ContractTemplateVersion;
 use App\Services\ContractTemplateService;
 use App\Services\ContractTemplateTokenService;
+use App\Support\ContractPdfContentLimits;
 use Filament\Infolists;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
@@ -54,10 +55,12 @@ class VersionsRelationManager extends RelationManager
                                 Forms\Components\RichEditor::make('body')
                                     ->label(__('Legal template text'))
                                     ->required()
+                                    ->maxLength(ContractPdfContentLimits::TEMPLATE_BODY_MAX_CHARACTERS)
+                                    ->helperText(__('Use the buttons below to insert contract information where your cursor is. Contract terms are printed automatically below this text.'))
+                                    ->hint(__('contract_domain.content.max_template_hint', ['limit' => number_format(ContractPdfContentLimits::TEMPLATE_BODY_MAX_CHARACTERS)]))
                                     ->toolbarButtons([
                                         'bold', 'italic', 'underline', 'strike', 'bulletList', 'orderedList', 'h2', 'h3', 'undo', 'redo',
                                     ])
-                                    ->helperText(__('Use the buttons below to insert contract information where your cursor is. Contract terms are printed automatically below this text.'))
                                     ->extraAlpineAttributes([
                                         'x-on:contract-template-insert-variable.window' => '
                                             const token = $event.detail?.token
@@ -91,12 +94,15 @@ class VersionsRelationManager extends RelationManager
                             ->label(__('Template clauses'))
                             ->schema([
                                 Forms\Components\TextInput::make('title')->label(__('Term title'))->required(),
-                                Forms\Components\Textarea::make('text')->label(__('Term text')),
+                                Forms\Components\Textarea::make('text')
+                                    ->label(__('Term text'))
+                                    ->maxLength(ContractPdfContentLimits::TERM_TEXT_MAX_CHARACTERS),
                                 Forms\Components\Select::make('type')->label(__('Term type'))
                                     ->options(['clause' => __('Clause'), 'commercial' => __('Commercial term'), 'legal' => __('Legal term')])
                                     ->default('clause'),
                             ])
                             ->columns(2)
+                            ->maxItems(ContractPdfContentLimits::TERMS_MAX_COUNT)
                             ->addActionLabel(__('Add clause'))
                             ->columnSpanFull(),
                             ])

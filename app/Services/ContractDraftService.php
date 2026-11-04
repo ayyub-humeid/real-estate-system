@@ -18,6 +18,7 @@ use App\Models\{
     UnitReservation,
     User,
 };
+use App\Support\ContractPdfContentLimits;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -314,6 +315,22 @@ class ContractDraftService
 
     private function appendTerms(ContractVersion $version, array $terms, int $companyId): void
     {
+        if (count($terms) > ContractPdfContentLimits::TERMS_MAX_COUNT) {
+            $this->invalid('terms', __('contract_domain.content.too_many_terms', ['limit' => ContractPdfContentLimits::TERMS_MAX_COUNT]));
+        }
+
+        $totalLength = 0;
+        foreach (array_values($terms) as $index => $term) {
+            $length = mb_strlen((string) ($term['text'] ?? ''));
+            if ($length > ContractPdfContentLimits::TERM_TEXT_MAX_CHARACTERS) {
+                $this->invalid("terms.{$index}.text", __('contract_domain.content.term_too_large', ['limit' => number_format(ContractPdfContentLimits::TERM_TEXT_MAX_CHARACTERS)]));
+            }
+            $totalLength += $length;
+        }
+        if ($totalLength > ContractPdfContentLimits::TERMS_TOTAL_MAX_CHARACTERS) {
+            $this->invalid('terms', __('contract_domain.content.terms_too_large', ['limit' => number_format(ContractPdfContentLimits::TERMS_TOTAL_MAX_CHARACTERS)]));
+        }
+
         $offset = (int) $version->terms()->max('position');
         foreach (array_values($terms) as $index => $term) {
             $title = trim((string) ($term['title'] ?? ''));
