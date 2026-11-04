@@ -25,6 +25,19 @@ return [
         'draft' => 'Draft',
         'effective' => 'Effective',
     ],
+    'signing_methods' => [
+        'manual' => 'Manual signature',
+        'electronic' => 'Electronic evidence',
+        'company_authorized' => 'Authorized company signature',
+    ],
+    'content' => [
+        'max_template_hint' => 'Maximum :limit characters for reliable PDF generation.',
+        'template_too_large' => 'The legal template text is too long. Keep it under :limit characters.',
+        'term_too_large' => 'Each contract term must be no longer than :limit characters.',
+        'too_many_terms' => 'A contract can contain up to :limit terms.',
+        'terms_too_large' => 'The combined contract terms must stay under :limit characters.',
+        'too_complex' => 'The contract content is too large or complex to generate safely. Shorten the legal text or terms, then try again.',
+    ],
     'history_actions' => [
         'created' => 'Contract created',
         'submitted' => 'Submitted for review',

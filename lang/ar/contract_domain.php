@@ -25,6 +25,19 @@ return [
         'draft' => 'مسودة',
         'effective' => 'نافذ',
     ],
+    'signing_methods' => [
+        'manual' => 'توقيع يدوي',
+        'electronic' => 'إثبات إلكتروني',
+        'company_authorized' => 'توقيع الشركة المعتمد',
+    ],
+    'content' => [
+        'max_template_hint' => 'الحد الأقصى :limit حرفًا لضمان إصدار PDF بشكل موثوق.',
+        'template_too_large' => 'النص القانوني للقالب طويل جدًا. اجعله أقل من :limit حرفًا.',
+        'term_too_large' => 'يجب ألا يتجاوز كل بند من بنود العقد :limit حرفًا.',
+        'too_many_terms' => 'يمكن أن يحتوي العقد على :limit بندًا كحد أقصى.',
+        'terms_too_large' => 'يجب أن يبقى مجموع نصوص بنود العقد أقل من :limit حرفًا.',
+        'too_complex' => 'محتوى العقد كبير أو معقد جدًا لإصدار PDF بأمان. اختصر النص القانوني أو البنود ثم حاول مجددًا.',
+    ],
     'history_actions' => [
         'created' => 'تم إنشاء العقد',
         'submitted' => 'تم الإرسال للمراجعة',
