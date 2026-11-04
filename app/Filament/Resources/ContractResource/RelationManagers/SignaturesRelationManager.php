@@ -33,12 +33,15 @@ class SignaturesRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table->columns([
-            Tables\Columns\TextColumn::make('version.version_number')->label(__('Version'))->prefix('V'),
-            Tables\Columns\TextColumn::make('party.snapshot.name')->label(__('Party'))->placeholder('—'),
-            Tables\Columns\TextColumn::make('signatory_name')->label(__('Signatory name')),
+            Tables\Columns\TextColumn::make('version.version_number')
+                ->label(__('Version'))->prefix('V'),
+            Tables\Columns\TextColumn::make('party.snapshot.name')
+                ->label(__('Party'))->placeholder('—'),
+            Tables\Columns\TextColumn::make('signatory_name')
+                ->label(__('Signatory name')),
             Tables\Columns\TextColumn::make('signing_method')
                 ->label(__('Signing method'))
-                ->formatStateUsing(fn ($state): string => match ($state) {
+                ->formatStateUsing(fn($state): string => match ($state) {
                     'manual' => __('Manual signature'),
                     'electronic' => __('Electronic evidence'),
                     default => (string) $state,

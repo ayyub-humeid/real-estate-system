@@ -53,4 +53,10 @@ class ContractVersionPolicy
     {
         return $record->status === ContractVersionStatus::Approved && $this->canForRecord($user, 'record_contract_signature', $record);
     }
+
+    public function generatePdf(User $user, ContractVersion $record): bool
+    {
+        return in_array($record->status, [ContractVersionStatus::Approved, ContractVersionStatus::Signed], true)
+            && $this->canForRecord($user, 'generate_contract_pdf', $record);
+    }
 }

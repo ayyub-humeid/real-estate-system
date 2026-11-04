@@ -12,4 +12,28 @@ class ContractTemplateVersion extends Model
     {
         return $this->belongsTo(ContractTemplate::class, 'contract_template_id');
     }
+
+    protected static function booted(): void
+    {
+        static::updating(function (self $version): void {
+            if ($version->isDirty(['body', 'clauses']) && $version->contractVersions()->withoutGlobalScopes()->exists()) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'template_version' => __('A template version already used by a contract cannot be changed.'),
+                ]);
+            }
+        });
+
+        static::deleting(function (self $version): void {
+            if ($version->contractVersions()->withoutGlobalScopes()->exists()) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'template_version' => __('A template version used by a contract cannot be deleted.'),
+                ]);
+            }
+        });
+    }
+
+    public function contractVersions(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(ContractVersion::class, 'template_version_id');
+    }
 }

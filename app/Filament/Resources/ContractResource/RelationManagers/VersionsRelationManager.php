@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\ContractResource\RelationManagers;
 
 use App\Enums\ContractVersionStatus;
-use App\Models\{ContractVersion, Party};
+use App\Models\{ContractTemplateVersion, ContractVersion, Party};
 use App\Services\ContractDraftService;
 use Filament\Forms;
 use Filament\Infolists;
@@ -123,6 +123,7 @@ class VersionsRelationManager extends RelationManager
                     ->fillForm(fn (ContractVersion $record): array => [
                         'total_amount' => $record->total_amount,
                         'currency' => $record->currency,
+                        'template_version_id' => $record->template_version_id,
                         'start_date' => $record->start_date,
                         'end_date' => $record->end_date,
                         'delivery_date' => $record->delivery_date,
@@ -137,7 +138,7 @@ class VersionsRelationManager extends RelationManager
                             'text' => $term->text,
                         ])->all(),
                     ])
-                    ->form(fn (): array => $this->draftForm())
+                    ->form(fn (ContractVersion $record): array => $this->draftForm($record))
                     ->action(function (ContractVersion $record, array $data): void {
                         try {
                             app(ContractDraftService::class)->updateDraft(auth()->user(), $record, $data);
@@ -154,13 +155,32 @@ class VersionsRelationManager extends RelationManager
             ]);
     }
 
-    private function draftForm(): array
+    private function draftForm(ContractVersion $record): array
     {
         $companyId = $this->getOwnerRecord()->company_id;
 
         return [
-            Forms\Components\TextInput::make('total_amount')->label(__('Total amount'))->numeric()->minValue(0),
-            Forms\Components\TextInput::make('currency')->label(__('Currency'))->length(3),
+            Forms\Components\Select::make('template_version_id')
+                ->label(__('Template version'))
+                ->options(fn (): array => ContractTemplateVersion::withoutGlobalScopes()
+                    ->with('template:id,name')
+                    ->where('company_id', $companyId)
+                    ->whereHas('template', fn ($query) => $query
+                        ->where('is_active', true)
+                        ->where('contract_type', $this->getOwnerRecord()->contract_type->value))
+                    ->orderByDesc('id')
+                    ->get()
+                    ->mapWithKeys(fn (ContractTemplateVersion $version): array => [
+                        $version->id => ($version->template?->name ?? __('Template')).' — V'.$version->version_number,
+                    ])->all())
+                ->searchable()
+                ->preload()
+                ->required()
+                ->helperText($record->template_version_id
+                    ? __('You may change the template while this version is a draft. Existing contract terms are preserved to avoid losing deal-specific edits.')
+                    : __('Select the matching legal template. Its default terms will be added to this legacy draft.')),
+            Forms\Components\TextInput::make('total_amount')->label(__('Total amount'))->numeric()->minValue(0)->required(),
+            Forms\Components\TextInput::make('currency')->label(__('Currency'))->length(3)->required()->dehydrateStateUsing(fn (?string $state): ?string => $state ? strtoupper($state) : null),
             Forms\Components\DatePicker::make('start_date')->label(__('Start date')),
             Forms\Components\DatePicker::make('end_date')->label(__('End date')),
             Forms\Components\DatePicker::make('delivery_date')->label(__('Delivery date')),

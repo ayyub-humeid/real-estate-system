@@ -3,6 +3,7 @@
 
 namespace App\Models;
 
+use App\Enums\ContractDocumentType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
@@ -18,10 +19,13 @@ class Document extends Model
     protected $fillable = [
         'documentable_id',
         'documentable_type',
+        'document_type',
         'title',
         'description',
         'created_by',
     ];
+
+    protected $casts = ['document_type' => ContractDocumentType::class];
 
     // Relationships
     public function documentable(): MorphTo
@@ -49,7 +53,8 @@ class Document extends Model
         static::deleting(function ($document) {
             // A formal design submission pins exact document versions. Deleting
             // their logical parent would silently destroy auditable history.
-            if ($document->versions()->withoutGlobalScopes()
+            if (in_array($document->document_type, [ContractDocumentType::OfficialApprovedPdf, ContractDocumentType::SignedFinalPdf], true)
+                || $document->versions()->withoutGlobalScopes()
                 ->where(function ($query): void {
                     $query->whereHas('submissionDocuments')->orWhereHas('contractSignatures');
                 })->exists()) {

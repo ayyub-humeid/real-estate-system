@@ -7,7 +7,7 @@ All images are passed as base64 data URIs via $imageData[].
 --}}
 @php
     // ── Resolve dynamic values ──
-    $headerColor = $settings->lease_header_color ?? '#1a237e';
+    $headerColor = $settings->contract_header_color ?? '#1a237e';
     $headerColorRgb = $headerColor; // direct hex for DomPDF
     $companyName = $settings->company_legal_name ?? $lease->company->name ?? 'Property Management Company';
     $companyAddr = $settings->company_address ?? $lease->company->address ?? '';
@@ -84,8 +84,8 @@ All images are passed as base64 data URIs via $imageData[].
     $contractNo = '#' . str_pad($lease->id, 6, '0', STR_PAD_LEFT);
 
     // Terms
-    $leaseTerms = $settings->lease_terms ?? null;
-    $footerText = $settings->lease_footer_text ?? null;
+    $leaseTerms = $settings->contract_terms ?? null;
+    $footerText = $settings->contract_footer_text ?? null;
     $specialTerms = $lease->special_terms ?? null;
     $notes = $lease->notes ?? null;
 
@@ -605,9 +605,9 @@ All images are passed as base64 data URIs via $imageData[].
     <div class="page">
 
         {{-- ── Background watermark ── --}}
-        @if($imageData['lease_background'] ?? null)
+        @if($imageData['contract_background'] ?? null)
             <div class="bg-watermark">
-                <img src="{{ $imageData['lease_background'] }}" alt="">
+                <img src="{{ $imageData['contract_background'] }}" alt="">
             </div>
         @endif
 
@@ -878,8 +878,8 @@ All images are passed as base64 data URIs via $imageData[].
                             <div class="sig-role">Landlord / Property Manager</div>
                             <div class="sig-name">{{ $companyName }}</div>
                             <div class="sig-line">
-                                @if($imageData['signature'] ?? null)
-                                    <img src="{{ $imageData['signature'] }}" alt="Signature">
+                                @if($imageData['contract_signature'] ?? null)
+                                    <img src="{{ $imageData['contract_signature'] }}" alt="Signature">
                                 @endif
                             </div>
                             <div class="sig-date">Date: {{ $issueDate }}</div>
@@ -901,9 +901,9 @@ All images are passed as base64 data URIs via $imageData[].
             </table>
 
             {{-- ── Company Stamp ── --}}
-            @if($settings->show_company_stamp && ($imageData['logo'] ?? null))
+            @if($settings->show_contract_stamp && ($imageData['contract_stamp'] ?? null))
                 <div class="stamp-area">
-                    <img src="{{ $imageData['logo'] }}" alt="Company Stamp">
+                    <img src="{{ $imageData['contract_stamp'] }}" alt="Company Stamp">
                 </div>
             @endif
 

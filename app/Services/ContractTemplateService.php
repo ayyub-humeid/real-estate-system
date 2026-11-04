@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\{ContractTemplate, ContractTemplateVersion, User};
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class ContractTemplateService
 {
@@ -28,11 +29,19 @@ class ContractTemplateService
                 ->where('contract_template_id', $locked->id)
                 ->max('version_number')) + 1;
 
+            if (blank(trim(strip_tags((string) ($attributes['body'] ?? ''))))) {
+                throw ValidationException::withMessages([
+                    'body' => __('Enter the legal text that should appear in this contract template.'),
+                ]);
+            }
+
             return ContractTemplateVersion::withoutGlobalScopes()->create([
                 'company_id' => $locked->company_id,
                 'contract_template_id' => $locked->id,
                 'version_number' => $number,
-                'body' => $attributes['body'] ?? null,
+                // Blade may compile literal {{...}} text in a PHP source file
+                // into an echo expression. Persist only our stable token syntax.
+                'body' => ContractTemplateTokenService::normalise($attributes['body'] ?? null),
                 'clauses' => $attributes['clauses'] ?? null,
                 'created_by' => $actor->id,
             ]);

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\ContractResource\RelationManagers;
 
 use App\Enums\ContractVersionStatus;
+use App\Enums\ContractDocumentType;
 use App\Models\Document;
 use App\Services\ContractWorkflowService;
 use Filament\Forms;
@@ -39,6 +40,11 @@ class DocumentsRelationManager extends RelationManager
     {
         return $table
             ->columns([
+                Tables\Columns\TextColumn::make('document_type')
+                    ->label(__('Document type'))
+                    ->badge()
+                    ->formatStateUsing(fn ($state): string => ($state instanceof ContractDocumentType ? $state : ContractDocumentType::tryFrom((string) $state) ?? ContractDocumentType::Supporting)->getLabel())
+                    ->color(fn ($state): string => ($state instanceof ContractDocumentType ? $state : ContractDocumentType::tryFrom((string) $state) ?? ContractDocumentType::Supporting)->color()),
                 Tables\Columns\TextColumn::make('title')
                     ->label(__('Document title'))
                     ->searchable()

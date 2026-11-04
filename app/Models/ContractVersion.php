@@ -1,6 +1,7 @@
 <?php
 namespace App\Models;
 use App\Enums\ContractVersionStatus;
+use App\Enums\ContractDocumentType;
 use App\Traits\HasCompany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\{BelongsTo, HasMany, MorphMany};
@@ -13,6 +14,10 @@ class ContractVersion extends Model
     {
         return $this->belongsTo(Contract::class);
     }
+    public function templateVersion(): BelongsTo
+    {
+        return $this->belongsTo(ContractTemplateVersion::class, 'template_version_id');
+    }
     public function parties(): HasMany
     {
         return $this->hasMany(ContractParty::class);
@@ -24,4 +29,6 @@ class ContractVersion extends Model
     public function approvals(): HasMany { return $this->hasMany(ContractApproval::class); }
     public function signatures(): HasMany { return $this->hasMany(ContractSignature::class); }
     public function documents(): MorphMany { return $this->morphMany(Document::class, 'documentable'); }
+    public function officialPdf(): MorphMany { return $this->documents()->where('document_type', ContractDocumentType::OfficialApprovedPdf->value); }
+    public function signedFinalPdf(): MorphMany { return $this->documents()->where('document_type', ContractDocumentType::SignedFinalPdf->value); }
 }

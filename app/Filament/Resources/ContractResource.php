@@ -62,7 +62,8 @@ class ContractResource extends Resource
                 ->label(__('Contract type'))
                 ->options(ContractType::options())
                 ->required()
-                ->live(),
+                ->live()
+                ->afterStateUpdated(fn (Set $set) => $set('template_version_id', null)),
             Forms\Components\Select::make('reservation_id')
                 ->label(__('Source reservation'))
                 ->options(fn (Get $get): array => UnitReservation::withoutGlobalScopes()
@@ -88,9 +89,11 @@ class ContractResource extends Resource
                         $set('property_id', $reservation->unit->property_id);
                         $set('project_id', $reservation->unit->project_id);
                         $set('planned_unit_id', $reservation->unit->planned_unit_id);
+                        $set('total_amount', $reservation->agreed_amount);
+                        $set('currency', $reservation->currency);
                     }
                 })
-                ->helperText(__('Optional. A reservation supplies its actual unit and commercial snapshot.')),
+                ->helperText(__('An active reservation supplies its actual unit, agreed amount, and currency.')),
             Forms\Components\Select::make('property_id')
                 ->label(__('Property'))
                 ->options(fn (Get $get): array => Property::withoutGlobalScopes()
@@ -160,6 +163,9 @@ class ContractResource extends Resource
                 ->options(fn (Get $get): array => ContractTemplateVersion::withoutGlobalScopes()
                     ->with('template:id,name')
                     ->where('company_id', self::formCompanyId($get))
+                    ->whereHas('template', fn (Builder $query) => $query
+                        ->where('is_active', true)
+                        ->where('contract_type', $get('contract_type')))
                     ->orderByDesc('id')
                     ->get()
                     ->mapWithKeys(fn (ContractTemplateVersion $version): array => [
@@ -167,15 +173,21 @@ class ContractResource extends Resource
                     ])->all())
                 ->searchable()
                 ->preload()
-                ->disabled(fn (Get $get): bool => ! self::formCompanyId($get)),
+                ->required()
+                ->disabled(fn (Get $get): bool => ! self::formCompanyId($get) || ! $get('contract_type'))
+                ->helperText(__('Only active template versions matching this contract type are available.')),
             Forms\Components\TextInput::make('total_amount')
                 ->label(__('Total amount'))
                 ->numeric()
-                ->minValue(0),
+                ->minValue(0)
+                ->required()
+                ->helperText(__('Filled automatically from the selected reservation when available.')),
             Forms\Components\TextInput::make('currency')
                 ->label(__('Currency'))
                 ->default('USD')
-                ->length(3),
+                ->length(3)
+                ->required()
+                ->dehydrateStateUsing(fn (?string $state): ?string => $state ? strtoupper($state) : null),
             Forms\Components\DatePicker::make('start_date')->label(__('Start date')),
             Forms\Components\DatePicker::make('end_date')->label(__('End date')),
             Forms\Components\DatePicker::make('delivery_date')->label(__('Delivery date')),

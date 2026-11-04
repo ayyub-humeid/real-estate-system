@@ -9,6 +9,17 @@ class ContractTemplate extends Model
     use HasCompany;
     protected $fillable = ['company_id', 'name', 'contract_type', 'is_active'];
     protected $casts = ['contract_type' => ContractType::class, 'is_active' => 'boolean'];
+
+    protected static function booted(): void
+    {
+        static::deleting(function (self $template): void {
+            if ($template->versions()->withoutGlobalScopes()->whereHas('contractVersions', fn ($query) => $query->withoutGlobalScopes())->exists()) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'contract_template' => __('A template with versions used by contracts cannot be deleted.'),
+                ]);
+            }
+        });
+    }
     public function versions(): HasMany
     {
         return $this->hasMany(ContractTemplateVersion::class);

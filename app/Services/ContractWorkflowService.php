@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\{
     ContractAmendmentStatus,
+    ContractDocumentType,
     ContractApprovalStatus,
     ContractStatus,
     ContractType,
@@ -13,10 +14,13 @@ use App\Models\{
     Contract,
     ContractAmendment,
     ContractApproval,
+    CompanySetting,
+    Company,
     ContractParty,
     ContractSignature,
     ContractStatusHistory,
     ContractTerm,
+    ContractTemplateVersion,
     ContractVersion,
     Document,
     DocumentVersion,
@@ -46,6 +50,19 @@ class ContractWorkflowService
             }
             if (! $locked->terms()->exists()) {
                 $this->invalid('terms', __('Add at least one contract term before submission.'));
+            }
+            if (! $locked->template_version_id) {
+                $this->invalid('template_version_id', __('Select a legal template version before sending this contract for review.'));
+            }
+            if ($locked->total_amount === null || blank($locked->currency)) {
+                $this->invalid('total_amount', __('Enter the agreed amount and currency before sending this contract for review.'));
+            }
+            $templateVersion = ContractTemplateVersion::withoutGlobalScopes()->with('template')->find($locked->template_version_id);
+            if (! $templateVersion
+                || (int) $templateVersion->company_id !== (int) $locked->company_id
+                || ! $templateVersion->template?->is_active
+                || $templateVersion->template->contract_type !== $locked->contract->contract_type) {
+                $this->invalid('template_version_id', __('The selected legal template is not valid for this contract type.'));
             }
             $this->assertVersionDates($locked);
 
@@ -107,14 +124,18 @@ class ContractWorkflowService
             $targetStatus = $this->contractWorkflowStatus($contract, $locked, ContractStatus::RevisionRequired);
             $locked->update(['status' => ContractVersionStatus::RevisionRequired]);
             $contract->update(['status' => $targetStatus]);
-            $approval = ContractApproval::withoutGlobalScopes()->create([
-                'company_id' => $locked->company_id,
-                'contract_version_id' => $locked->id,
-                'reviewed_by' => $actor->id,
-                'status' => ContractApprovalStatus::RevisionRequired,
-                'notes' => $notes,
-                'reviewed_at' => now(),
-            ]);
+            // One reviewer has one current decision per contract version. The
+            // unique index protects this invariant, while status history keeps
+            // every revision request and its reason as immutable audit data.
+            $approval = ContractApproval::withoutGlobalScopes()->updateOrCreate(
+                ['contract_version_id' => $locked->id, 'reviewed_by' => $actor->id],
+                [
+                    'company_id' => $locked->company_id,
+                    'status' => ContractApprovalStatus::RevisionRequired,
+                    'notes' => $notes,
+                    'reviewed_at' => now(),
+                ],
+            );
             $this->history($contract, $locked, $actor, $from, $targetStatus->value, 'revision_requested', $notes);
 
             return $approval;
@@ -166,6 +187,7 @@ class ContractWorkflowService
                 $document = Document::create([
                     'documentable_type' => ContractVersion::class,
                     'documentable_id' => $locked->id,
+                    'document_type' => ContractDocumentType::Supporting,
                     'title' => $data['title'],
                     'description' => $data['description'] ?? null,
                     'created_by' => $actor->id,
@@ -254,6 +276,9 @@ class ContractWorkflowService
                 || (int) $document->document?->documentable_id !== (int) $locked->id) {
                 $this->invalid('signature', __('The party and document must belong to this exact contract version and company.'));
             }
+            if ($document->document?->document_type !== ContractDocumentType::OfficialApprovedPdf) {
+                $this->invalid('document_version_id', __('contract_domain.pdf.official_required'));
+            }
             if (ContractSignature::withoutGlobalScopes()->where('contract_version_id', $locked->id)->where('contract_party_id', $party->id)->exists()) {
                 $this->invalid('contract_party_id', __('A signature is already recorded for this contract party.'));
             }
@@ -265,6 +290,22 @@ class ContractWorkflowService
             $context = hash_init('sha256');
             hash_update_stream($context, $stream);
             fclose($stream);
+
+            if ($method === 'company_authorized') {
+                $company = Company::withoutGlobalScopes()->findOrFail($locked->company_id);
+                if (! $company->self_party_id || (int) $party->party_id !== (int) $company->self_party_id) {
+                    $this->invalid('contract_party_id', __('Only the company legal party may use the authorized company signature.'));
+                }
+                $setting = CompanySetting::withoutGlobalScopes()->where('company_id', $locked->company_id)->first();
+                if (! $setting?->contract_signature && ! $setting?->contract_stamp) {
+                    $this->invalid('signing_method', __('Save an authorized company signature or stamp in Company Settings before recording a company signature.'));
+                }
+                $evidence = array_merge($evidence, [
+                    'company_signature_snapshot' => $setting?->contract_signature,
+                    'company_stamp_snapshot' => $setting?->show_contract_stamp ? $setting?->contract_stamp : null,
+                ]);
+                $signatureImagePath ??= $setting?->contract_signature;
+            }
 
             return ContractSignature::withoutGlobalScopes()->create([
                 'company_id' => $locked->company_id,

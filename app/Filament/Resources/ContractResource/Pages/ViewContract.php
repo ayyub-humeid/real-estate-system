@@ -3,9 +3,10 @@
 namespace App\Filament\Resources\ContractResource\Pages;
 
 use App\Filament\Resources\ContractResource;
-use App\Enums\ContractVersionStatus;
+use App\Enums\{ContractDocumentType, ContractVersionStatus};
 use App\Models\{ContractParty, ContractVersion, Document, DocumentVersion};
 use App\Services\ContractWorkflowService;
+use App\Services\ContractPdfService;
 use Filament\Actions;
 use Filament\Forms;
 use Filament\Infolists\Infolist;
@@ -41,13 +42,13 @@ class ViewContract extends ViewRecord
     protected function getHeaderActions(): array
     {
         $latest = fn (): ?ContractVersion => $this->record->versions()->latest('version_number')->first();
-        $run = function (callable $callback, string $successTitle): void {
+        $run = function (callable $callback, string $successTitle, ?string $failureTitle = null): void {
             try {
                 $callback();
                 Notification::make()->success()->title($successTitle)->send();
             } catch (ValidationException $exception) {
                 Notification::make()->danger()
-                    ->title(__('Cannot update contract'))
+                    ->title($failureTitle ?? __('Cannot update contract'))
                     ->body(collect($exception->errors())->flatten()->first())
                     ->persistent()
                     ->send();
@@ -65,8 +66,36 @@ class ViewContract extends ViewRecord
                     ->send();
             }
         };
+        $download = function (callable $callback, string $name) {
+            try {
+                $pdf = $callback();
+
+                return response()->streamDownload(static function () use ($pdf): void {
+                    echo $pdf;
+                }, $name, ['Content-Type' => 'application/pdf']);
+            } catch (ValidationException $exception) {
+                Notification::make()->danger()->title(__('contract_domain.pdf.cannot_generate'))
+                    ->body(collect($exception->errors())->flatten()->first())->persistent()->send();
+            } catch (AuthorizationException) {
+                Notification::make()->danger()->title(__('Unauthorized'))
+                    ->body(__('You do not have permission to generate this contract PDF.'))->persistent()->send();
+            } catch (\Throwable $exception) {
+                Notification::make()->danger()->title(__('contract_domain.pdf.cannot_generate'))
+                    ->body($exception->getMessage())->persistent()->send();
+            }
+
+            return null;
+        };
 
         return [
+            Actions\Action::make('previewPdf')
+                ->label(__('contract_domain.pdf.preview'))
+                ->icon('heroicon-o-eye')
+                ->visible(fn (): bool => in_array($latest()?->status, [ContractVersionStatus::Draft, ContractVersionStatus::RevisionRequired], true) && auth()->user()->can('view_contract'))
+                ->action(fn (): mixed => $download(
+                    fn (): string => app(ContractPdfService::class)->preview(auth()->user(), $latest()),
+                    $this->record->contract_number.'-V'.$latest()?->version_number.'-draft.pdf',
+                )),
             Actions\Action::make('submit')
                 ->label(__('Submit for review'))
                 ->icon('heroicon-o-paper-airplane')
@@ -124,7 +153,9 @@ class ViewContract extends ViewRecord
             Actions\Action::make('recordSignature')
                 ->label(__('Record signature'))
                 ->icon('heroicon-o-pencil-square')
-                ->visible(fn (): bool => $latest()?->status === ContractVersionStatus::Approved && auth()->user()->can('record_contract_signature'))
+                ->visible(fn (): bool => $latest()?->status === ContractVersionStatus::Approved
+                    && $latest()?->documents()->where('document_type', ContractDocumentType::OfficialApprovedPdf->value)->exists()
+                    && auth()->user()->can('record_contract_signature'))
                 ->modalHeading(__('Record party signature'))
                 ->modalSubmitActionLabel(__('Record signature'))
                 ->form(function () use ($latest): array {
@@ -145,15 +176,15 @@ class ViewContract extends ViewRecord
                             ])->all() ?? [])
                             ->required(),
                         Forms\Components\Select::make('document_version_id')
-                            ->label(__('Attached document'))
-                            ->options($version?->documents()->with('latestVersion')->get()->mapWithKeys(fn (Document $document): array => [
+                ->label(__('contract_domain.pdf.official'))
+                            ->options($version?->documents()->where('document_type', ContractDocumentType::OfficialApprovedPdf->value)->with('latestVersion')->get()->mapWithKeys(fn (Document $document): array => [
                                 $document->latestVersion?->id => $document->title.' — V'.($document->latestVersion?->version_number ?? 1),
                             ])->filter()->all() ?? [])
                             ->required(),
                         Forms\Components\TextInput::make('signatory_name')->label(__('Signatory name'))->required(),
                         Forms\Components\Select::make('signing_method')
                             ->label(__('Signing method'))
-                            ->options(['manual' => __('Manual signature'), 'electronic' => __('Electronic evidence')])
+                            ->options(['manual' => __('Manual signature'), 'electronic' => __('Electronic evidence'), 'company_authorized' => __('Authorized company signature')])
                             ->required(),
                         Forms\Components\FileUpload::make('signature_image_path')
                             ->label(__('Signature image'))
@@ -174,6 +205,34 @@ class ViewContract extends ViewRecord
                     $data['evidence'] ?? [],
                     $data['signature_image_path'] ?? null,
                 ), __('Signature recorded'))),
+            Actions\Action::make('generateOfficialPdf')
+                ->label(__('contract_domain.pdf.generate_official'))
+                ->icon('heroicon-o-document-arrow-down')
+                ->color('primary')
+                ->visible(fn (): bool => $latest()?->status === ContractVersionStatus::Approved
+                    && ! $latest()?->documents()->where('document_type', ContractDocumentType::OfficialApprovedPdf->value)->exists()
+                    && auth()->user()->can('generate_contract_pdf'))
+                ->requiresConfirmation()
+                ->modalHeading(__('contract_domain.pdf.official_title'))
+                ->modalDescription(__('contract_domain.pdf.official_description'))
+                ->disabled(fn (): bool => ! $latest()?->template_version_id)
+                ->tooltip(fn (): ?string => $latest()?->template_version_id ? null : __('contract_domain.pdf.template_required'))
+                ->action(fn (): mixed => $run(fn () => app(ContractPdfService::class)->generateOfficial(auth()->user(), $latest()), __('contract_domain.pdf.generated_official'), __('contract_domain.pdf.cannot_generate'))),
+            Actions\Action::make('generateSignedFinalPdf')
+                ->label(__('contract_domain.pdf.generate_signed'))
+                ->icon('heroicon-o-document-check')
+                ->color('success')
+                ->visible(fn (): bool => in_array($latest()?->status, [ContractVersionStatus::Approved, ContractVersionStatus::Signed], true)
+                    && $latest()?->documents()->where('document_type', ContractDocumentType::OfficialApprovedPdf->value)->exists()
+                    && ! $latest()?->documents()->where('document_type', ContractDocumentType::SignedFinalPdf->value)->exists()
+                    && $latest()?->parties()->count() === $latest()?->signatures()->count()
+                    && auth()->user()->can('generate_contract_pdf'))
+                ->requiresConfirmation()
+                ->modalHeading(__('contract_domain.pdf.signed_title'))
+                ->modalDescription(__('contract_domain.pdf.signed_description'))
+                ->disabled(fn (): bool => ! $latest()?->template_version_id)
+                ->tooltip(fn (): ?string => $latest()?->template_version_id ? null : __('contract_domain.pdf.template_required'))
+                ->action(fn (): mixed => $run(fn () => app(ContractPdfService::class)->generateSignedFinal(auth()->user(), $latest()), __('contract_domain.pdf.generated_signed'), __('contract_domain.pdf.cannot_generate'))),
             Actions\Action::make('activate')
                 ->label(__('Activate contract'))
                 ->icon('heroicon-o-check-badge')

@@ -57,8 +57,8 @@ class ContractDraftService
                 'version_number' => 1,
                 'status' => ContractVersionStatus::Draft,
                 'template_version_id' => $data['template_version_id'] ?? null,
-                'total_amount' => $data['total_amount'] ?? null,
-                'currency' => $data['currency'] ?? null,
+                'total_amount' => filled($data['total_amount'] ?? null) ? $data['total_amount'] : $targets['reservation']?->agreed_amount,
+                'currency' => filled($data['currency'] ?? null) ? strtoupper((string) $data['currency']) : $targets['reservation']?->currency,
                 'start_date' => $data['start_date'] ?? null,
                 'end_date' => $data['end_date'] ?? null,
                 'delivery_date' => $data['delivery_date'] ?? null,
@@ -100,20 +100,35 @@ class ContractDraftService
                 $this->invalid('version', __('Only a draft or returned version can be edited.'));
             }
 
-            $locked->update([
+            $updates = [
                 'total_amount' => $data['total_amount'] ?? null,
-                'currency' => $data['currency'] ?? null,
+                'currency' => filled($data['currency'] ?? null) ? strtoupper((string) $data['currency']) : null,
                 'start_date' => $data['start_date'] ?? null,
                 'end_date' => $data['end_date'] ?? null,
                 'delivery_date' => $data['delivery_date'] ?? null,
-            ]);
+            ];
+
+            $templateTerms = [];
+            if (! empty($data['template_version_id'])) {
+                $templateVersion = $this->template((int) $data['template_version_id'], $locked->company_id, $locked->contract->contract_type);
+                $updates['template_version_id'] = $templateVersion->id;
+                // A template may be changed while this contract version is
+                // still editable. Preserve existing contract terms on a swap:
+                // they can contain employee edits or deal-specific clauses.
+                // Only a legacy draft with no template receives the selected
+                // template's default clauses for the first time.
+                if (! $locked->template_version_id) {
+                    $templateTerms = $templateVersion->clauses ?? [];
+                }
+            }
+            $locked->update($updates);
 
             // These belong to the draft version. Deleting/recreating them cannot
             // touch submitted, approved, or signed legal history.
             $locked->terms()->delete();
             $locked->parties()->delete();
             $this->replaceParties($locked, $data['parties'] ?? [], $locked->company_id);
-            $this->replaceTerms($locked, $data['terms'] ?? [], $locked->company_id);
+            $this->replaceTerms($locked, array_merge($templateTerms, $data['terms'] ?? []), $locked->company_id);
 
             return $locked->fresh(['parties.party', 'terms']);
         });
@@ -223,13 +238,7 @@ class ContractDraftService
 
     private function copyTemplate(ContractVersion $version, int $templateVersionId, int $companyId, ContractType $contractType): void
     {
-        $templateVersion = ContractTemplateVersion::withoutGlobalScopes()->with('template')->findOrFail($templateVersionId);
-        if ((int) $templateVersion->company_id !== $companyId || ! $templateVersion->template || ! $templateVersion->template->is_active) {
-            $this->invalid('template_version_id', __('Select an active template from the contract company.'));
-        }
-        if ($templateVersion->template->contract_type !== $contractType) {
-            $this->invalid('template_version_id', __('The template type must match the contract type.'));
-        }
+        $templateVersion = $this->template($templateVersionId, $companyId, $contractType);
 
         foreach ($templateVersion->clauses ?? [] as $index => $clause) {
             $version->terms()->create([
@@ -240,6 +249,19 @@ class ContractDraftService
                 'text' => $clause['text'] ?? null,
             ]);
         }
+    }
+
+    private function template(int $templateVersionId, int $companyId, ContractType $contractType): ContractTemplateVersion
+    {
+        $templateVersion = ContractTemplateVersion::withoutGlobalScopes()->with('template')->findOrFail($templateVersionId);
+        if ((int) $templateVersion->company_id !== $companyId || ! $templateVersion->template || ! $templateVersion->template->is_active) {
+            $this->invalid('template_version_id', __('Select an active template from the contract company.'));
+        }
+        if ($templateVersion->template->contract_type !== $contractType) {
+            $this->invalid('template_version_id', __('The template type must match the contract type.'));
+        }
+
+        return $templateVersion;
     }
 
     private function replaceParties(ContractVersion $version, array $parties, int $companyId): void

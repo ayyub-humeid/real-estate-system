@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ContractDocumentType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -22,7 +23,8 @@ class DocumentVersion extends Model
     protected static function booted(): void
     {
         static::deleting(function (self $version): void {
-            if ($version->submissionDocuments()->exists() || $version->contractSignatures()->exists()) {
+            if ($version->document?->document_type !== ContractDocumentType::Supporting
+                || $version->submissionDocuments()->exists() || $version->contractSignatures()->exists()) {
                 throw \Illuminate\Validation\ValidationException::withMessages([
                     'document_version' => 'A document version pinned to a formal submission or contract signature cannot be deleted.',
                 ]);
