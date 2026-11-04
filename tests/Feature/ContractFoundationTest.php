@@ -4,8 +4,9 @@ namespace Tests\Feature;
 
 use App\Enums\{ContractApprovalStatus, ContractStatus, ContractType, ContractVersionStatus, OpportunityType, ReservationSource, ReservationStatus};
 use App\Filament\Resources\{ContractResource, ContractTemplateResource};
-use App\Models\{Company, Contract, ContractTemplate, ContractTemplateVersion, Document, DocumentVersion, Location, Party, Project, ProjectBuilding, ProjectBuildingFloor, ProjectPlannedUnit, Property, Unit, UnitReservation, User};
+use App\Models\{Company, CompanySetting, Contract, ContractTemplate, ContractTemplateVersion, Document, DocumentVersion, Location, Party, Project, ProjectBuilding, ProjectBuildingFloor, ProjectPlannedUnit, Property, Unit, UnitReservation, User};
 use App\Services\{ContractDraftService, ContractPdfService, ContractTemplateService, ContractTemplateTokenService, ContractWorkflowService};
+use App\Support\ContractPdfContentLimits;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -27,6 +28,19 @@ class ContractFoundationTest extends TestCase
         app()->setLocale('en');
         $this->assertSame('Cannot create contract', __('Cannot create contract'));
         $this->assertSame('Under review', ContractStatus::UnderReview->getLabel());
+    }
+
+    public function test_contract_signature_methods_are_localized_without_exposing_database_values(): void
+    {
+        app()->setLocale('ar');
+
+        $this->assertSame('توقيع يدوي', __('contract_domain.signing_methods.manual'));
+        $this->assertSame('إثبات إلكتروني', __('contract_domain.signing_methods.electronic'));
+        $this->assertSame('توقيع الشركة المعتمد', __('contract_domain.signing_methods.company_authorized'));
+
+        app()->setLocale('en');
+
+        $this->assertSame('Authorized company signature', __('contract_domain.signing_methods.company_authorized'));
     }
 
     public function test_contract_resource_labels_are_scalar_and_localized(): void
@@ -139,6 +153,27 @@ class ContractFoundationTest extends TestCase
         $this->assertSame(1, $v1->version_number);
         $this->assertSame(2, $v2->version_number);
         $this->assertSame('A 10% deposit is due.', $contract->versions()->firstOrFail()->terms()->firstOrFail()->text);
+    }
+
+    public function test_oversized_legal_template_is_rejected_before_pdf_generation(): void
+    {
+        [$company, $user] = $this->companyUserAndUnit('Content guard');
+        $this->grant($user, ['update_contract::template']);
+        $template = ContractTemplate::create([
+            'company_id' => $company->id,
+            'name' => 'Guarded sale agreement',
+            'contract_type' => ContractType::Sale,
+            'is_active' => true,
+        ]);
+
+        try {
+            app(ContractTemplateService::class)->createVersion($user, $template, [
+                'body' => str_repeat('A', ContractPdfContentLimits::TEMPLATE_BODY_MAX_CHARACTERS + 1),
+            ]);
+            $this->fail('Oversized legal template content was accepted.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('body', $exception->errors());
+        }
     }
 
     public function test_active_reservation_can_supply_the_target_and_snapshot_for_a_contract(): void
@@ -484,6 +519,15 @@ class ContractFoundationTest extends TestCase
     {
         Storage::fake(config('filesystems.default'));
         [$company, $user, $unit] = $this->companyUserAndUnit('Contract PDF');
+        Storage::disk(config('filesystems.default'))->put(
+            'company-settings/logos/test-logo.png',
+            base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL91wAAAABJRU5ErkJggg=='),
+        );
+        CompanySetting::withoutGlobalScopes()->create([
+            'company_id' => $company->id,
+            'company_legal_name' => 'Contract PDF Co',
+            'logo' => 'company-settings/logos/test-logo.png',
+        ]);
         $this->grant($user, ['create_contract', 'view_contract', 'submit_contract_version', 'approve_contract_version', 'record_contract_signature', 'generate_contract_pdf']);
         $buyer = Party::create(['company_id' => $company->id, 'type' => 'person', 'name' => 'المشتري التجريبي', 'is_active' => true]);
         $template = ContractTemplate::create(['company_id' => $company->id, 'name' => 'Arabic sale', 'contract_type' => ContractType::Sale, 'is_active' => true]);

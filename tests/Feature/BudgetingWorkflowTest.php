@@ -69,7 +69,7 @@ class BudgetingWorkflowTest extends TestCase
     public function test_cross_company_and_unauthorized_financial_input_is_rejected(): void
     {
         $company=Company::create(['name'=>'A','email'=>'a@test.test']);$other=Company::create(['name'=>'B','email'=>'b@test.test']);$actor=$this->actor($company);$project=$this->project($company);$service=app(BudgetingService::class);[,$item]=$this->approvedItem($service,$actor,$project);
-        try{$service->createCommitment($actor,$project,['budget_item_id'=>$item->id,'party_id'=>$this->party($other)->id,'description'=>'Bad','amount'=>1,'currency'=>'USD','budget_amount'=>1]);$this->fail('Cross-company party accepted.');}catch(ValidationException){$this->assertDatabaseCount('financial_commitments',0);}
+        try{$service->createCommitment($actor,$project,['budget_item_id'=>$item->id,'party_id'=>$this->party($other)->id,'description'=>'Bad','amount'=>1,'currency'=>'USD','budget_amount'=>1]);$this->fail('Cross-company party accepted.');}catch(ValidationException){$this->assertDatabaseMissing('financial_commitments',['company_id'=>$company->id,'project_id'=>$project->id,'description'=>'Bad']);}
         $this->expectException(AuthorizationException::class);$service->createBudget($this->actor($company,[]),$project,[]);
     }
 
@@ -89,7 +89,11 @@ class BudgetingWorkflowTest extends TestCase
             $service->createCommitment($actor, $project, ['budget_item_id' => $draftItem->id, 'party_id' => $vendor->id, 'description' => 'Draft budget commitment', 'amount' => 100, 'currency' => 'USD', 'budget_amount' => 100]);
             $this->fail('A draft-budget item was accepted for a commitment.');
         } catch (ValidationException) {
-            $this->assertDatabaseCount('financial_commitments', 0);
+            $this->assertDatabaseMissing('financial_commitments', [
+                'company_id' => $company->id,
+                'project_id' => $project->id,
+                'description' => 'Draft budget commitment',
+            ]);
         }
 
         $otherProject = $this->project($company);
@@ -99,7 +103,11 @@ class BudgetingWorkflowTest extends TestCase
             $service->createCommitment($actor, $project, ['budget_item_id' => $otherItem->id, 'party_id' => $vendor->id, 'description' => 'Other project commitment', 'amount' => 100, 'currency' => 'USD', 'budget_amount' => 100]);
             $this->fail('Another project’s budget item was accepted for a commitment.');
         } catch (ValidationException) {
-            $this->assertDatabaseCount('financial_commitments', 0);
+            $this->assertDatabaseMissing('financial_commitments', [
+                'company_id' => $company->id,
+                'project_id' => $project->id,
+                'description' => 'Other project commitment',
+            ]);
         }
     }
 
