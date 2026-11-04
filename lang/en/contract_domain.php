@@ -76,6 +76,7 @@ return [
         'generated_official' => 'Official contract PDF generated.',
         'generated_signed' => 'Signed final contract PDF generated.',
         'cannot_generate' => 'Cannot generate contract PDF.',
+        'image_processing_unavailable' => 'This server cannot process the company image assets required for this contract PDF. Contact support to enable the GD image extension.',
         'template_required' => 'This contract version has no template version. Select a template before submitting a draft for review; if this version is already approved, create a new revision first.',
         'preview_requires_draft' => 'Only a draft or returned version can be previewed as a PDF.',
         'official_requires_approved' => 'Only an approved contract version can receive an official PDF.',

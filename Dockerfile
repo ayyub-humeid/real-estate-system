@@ -4,6 +4,8 @@ FROM php:8.4-apache
 RUN apt-get update && apt-get install -y \
     git \
     curl \
+    libfreetype6-dev \
+    libjpeg62-turbo-dev \
     libpng-dev \
     libonig-dev \
     libxml2-dev \
@@ -21,8 +23,10 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
 # Clear cache
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Install PHP extensions
-RUN docker-php-ext-install pdo_mysql pdo_pgsql mbstring exif pcntl bcmath gd zip intl
+# Build GD with JPEG/PNG/FreeType support. Contract PDF previews normalize
+# uploaded logos, stamps, and backgrounds through GD before mPDF renders them.
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install pdo_mysql pdo_pgsql mbstring exif pcntl bcmath gd zip intl
 
 # Configure PHP upload limits for Livewire bulk upload
 RUN echo "upload_max_filesize = 100M\npost_max_size = 100M\nmemory_limit = 256M" > /usr/local/etc/php/conf.d/uploads.ini

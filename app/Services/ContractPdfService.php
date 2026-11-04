@@ -115,6 +115,9 @@ class ContractPdfService
         }
 
         $settings = CompanySetting::withoutGlobalScopes()->where('company_id', $version->company_id)->first();
+        if (! $this->hasGd() && $this->requiresImageProcessing($settings, $signatures)) {
+            $this->invalid('pdf', __('contract_domain.pdf.image_processing_unavailable'));
+        }
         $body = $this->replacePlaceholders($version->templateVersion->body, $version);
         $this->assertRenderableContent($version, $body);
         $contractSummary = $this->summary($version);
@@ -289,7 +292,7 @@ class ContractPdfService
         $disk = Storage::disk(config('filesystems.default'));
         $contents = $disk->get($path);
         $dimensions = @getimagesizefromstring($contents);
-        if (! $dimensions || ! function_exists('imagecreatefromstring')) {
+        if (! $dimensions || ! $this->hasGd()) {
             return null;
         }
 
@@ -340,7 +343,7 @@ class ContractPdfService
 
         $contents = Storage::disk(config('filesystems.default'))->get($path);
         $dimensions = @getimagesizefromstring($contents);
-        if (! $dimensions || ! function_exists('imagecreatefromstring')) {
+        if (! $dimensions || ! $this->hasGd()) {
             return null;
         }
 
@@ -381,6 +384,27 @@ class ContractPdfService
         imagedestroy($target);
 
         return is_file($cachedPath) ? $cachedPath : null;
+    }
+
+    /** Keep a missing image extension from becoming a production 500 error. */
+    private function hasGd(): bool
+    {
+        return function_exists('imagecreatefromstring')
+            && function_exists('imagecreatetruecolor')
+            && function_exists('imagecopyresampled')
+            && function_exists('imagepng')
+            && function_exists('imagejpeg');
+    }
+
+    /** @param array<int, ContractSignature> $signatures */
+    private function requiresImageProcessing(?CompanySetting $settings, array $signatures): bool
+    {
+        if ($settings?->logo || $settings?->contract_background) {
+            return true;
+        }
+
+        return collect($signatures)->contains(fn (ContractSignature $signature): bool => filled($signature->signature_image_path)
+            || filled(data_get($signature->evidence, 'company_stamp_snapshot')));
     }
 
     private function typedDocumentVersion(ContractVersion $version, ContractDocumentType $type): ?DocumentVersion
