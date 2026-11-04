@@ -57,6 +57,47 @@ class ContractFoundationTest extends TestCase
         $this->assertSame('Contract templates', ContractTemplateResource::getNavigationLabel());
     }
 
+    public function test_contract_party_options_only_include_the_contract_company_and_label_its_legal_party(): void
+    {
+        [$company] = $this->companyUserAndUnit('Party options');
+        [$otherCompany] = $this->companyUserAndUnit('Other party options');
+
+        $companyParty = Party::create([
+            'company_id' => $company->id,
+            'type' => 'company',
+            'name' => 'Party Options Development',
+            'is_active' => true,
+        ]);
+        $company->forceFill(['self_party_id' => $companyParty->id])->save();
+
+        $customer = Party::create([
+            'company_id' => $company->id,
+            'type' => 'person',
+            'name' => 'Contract Customer',
+            'is_active' => true,
+        ]);
+        $inactive = Party::create([
+            'company_id' => $company->id,
+            'type' => 'person',
+            'name' => 'Inactive Customer',
+            'is_active' => false,
+        ]);
+        $foreign = Party::create([
+            'company_id' => $otherCompany->id,
+            'type' => 'person',
+            'name' => 'Foreign Customer',
+            'is_active' => true,
+        ]);
+
+        app()->setLocale('en');
+        $options = ContractResource::partyOptions($company->id);
+
+        $this->assertSame('Company — Party Options Development', $options[$companyParty->id]);
+        $this->assertSame('Contract Customer', $options[$customer->id]);
+        $this->assertArrayNotHasKey($inactive->id, $options);
+        $this->assertArrayNotHasKey($foreign->id, $options);
+    }
+
     public function test_legacy_blade_echo_tokens_are_normalised_before_contract_pdf_rendering(): void
     {
         $body = '<p><?php echo e(unit_number); ?> — <?php echo e(total_amount); ?></p>';
@@ -523,10 +564,16 @@ class ContractFoundationTest extends TestCase
             'company-settings/logos/test-logo.png',
             base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL91wAAAABJRU5ErkJggg=='),
         );
+        Storage::disk(config('filesystems.default'))->put(
+            'company-settings/stamps/test-stamp.png',
+            base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL91wAAAABJRU5ErkJggg=='),
+        );
         CompanySetting::withoutGlobalScopes()->create([
             'company_id' => $company->id,
             'company_legal_name' => 'Contract PDF Co',
             'logo' => 'company-settings/logos/test-logo.png',
+            'contract_stamp' => 'company-settings/stamps/test-stamp.png',
+            'show_contract_stamp' => true,
         ]);
         $this->grant($user, ['create_contract', 'view_contract', 'submit_contract_version', 'approve_contract_version', 'record_contract_signature', 'generate_contract_pdf']);
         $buyer = Party::create(['company_id' => $company->id, 'type' => 'person', 'name' => 'المشتري التجريبي', 'is_active' => true]);

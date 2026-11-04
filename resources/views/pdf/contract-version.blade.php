@@ -37,6 +37,19 @@
             vertical-align: middle;
         }
 
+        .header-logo {
+            text-align: {{ app()->getLocale() === 'ar' ? 'right' : 'left' }};
+        }
+
+        .header-company {
+            text-align: center;
+            padding: 2px 12px;
+        }
+
+        .header-reference {
+            text-align: {{ app()->getLocale() === 'ar' ? 'left' : 'right' }};
+        }
+
         .logo {
             max-width: 92px;
             max-height: 48px;
@@ -54,9 +67,10 @@
         }
 
         .company {
-            font-size: 14pt;
+            font-size: 15pt;
             font-weight: bold;
             color: #111827;
+            letter-spacing: .2px;
         }
 
         .reference {
@@ -69,6 +83,12 @@
             font-size: 7.5pt;
             margin-top: 2px;
             line-height: 1.45;
+        }
+
+        .header-reference .reference {
+            display: block;
+            color: {{ $settings?->contract_header_color ?? '#b7843b' }};
+            font-weight: bold;
         }
 
         .contract-kind {
@@ -203,6 +223,48 @@
             margin-top: 7px;
         }
 
+        .company-seal {
+            width: 100%;
+            margin: 22px 0 10px;
+            border: 1px solid #dbe2ea;
+            border-top: 2px solid {{ $settings?->contract_header_color ?? '#b7843b' }};
+            background: #fafbfc;
+            page-break-inside: avoid;
+        }
+
+        .company-seal td {
+            padding: 5px 8px;
+            vertical-align: middle;
+        }
+
+        .company-seal-art {
+            width: 40px;
+            text-align: center;
+            border-{{ app()->getLocale() === 'ar' ? 'left' : 'right' }}: 1px solid #e2e8f0;
+        }
+
+        .company-seal-label {
+            display: block;
+            color: {{ $settings?->contract_header_color ?? '#b7843b' }};
+            font-size: 8.5pt;
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+
+        .company-seal-name {
+            display: block;
+            color: #172033;
+            font-size: 10.5pt;
+            font-weight: bold;
+        }
+
+        .company-seal img {
+            width: 28px;
+            height: auto;
+            max-width: 28px;
+            max-height: 28px;
+        }
+
         .footer {
             position: fixed;
             bottom: -10mm;
@@ -237,22 +299,24 @@
     @endphp
     <table class="header">
         <tr>
-            <td style="width:18%">
+            <td class="header-logo" style="width:18%">
                 @if ($images['logo'] ?? null)
                     <img class="logo" src="{{ $images['logo'] }}" alt="">
                 @else
                     <div class="logo-fallback">{{ $companyInitial }}</div>
                 @endif
             </td>
-            <td style="width:82%">
+            <td class="header-company" style="width:64%">
                 <div class="company">{{ $companyName }}</div>
-                <div class="reference">{{ $contract->contract_number }} · V{{ $contractVersion->version_number }}</div>
                 @if ($companyContact)
                     <div class="company-meta">{{ $companyContact }}</div>
                 @endif
                 @if ($companyRegistration)
                     <div class="company-meta">{{ $companyRegistration }}</div>
                 @endif
+            </td>
+            <td class="header-reference" style="width:18%">
+                <span class="reference">{{ $contract->contract_number }}<br>V{{ $contractVersion->version_number }}</span>
             </td>
         </tr>
     </table>
@@ -328,6 +392,19 @@
                         @endif
                     </td>
                 @endforeach
+            </tr>
+        </table>
+    @endif
+    @if ($images['company_stamp'] ?? null)
+        <table class="company-seal">
+            <tr>
+                <td class="company-seal-art">
+                    <img src="{{ $images['company_stamp'] }}" alt="" width="28" style="width:28px !important; height:auto !important;">
+                </td>
+                <td>
+                    <span class="company-seal-label">{{ __('Company Contract Stamp') }}</span>
+                    <span class="company-seal-name">{{ $companyName }}</span>
+                </td>
             </tr>
         </table>
     @endif

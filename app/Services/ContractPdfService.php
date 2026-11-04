@@ -263,6 +263,13 @@ class ContractPdfService
     {
         $paths = [
             'logo' => [$settings?->logo, 800, 400],
+            'company_stamp' => [
+                $settings?->show_contract_stamp ? $settings?->contract_stamp : null,
+                // mPDF can ignore a table-cell image's CSS max-width. Keep the
+                // generated local seal intrinsically compact as a safe fallback.
+                100,
+                100,
+            ],
         ];
         foreach ($signatures as $signature) {
             $paths['signature_'.$signature->id] = [$signature->signature_image_path, 800, 300];
@@ -270,8 +277,8 @@ class ContractPdfService
                 $signature->signing_method === 'company_authorized'
                     ? data_get($signature->evidence, 'company_stamp_snapshot')
                     : null,
-                800,
-                800,
+                100,
+                100,
             ];
         }
 
@@ -399,7 +406,7 @@ class ContractPdfService
     /** @param array<int, ContractSignature> $signatures */
     private function requiresImageProcessing(?CompanySetting $settings, array $signatures): bool
     {
-        if ($settings?->logo || $settings?->contract_background) {
+        if ($settings?->logo || $settings?->contract_background || ($settings?->show_contract_stamp && $settings?->contract_stamp)) {
             return true;
         }
 
