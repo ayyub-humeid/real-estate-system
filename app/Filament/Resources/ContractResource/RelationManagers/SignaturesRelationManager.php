@@ -42,8 +42,9 @@ class SignaturesRelationManager extends RelationManager
             Tables\Columns\TextColumn::make('signing_method')
                 ->label(__('Signing method'))
                 ->formatStateUsing(fn($state): string => match ($state) {
-                    'manual' => __('Manual signature'),
-                    'electronic' => __('Electronic evidence'),
+                    'manual' => __('contract_domain.signing_methods.manual'),
+                    'electronic' => __('contract_domain.signing_methods.electronic'),
+                    'company_authorized' => __('contract_domain.signing_methods.company_authorized'),
                     default => (string) $state,
                 })
                 ->badge(),

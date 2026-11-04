@@ -184,7 +184,11 @@ class ViewContract extends ViewRecord
                         Forms\Components\TextInput::make('signatory_name')->label(__('Signatory name'))->required(),
                         Forms\Components\Select::make('signing_method')
                             ->label(__('Signing method'))
-                            ->options(['manual' => __('Manual signature'), 'electronic' => __('Electronic evidence'), 'company_authorized' => __('Authorized company signature')])
+                            ->options([
+                                'manual' => __('contract_domain.signing_methods.manual'),
+                                'electronic' => __('contract_domain.signing_methods.electronic'),
+                                'company_authorized' => __('contract_domain.signing_methods.company_authorized'),
+                            ])
                             ->required(),
                         Forms\Components\FileUpload::make('signature_image_path')
                             ->label(__('Signature image'))
