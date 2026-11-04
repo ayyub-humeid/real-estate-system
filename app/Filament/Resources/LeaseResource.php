@@ -327,7 +327,7 @@ class LeaseResource extends Resource
                             // the file content and convert to data URI inline.
                             $imageData = [];
 
-                            foreach (['logo', 'lease_background', 'signature'] as $field) {
+                            foreach (['logo', 'contract_background', 'contract_signature', 'contract_stamp'] as $field) {
                                 $path = $settings->{$field} ?? null;
                                 if ($path && \Illuminate\Support\Facades\Storage::exists($path)) {
                                     $content = \Illuminate\Support\Facades\Storage::get($path);

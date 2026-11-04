@@ -17,6 +17,16 @@ class OpportunitiesRelationManager extends RelationManager
 {
     protected static string $relationship = 'opportunities';
 
+    public static function getModelLabel(): string
+    {
+        return __('crm.models.opportunity');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('crm.models.opportunities');
+    }
+
     public function isReadOnly(): bool
     {
         return false;
@@ -102,7 +112,7 @@ class OpportunitiesRelationManager extends RelationManager
             ])
             ->actions([
                 Tables\Actions\ViewAction::make()->label(__('crm.actions.details')),
-                Tables\Actions\EditAction::make()
+                Tables\Actions\EditAction::make()->label(__('crm.actions.edit'))
                     ->using(fn (Opportunity $record, array $data): Opportunity => $this->run(
                         fn () => app(OpportunityService::class)->update(auth()->user(), $record, $data),
                     )),

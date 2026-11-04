@@ -128,7 +128,7 @@ class StagesRelationManager extends RelationManager
             ])
             ->actions([
                 Tables\Actions\ViewAction::make()->label(__('crm.actions.details')),
-                Tables\Actions\EditAction::make()
+                Tables\Actions\EditAction::make()->label(__('crm.actions.edit'))
                     ->using(function (CrmPipelineStage $record, array $data): CrmPipelineStage {
                         return $this->run(
                             fn() => app(CrmPipelineStageService::class)->update(auth()->user(), $record, $data),
@@ -231,7 +231,7 @@ class StagesRelationManager extends RelationManager
                             __('crm.actions.manage_requirements'),
                         );
                     }),
-                Tables\Actions\DeleteAction::make()
+                Tables\Actions\DeleteAction::make()->label(__('crm.actions.delete'))
                     ->visible(fn(CrmPipelineStage $record) => !$record->opportunities()->exists()),
             ]);
     }

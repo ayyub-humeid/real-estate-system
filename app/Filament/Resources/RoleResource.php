@@ -45,7 +45,6 @@ class RoleResource extends ShieldRoleResource
         UserResource::class,
         PlanResource::class,
         SubscriptionResource::class,
-        self::class,
     ];
 
     /**
@@ -288,7 +287,7 @@ class RoleResource extends ShieldRoleResource
                 'exact:request_contract_revision', 'exact:create_contract_revision',
             ],
             'Legal documents and signatures' => [
-                'exact:attach_contract_document', 'exact:record_contract_signature', 'exact:activate_contract',
+                'exact:attach_contract_document', 'exact:record_contract_signature', 'exact:generate_contract_pdf', 'exact:activate_contract',
             ],
             'Amendments and audit' => [
                 'exact:create_contract_amendment', 'exact:view_contract_approval', 'exact:view_contract_signature',
@@ -413,17 +412,21 @@ class RoleResource extends ShieldRoleResource
 
         return $label;
     }
-    /** Keep platform permissions out of a company role form as well as rejecting forged input in the service. */
+    /**
+     * Keep platform permissions out of a company role form as well as
+     * rejecting forged input in the service. Super Admin may manage both role
+     * scopes, so the available options must follow the selected role scope,
+     * rather than the actor alone.
+     */
     public static function getCheckboxListFormComponent(string $name, array $options, bool $searchable = true, array|int|string|null $columns = null, array|int|string|null $columnSpan = null): Component
     {
-        if (! auth()->user()?->isSuperAdmin()) {
-            $service = app(\App\Services\CompanyRoleService::class);
-            $options = collect($options)
-                ->reject(fn (string $label, string $permission) => $service->isPlatformPermission($permission))
-                ->all();
-        }
+        $service = app(\App\Services\CompanyRoleService::class);
+        $platformSafeOptions = collect($options)
+            ->reject(fn (string $label, string $permission) => $service->isPlatformPermission($permission))
+            ->all();
 
-        return parent::getCheckboxListFormComponent($name, $options, $searchable, $columns, $columnSpan);
+        return parent::getCheckboxListFormComponent($name, $options, $searchable, $columns, $columnSpan)
+            ->options(fn (Forms\Get $get): array => filled($get('company_id')) ? $platformSafeOptions : $options);
     }
 
     public static function getEloquentQuery(): Builder

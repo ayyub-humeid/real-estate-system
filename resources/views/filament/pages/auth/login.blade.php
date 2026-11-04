@@ -6,8 +6,8 @@
 <div
     class="madar-login"
     dir="{{ $isRtl ? 'rtl' : 'ltr' }}"
-    style="display: none"
     x-data
+    x-cloak
     x-init="
         const localeKey = 'madar.locale';
         const storedLocale = localStorage.getItem(localeKey);
@@ -17,12 +17,11 @@
 
         if (locale !== @js($locale)) {
             $wire.switchLocale(locale);
-        } else {
-            $el.style.removeProperty('display');
         }
     "
 >
     <style>
+        [x-cloak] { display: none !important; }
         .madar-login { min-height: 100vh; background: #070b13; color: #f8fafc; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
         .madar-login[dir='rtl'] { font-family: Cairo, ui-sans-serif, system-ui, sans-serif; }
         .madar-login__shell { min-height: 100vh; display: flex; overflow: hidden; direction: ltr; }

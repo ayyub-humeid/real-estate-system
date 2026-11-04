@@ -208,6 +208,9 @@ def table(headers, rows, widths=None):
         c.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
         p = c.paragraphs[0]
         set_rtl_paragraph(p, WD_ALIGN_PARAGRAPH.CENTER)
+        p.paragraph_format.space_before = Pt(0)
+        p.paragraph_format.space_after = Pt(0)
+        p.paragraph_format.line_spacing = 1.05
         r = p.add_run(label)
         r.bold = True
         r.font.color.rgb = RGBColor(255, 255, 255)
@@ -224,6 +227,9 @@ def table(headers, rows, widths=None):
             c.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
             p = c.paragraphs[0]
             set_rtl_paragraph(p)
+            p.paragraph_format.space_before = Pt(0)
+            p.paragraph_format.space_after = Pt(0)
+            p.paragraph_format.line_spacing = 1.05
             r = p.add_run(str(value))
             r.font.size = Pt(9.3)
             set_rtl_run(r)

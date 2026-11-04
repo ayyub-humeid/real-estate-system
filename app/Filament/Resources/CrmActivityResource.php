@@ -35,7 +35,7 @@ class CrmActivityResource extends Resource
         Tables\Columns\TextColumn::make('lead.name')->label(__('crm.fields.lead'))->placeholder(__('—')),
         Tables\Columns\TextColumn::make('performedBy.name')->label(__('crm.activities.fields.performed_by')),
         Tables\Columns\TextColumn::make('occurred_at')->label(__('crm.activities.fields.occurred_at'))->dateTime(),
-    ])->actions([Tables\Actions\ViewAction::make()]); }
+    ])->actions([Tables\Actions\ViewAction::make()->label(__('crm.actions.details'))]); }
     public static function companyId(Forms\Get $get): ?int { return auth()->user()?->isSuperAdmin()?($get('company_id')?:null):auth()->user()?->company_id; }
     public static function opportunityLabel(Opportunity $opportunity): string { return collect([$opportunity->lead?->name, $opportunity->listing?->title])->filter()->implode(' — ') ?: __('crm.models.opportunity') . ' #' . $opportunity->id; }
     public static function getPages():array{return ['index'=>Pages\ListCrmActivities::route('/'),'create'=>Pages\CreateCrmActivity::route('/create'),'view'=>Pages\ViewCrmActivity::route('/{record}')];}

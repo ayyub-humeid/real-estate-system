@@ -17,7 +17,7 @@ class ViewOpportunity extends ViewRecord
 
     protected function getHeaderActions(): array
     {
-        return [Actions\EditAction::make()];
+        return [Actions\EditAction::make()->label(__('crm.actions.edit'))];
     }
 
     public function getRelationManagers(): array

@@ -13,6 +13,8 @@ use Filament\Tables;
 class OffersRelationManager extends RelationManager
 {
     protected static string $relationship = 'offers';
+    public static function getModelLabel(): string { return __('crm.offers.models.offer'); }
+    public static function getPluralModelLabel(): string { return __('crm.offers.models.offers'); }
     public static function getTitle(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): string { return __('crm.offers.navigation'); }
     public function isReadOnly(): bool { return false; }
     public function form(Forms\Form $form): Forms\Form { return $form->schema($this->formSchema()); }

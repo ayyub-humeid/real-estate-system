@@ -17,6 +17,8 @@ use Illuminate\Validation\ValidationException;
 class OfferRevisionsRelationManager extends RelationManager
 {
     protected static string $relationship = 'revisions';
+    public static function getModelLabel(): string { return __('crm.resource_models.offer_revision'); }
+    public static function getPluralModelLabel(): string { return __('crm.offers.navigation_revisions'); }
     public static function getTitle(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): string
     {
         return __('crm.offers.navigation_revisions');

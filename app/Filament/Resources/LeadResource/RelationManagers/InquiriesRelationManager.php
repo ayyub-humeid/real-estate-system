@@ -17,6 +17,16 @@ class InquiriesRelationManager extends RelationManager
 {
     protected static string $relationship = 'inquiries';
 
+    public static function getModelLabel(): string
+    {
+        return __('crm.resource_models.inquiry');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('crm.resource_models.inquiries');
+    }
+
     public function isReadOnly(): bool
     {
         return false;
@@ -71,7 +81,7 @@ class InquiriesRelationManager extends RelationManager
             ])
             ->actions([
                 Tables\Actions\ViewAction::make()->label(__('crm.actions.details')),
-                Tables\Actions\EditAction::make()
+                Tables\Actions\EditAction::make()->label(__('crm.actions.edit'))
                     ->using(fn(LeadInquiry $record, array $data): LeadInquiry => $this->run(
                         fn() => app(LeadInquiryService::class)->update(auth()->user(), $record, $data),
                         __('crm.fields.inquiries'),

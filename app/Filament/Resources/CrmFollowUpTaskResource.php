@@ -57,7 +57,7 @@ class CrmFollowUpTaskResource extends Resource
                             ->orWhere('due_at', '>=', now());
                     }),
                 ),
-            ])->actions([static::completeAction(), Tables\Actions\ViewAction::make(), Tables\Actions\EditAction::make()->visible(fn(CrmFollowUpTask $r)=>in_array($r->status,[CrmTaskStatus::Pending,CrmTaskStatus::InProgress],true))]);
+            ])->actions([static::completeAction(), Tables\Actions\ViewAction::make()->label(__('crm.actions.details')), Tables\Actions\EditAction::make()->label(__('crm.actions.edit'))->visible(fn(CrmFollowUpTask $r)=>in_array($r->status,[CrmTaskStatus::Pending,CrmTaskStatus::InProgress],true))]);
     }
     public static function completeAction(): Tables\Actions\Action
     {

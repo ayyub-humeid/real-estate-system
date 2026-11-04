@@ -14,7 +14,7 @@ class CompanyRoleService
     public const DEFAULT_COMPANY_ROLES = ['company_admin', 'property_manager', 'financial_manager'];
 
     /** Platform administration is never delegated through a company-owned role. */
-    private const PLATFORM_PERMISSION_TERMS = ['subscription', 'plan', 'role', 'super', 'admin', 'user'];
+    private const PLATFORM_PERMISSION_TERMS = ['subscription', 'plan', 'super', 'admin', 'user'];
 
     public function provisionDefaults(Company $company): Collection
     {

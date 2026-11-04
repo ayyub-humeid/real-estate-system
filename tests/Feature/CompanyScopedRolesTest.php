@@ -31,6 +31,7 @@ class CompanyScopedRolesTest extends TestCase
     public function test_company_admin_can_only_manage_its_own_roles_and_cannot_grant_platform_permissions(): void
     {
         Permission::findOrCreate('view_property', 'web');
+        Permission::findOrCreate('view_role', 'web');
         Permission::findOrCreate('view_company', 'web');
         Permission::findOrCreate('view_company::setting', 'web');
         Permission::findOrCreate('view_user', 'web');
@@ -44,6 +45,9 @@ class CompanyScopedRolesTest extends TestCase
 
         $service->syncPermissions($admin, $roleA, ['view_property']);
         $this->assertTrue($roleA->fresh()->hasPermissionTo('view_property'));
+
+        $service->syncPermissions($admin, $roleA, ['view_role']);
+        $this->assertTrue($roleA->fresh()->hasPermissionTo('view_role'));
 
         $service->syncPermissions($admin, $roleA, ['view_company::setting']);
         $this->assertTrue($roleA->fresh()->hasPermissionTo('view_company::setting'));

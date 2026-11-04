@@ -18,6 +18,16 @@ class RequirementCompletionsRelationManager extends RelationManager
 {
     protected static string $relationship = 'requirementCompletions';
 
+    public static function getModelLabel(): string
+    {
+        return __('crm.resource_models.requirement_completion');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('crm.navigation.requirement_completions');
+    }
+
     public function isReadOnly(): bool
     {
         return false;
@@ -86,7 +96,7 @@ class RequirementCompletionsRelationManager extends RelationManager
                     }),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make()
+                Tables\Actions\ViewAction::make()->label(__('crm.actions.details'))
                     ->label(__('crm.actions.details'))
                     ->modalHeading(__('crm.actions.requirement_completion_details')),
             ]);

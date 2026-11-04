@@ -70,6 +70,14 @@
         background-color: #1C1C1F !important;
     }
 
+    /* Shield's Roles & Permissions browser uses Form Tabs (.fi-fo-tabs).
+       Its canvas must remain distinct from its section cards: #0D0D0F is the
+       Madar page canvas, while each permission category stays #1C1C1F. */
+    html.dark .fi-fo-tabs,
+    html.dark .fi-fo-tabs-tab {
+        background-color: #0D0D0F !important;
+    }
+
     /* Infolist tabs power resource overviews and relation details. They use
        different classes from form tabs, so colour both their frame and body. */
     html.dark .fi-in-tabs {

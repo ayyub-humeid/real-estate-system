@@ -48,7 +48,7 @@ class ViewCrmFollowUpTask extends ViewRecord
                         Notification::make()->danger()->title(__('crm.errors.unauthorized'))->send();
                     }
                 }),
-            Actions\EditAction::make(),
+            Actions\EditAction::make()->label(__('crm.actions.edit')),
         ];
     }
 }

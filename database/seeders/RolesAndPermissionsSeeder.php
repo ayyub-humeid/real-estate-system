@@ -146,7 +146,7 @@ class RolesAndPermissionsSeeder extends Seeder
             // Phase 07.7 — Contract version/legal workflow children. Contract CRUD is Shield generated.
             'submit_contract_version', 'approve_contract_version', 'request_contract_revision',
             'create_contract_revision', 'update_contract_version', 'attach_contract_document',
-            'record_contract_signature', 'activate_contract',
+            'record_contract_signature', 'generate_contract_pdf', 'activate_contract',
             'create_contract_amendment', 'view_contract_approval', 'view_contract_signature',
             'view_contract_amendment', 'view_contract_status_history',
         ];
@@ -165,20 +165,9 @@ class RolesAndPermissionsSeeder extends Seeder
 
         // 1. Company Admin role
         $companyAdmin = Role::platform()->firstOrCreate(['name' => 'company_admin', 'guard_name' => 'web']);
-        // Company admins can do almost everything within their company, except manage system-level roles
-        $companyAdminPermissions = Permission::whereNotIn('name', [
-            'view_role',
-            'view_any_role',
-            'create_role',
-            'update_role',
-            'delete_role',
-            'delete_any_role',
-            'force_delete_role',
-            'force_delete_any_role',
-            'reorder_role',
-            'restore_role',
-            'restore_any_role'
-        ])->get();
+        // Company admins can manage roles within their own company. Resource
+        // queries and policy checks keep platform roles out of their reach.
+        $companyAdminPermissions = Permission::query()->get();
         $companyAdmin->syncPermissions($companyAdminPermissions);
 
         // 2. Property Manager role

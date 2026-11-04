@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Enums\{ContractStatus, ContractType, ContractVersionStatus, OpportunityType, ReservationSource, ReservationStatus};
+use App\Enums\{ContractApprovalStatus, ContractStatus, ContractType, ContractVersionStatus, OpportunityType, ReservationSource, ReservationStatus};
 use App\Filament\Resources\{ContractResource, ContractTemplateResource};
-use App\Models\{Company, Contract, ContractTemplate, Document, DocumentVersion, Location, Party, Project, ProjectBuilding, ProjectBuildingFloor, ProjectPlannedUnit, Property, Unit, UnitReservation, User};
-use App\Services\{ContractDraftService, ContractTemplateService, ContractWorkflowService};
+use App\Models\{Company, Contract, ContractTemplate, ContractTemplateVersion, Document, DocumentVersion, Location, Party, Project, ProjectBuilding, ProjectBuildingFloor, ProjectPlannedUnit, Property, Unit, UnitReservation, User};
+use App\Services\{ContractDraftService, ContractPdfService, ContractTemplateService, ContractTemplateTokenService, ContractWorkflowService};
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -41,6 +41,14 @@ class ContractFoundationTest extends TestCase
 
         $this->assertSame('Contracts', ContractResource::getNavigationLabel());
         $this->assertSame('Contract templates', ContractTemplateResource::getNavigationLabel());
+    }
+
+    public function test_legacy_blade_echo_tokens_are_normalised_before_contract_pdf_rendering(): void
+    {
+        $body = '<p><?php echo e(unit_number); ?> — <?php echo e(total_amount); ?></p>';
+
+        $this->assertSame('<p>{{unit_number}} — {{total_amount}}</p>', ContractTemplateTokenService::normalise($body));
+        $this->assertSame('<p>{{unit_number}}</p>', ContractTemplateTokenService::normalise('<p>&lt;?php echo e(unit_number); ?&gt;</p>'));
     }
 
     public function test_company_user_creates_numbered_draft_with_target_party_and_snapshots(): void
@@ -161,6 +169,30 @@ class ContractFoundationTest extends TestCase
         $this->assertSame($reservation->id, $contract->reservation_id);
         $this->assertSame($unit->id, $contract->unit_id);
         $this->assertSame('RES-TEST-0001', $contract->versions()->firstOrFail()->reservation_snapshot['reservation_number']);
+        $this->assertSame('125000.00', $contract->versions()->firstOrFail()->total_amount);
+        $this->assertSame('USD', $contract->versions()->firstOrFail()->currency);
+    }
+
+    public function test_a_contract_cannot_be_submitted_without_a_matching_legal_template_and_commercial_terms(): void
+    {
+        [$company, $user, $unit] = $this->companyUserAndUnit('Submission safeguards');
+        $this->grant($user, ['create_contract', 'submit_contract_version']);
+        $buyer = Party::create(['company_id' => $company->id, 'type' => 'person', 'name' => 'Buyer', 'is_active' => true]);
+        $contract = app(ContractDraftService::class)->create($user, [
+            'contract_type' => ContractType::Sale,
+            'unit_id' => $unit->id,
+            'total_amount' => 5000,
+            'currency' => 'USD',
+            'parties' => [['party_id' => $buyer->id, 'role' => 'buyer']],
+            'terms' => [['term_type' => 'legal', 'title' => 'Sale term', 'text' => 'A legal term.']],
+        ]);
+
+        try {
+            app(ContractWorkflowService::class)->submit($user, $contract->versions()->firstOrFail());
+            $this->fail('A contract without a legal template was submitted.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('template_version_id', $exception->errors());
+        }
     }
 
     public function test_off_plan_sale_uses_a_planned_unit_without_requiring_an_actual_unit(): void
@@ -222,6 +254,31 @@ class ContractFoundationTest extends TestCase
         app(ContractDraftService::class)->updateDraft($user, $v1->fresh(), ['parties' => [], 'terms' => []]);
     }
 
+    public function test_draft_contract_can_switch_to_a_matching_template_without_losing_its_terms(): void
+    {
+        [$company, $user, $unit] = $this->companyUserAndUnit('Draft template switch');
+        $this->grant($user, ['create_contract', 'update_contract_version']);
+        $buyer = Party::create(['company_id' => $company->id, 'type' => 'person', 'name' => 'Buyer', 'is_active' => true]);
+        $contract = $this->draft($user, $unit, $buyer, 1000);
+        $version = $contract->versions()->firstOrFail();
+        $replacementTemplate = $this->templateVersion($user, ContractType::Sale);
+
+        app(ContractDraftService::class)->updateDraft($user, $version, [
+            'template_version_id' => $replacementTemplate->id,
+            'total_amount' => 1000,
+            'currency' => 'USD',
+            'parties' => [['party_id' => $buyer->id, 'role' => 'buyer']],
+            'terms' => $version->terms()->get()->map(fn ($term): array => [
+                'term_type' => $term->term_type,
+                'title' => $term->title,
+                'text' => $term->text,
+            ])->all(),
+        ]);
+
+        $this->assertSame($replacementTemplate->id, $version->fresh()->template_version_id);
+        $this->assertSame('Template legal term.', $version->fresh()->terms()->firstOrFail()->text);
+    }
+
     public function test_approved_version_requires_its_own_document_and_every_party_signature_before_activation(): void
     {
         Storage::fake(config('filesystems.default'));
@@ -235,7 +292,7 @@ class ContractFoundationTest extends TestCase
         $workflow->submit($user, $version);
         $workflow->approve($user, $version->fresh());
 
-        $document = Document::create(['documentable_type' => \App\Models\ContractVersion::class, 'documentable_id' => $version->id, 'title' => 'Signed agreement', 'created_by' => $user->id]);
+        $document = Document::create(['documentable_type' => \App\Models\ContractVersion::class, 'documentable_id' => $version->id, 'document_type' => 'official_approved_pdf', 'title' => 'Signed agreement', 'created_by' => $user->id]);
         Storage::disk(config('filesystems.default'))->put('contracts/signed.pdf', 'signed bytes');
         $documentVersion = DocumentVersion::create(['company_id' => $company->id, 'document_id' => $document->id, 'version_number' => 1, 'file_name' => 'signed.pdf', 'file_path' => 'contracts/signed.pdf', 'uploaded_by' => $user->id]);
 
@@ -314,6 +371,26 @@ class ContractFoundationTest extends TestCase
         Storage::disk(config('filesystems.default'))->assertExists('documents/contracts/draft-corrected.pdf');
     }
 
+    public function test_same_reviewer_can_request_revision_again_for_a_resubmitted_contract_version(): void
+    {
+        [$company, $user, $unit] = $this->companyUserAndUnit('Repeated revision request');
+        $this->grant($user, ['create_contract', 'submit_contract_version', 'request_contract_revision']);
+        $buyer = Party::create(['company_id' => $company->id, 'type' => 'person', 'name' => 'Revision Buyer', 'is_active' => true]);
+        $contract = $this->draft($user, $unit, $buyer, 1000);
+        $version = $contract->versions()->firstOrFail();
+        $workflow = app(ContractWorkflowService::class);
+
+        $workflow->submit($user, $version);
+        $workflow->requestRevision($user, $version->fresh(), 'Correct the ownership deed.');
+        $workflow->submit($user, $version->fresh());
+        $approval = $workflow->requestRevision($user, $version->fresh(), 'Clarify the buyer address.');
+
+        $this->assertSame(ContractApprovalStatus::RevisionRequired, $approval->status);
+        $this->assertSame('Clarify the buyer address.', $approval->notes);
+        $this->assertSame(1, $version->approvals()->where('reviewed_by', $user->id)->count());
+        $this->assertSame(2, $contract->statusHistories()->where('action', 'revision_requested')->count());
+    }
+
     public function test_amendment_creates_a_new_draft_without_mutating_the_signed_version(): void
     {
         Storage::fake(config('filesystems.default'));
@@ -325,7 +402,7 @@ class ContractFoundationTest extends TestCase
         $workflow = app(ContractWorkflowService::class);
         $workflow->submit($user, $version);
         $workflow->approve($user, $version->fresh());
-        $document = Document::create(['documentable_type' => \App\Models\ContractVersion::class, 'documentable_id' => $version->id, 'title' => 'Agreement', 'created_by' => $user->id]);
+        $document = Document::create(['documentable_type' => \App\Models\ContractVersion::class, 'documentable_id' => $version->id, 'document_type' => 'official_approved_pdf', 'title' => 'Agreement', 'created_by' => $user->id]);
         Storage::disk(config('filesystems.default'))->put('contracts/amendment-source.pdf', 'source');
         $documentVersion = DocumentVersion::create(['company_id' => $company->id, 'document_id' => $document->id, 'version_number' => 1, 'file_name' => 'source.pdf', 'file_path' => 'contracts/amendment-source.pdf', 'uploaded_by' => $user->id]);
         $workflow->recordSignature($user, $version->fresh(), $version->parties()->firstOrFail(), $documentVersion, 'Buyer', 'manual');
@@ -371,7 +448,7 @@ class ContractFoundationTest extends TestCase
         $workflow = app(ContractWorkflowService::class);
         $workflow->submit($user, $version);
         $workflow->approve($user, $version->fresh());
-        $document = Document::create(['documentable_type' => \App\Models\ContractVersion::class, 'documentable_id' => $version->id, 'title' => 'Overlap', 'created_by' => $user->id]);
+        $document = Document::create(['documentable_type' => \App\Models\ContractVersion::class, 'documentable_id' => $version->id, 'document_type' => 'official_approved_pdf', 'title' => 'Overlap', 'created_by' => $user->id]);
         Storage::disk(config('filesystems.default'))->put('contracts/overlap.pdf', 'overlap');
         $documentVersion = DocumentVersion::create(['company_id' => $company->id, 'document_id' => $document->id, 'version_number' => 1, 'file_name' => 'overlap.pdf', 'file_path' => 'contracts/overlap.pdf', 'uploaded_by' => $user->id]);
         $workflow->recordSignature($user, $version->fresh(), $version->parties()->firstOrFail(), $documentVersion, 'Tenant', 'manual');
@@ -394,13 +471,56 @@ class ContractFoundationTest extends TestCase
         $workflow = app(ContractWorkflowService::class);
         $workflow->submit($user, $version);
         $workflow->approve($user, $version->fresh());
-        $document = Document::create(['documentable_type' => \App\Models\ContractVersion::class, 'documentable_id' => $version->id, 'title' => 'Second sale', 'created_by' => $user->id]);
+        $document = Document::create(['documentable_type' => \App\Models\ContractVersion::class, 'documentable_id' => $version->id, 'document_type' => 'official_approved_pdf', 'title' => 'Second sale', 'created_by' => $user->id]);
         Storage::disk(config('filesystems.default'))->put('contracts/sale-second.pdf', 'second');
         $documentVersion = DocumentVersion::create(['company_id' => $company->id, 'document_id' => $document->id, 'version_number' => 1, 'file_name' => 'sale-second.pdf', 'file_path' => 'contracts/sale-second.pdf', 'uploaded_by' => $user->id]);
         $workflow->recordSignature($user, $version->fresh(), $version->parties()->firstOrFail(), $documentVersion, 'Buyer', 'manual');
 
         $this->expectException(ValidationException::class);
         $workflow->activate($user, $second, $version->fresh());
+    }
+
+    public function test_contract_pdf_preview_official_and_signed_documents_are_separate_and_immutable(): void
+    {
+        Storage::fake(config('filesystems.default'));
+        [$company, $user, $unit] = $this->companyUserAndUnit('Contract PDF');
+        $this->grant($user, ['create_contract', 'view_contract', 'submit_contract_version', 'approve_contract_version', 'record_contract_signature', 'generate_contract_pdf']);
+        $buyer = Party::create(['company_id' => $company->id, 'type' => 'person', 'name' => 'المشتري التجريبي', 'is_active' => true]);
+        $template = ContractTemplate::create(['company_id' => $company->id, 'name' => 'Arabic sale', 'contract_type' => ContractType::Sale, 'is_active' => true]);
+        $templateVersion = ContractTemplateVersion::create([
+            'company_id' => $company->id,
+            'contract_template_id' => $template->id,
+            'version_number' => 1,
+            'body' => '<h1>عقد {{contract_number}}</h1><p>{{parties}}</p>{{terms}}',
+            'created_by' => $user->id,
+        ]);
+
+        $contract = app(ContractDraftService::class)->create($user, [
+            'contract_type' => ContractType::Sale,
+            'unit_id' => $unit->id,
+            'template_version_id' => $templateVersion->id,
+            'total_amount' => 1500,
+            'currency' => 'USD',
+            'parties' => [['party_id' => $buyer->id, 'role' => 'buyer']],
+            'terms' => [['term_type' => 'commercial', 'title' => 'السعر', 'text' => 'القيمة المتفق عليها']],
+        ]);
+        $version = $contract->versions()->firstOrFail();
+        $pdf = app(ContractPdfService::class);
+        $this->assertStringStartsWith('%PDF', $pdf->preview($user, $version));
+
+        $workflow = app(ContractWorkflowService::class);
+        $workflow->submit($user, $version);
+        $workflow->approve($user, $version->fresh());
+        $official = $pdf->generateOfficial($user, $version->fresh());
+        $this->assertSame('official_approved_pdf', $official->document->document_type->value);
+        Storage::disk(config('filesystems.default'))->assertExists($official->file_path);
+        $this->assertSame($official->id, $pdf->generateOfficial($user, $version->fresh())->id);
+
+        $workflow->recordSignature($user, $version->fresh(), $version->parties()->firstOrFail(), $official, 'المشتري التجريبي', 'manual');
+        $signed = $pdf->generateSignedFinal($user, $version->fresh());
+        $this->assertSame('signed_final_pdf', $signed->document->document_type->value);
+        $this->assertNotSame($official->document_id, $signed->document_id);
+        Storage::disk(config('filesystems.default'))->assertExists($signed->file_path);
     }
 
     /** @return array{0:Company,1:User,2:Unit} */
@@ -425,9 +545,12 @@ class ContractFoundationTest extends TestCase
 
     private function draft(User $user, Unit $unit, Party $buyer, int $amount, array $extraParties = []): Contract
     {
+        $template = $this->templateVersion($user, ContractType::Sale);
+
         return app(ContractDraftService::class)->create($user, [
             'contract_type' => ContractType::Sale,
             'unit_id' => $unit->id,
+            'template_version_id' => $template->id,
             'total_amount' => $amount,
             'currency' => 'USD',
             'parties' => array_merge([['party_id' => $buyer->id, 'role' => 'buyer', 'share_percentage' => 100]], $extraParties),
@@ -437,9 +560,12 @@ class ContractFoundationTest extends TestCase
 
     private function leaseDraft(User $user, Unit $unit, Party $tenant, string $start, string $end): Contract
     {
+        $template = $this->templateVersion($user, ContractType::Lease);
+
         return app(ContractDraftService::class)->create($user, [
             'contract_type' => ContractType::Lease,
             'unit_id' => $unit->id,
+            'template_version_id' => $template->id,
             'total_amount' => 1000,
             'currency' => 'USD',
             'start_date' => $start,
@@ -449,13 +575,32 @@ class ContractFoundationTest extends TestCase
         ]);
     }
 
+    private function templateVersion(User $user, ContractType $type): ContractTemplateVersion
+    {
+        $template = ContractTemplate::create([
+            'company_id' => $user->company_id,
+            'name' => 'Test '.$type->value.' '.str()->uuid(),
+            'contract_type' => $type,
+            'is_active' => true,
+        ]);
+
+        return ContractTemplateVersion::create([
+            'company_id' => $user->company_id,
+            'contract_template_id' => $template->id,
+            'version_number' => 1,
+            'body' => '<p>{{contract_number}}</p><p>{{total_amount}} {{currency}}</p>',
+            'clauses' => [['type' => 'legal', 'title' => 'Template term', 'text' => 'Template legal term.']],
+            'created_by' => $user->id,
+        ]);
+    }
+
     private function signAndActivate(User $user, Contract $contract, string $file): void
     {
         $workflow = app(ContractWorkflowService::class);
         $version = $contract->versions()->firstOrFail();
         $workflow->submit($user, $version);
         $workflow->approve($user, $version->fresh());
-        $document = Document::create(['documentable_type' => \App\Models\ContractVersion::class, 'documentable_id' => $version->id, 'title' => $file, 'created_by' => $user->id]);
+        $document = Document::create(['documentable_type' => \App\Models\ContractVersion::class, 'documentable_id' => $version->id, 'document_type' => 'official_approved_pdf', 'title' => $file, 'created_by' => $user->id]);
         Storage::disk(config('filesystems.default'))->put('contracts/'.$file, $file);
         $documentVersion = DocumentVersion::create(['company_id' => $contract->company_id, 'document_id' => $document->id, 'version_number' => 1, 'file_name' => $file, 'file_path' => 'contracts/'.$file, 'uploaded_by' => $user->id]);
         $workflow->recordSignature($user, $version->fresh(), $version->parties()->firstOrFail(), $documentVersion, 'Tenant', 'manual');

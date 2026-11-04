@@ -10,6 +10,16 @@ class StageHistoriesRelationManager extends RelationManager
 {
     protected static string $relationship = 'stageHistories';
 
+    public static function getModelLabel(): string
+    {
+        return __('crm.resource_models.stage_history');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('crm.navigation.stage_history');
+    }
+
     public function isReadOnly(): bool
     {
         return true;

@@ -27,7 +27,7 @@ class FollowUpTasksRelationManager extends RelationManager
             Tables\Actions\CreateAction::make()->label(__('crm.tasks.actions.add_follow_up'))
                 ->mutateFormDataUsing(function(array $data):array { $data['company_id']=$this->getOwnerRecord()->company_id; $data['opportunity_id']=$this->getOwnerRecord()->id; $data['lead_id']=$this->getOwnerRecord()->lead_id; return $data; })
                 ->using(fn(array $data) => app(CrmTaskService::class)->create(auth()->user(), $data)),
-        ])->actions([CrmFollowUpTaskResource::completeAction(), Tables\Actions\ViewAction::make(), Tables\Actions\EditAction::make()
+        ])->actions([CrmFollowUpTaskResource::completeAction(), Tables\Actions\ViewAction::make()->label(__('crm.actions.details')), Tables\Actions\EditAction::make()->label(__('crm.actions.edit'))
             ->using(fn (\App\Models\CrmFollowUpTask $record, array $data) => app(CrmTaskService::class)->update(auth()->user(), $record, $data))]);
     }
     protected function mutateFormDataBeforeCreate(array $data): array { $data['company_id']=$this->getOwnerRecord()->company_id; $data['opportunity_id']=$this->getOwnerRecord()->id; $data['lead_id']=$this->getOwnerRecord()->lead_id; return $data; }

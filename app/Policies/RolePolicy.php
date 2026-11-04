@@ -15,7 +15,7 @@ class RolePolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->can('view_any_role');
+        return $this->canManageCompanyRoles($user, 'view_any_role');
     }
 
     /**
@@ -23,7 +23,7 @@ class RolePolicy
      */
     public function view(User $user, Role $role): bool
     {
-        return $user->can('view_role');
+        return $this->canManageCompanyRoles($user, 'view_role', $role);
     }
 
     /**
@@ -31,7 +31,7 @@ class RolePolicy
      */
     public function create(User $user): bool
     {
-        return $user->can('create_role');
+        return $this->canManageCompanyRoles($user, 'create_role');
     }
 
     /**
@@ -39,7 +39,7 @@ class RolePolicy
      */
     public function update(User $user, Role $role): bool
     {
-        return $user->can('update_role');
+        return $this->canManageCompanyRoles($user, 'update_role', $role);
     }
 
     /**
@@ -47,7 +47,7 @@ class RolePolicy
      */
     public function delete(User $user, Role $role): bool
     {
-        return $user->can('delete_role');
+        return $this->canManageCompanyRoles($user, 'delete_role', $role);
     }
 
     /**
@@ -55,7 +55,7 @@ class RolePolicy
      */
     public function deleteAny(User $user): bool
     {
-        return $user->can('delete_any_role');
+        return $this->canManageCompanyRoles($user, 'delete_any_role');
     }
 
     /**
@@ -63,7 +63,7 @@ class RolePolicy
      */
     public function forceDelete(User $user, Role $role): bool
     {
-        return $user->can('{{ ForceDelete }}');
+        return $this->canManageCompanyRoles($user, 'force_delete_role', $role);
     }
 
     /**
@@ -71,7 +71,7 @@ class RolePolicy
      */
     public function forceDeleteAny(User $user): bool
     {
-        return $user->can('{{ ForceDeleteAny }}');
+        return $this->canManageCompanyRoles($user, 'force_delete_any_role');
     }
 
     /**
@@ -79,7 +79,7 @@ class RolePolicy
      */
     public function restore(User $user, Role $role): bool
     {
-        return $user->can('{{ Restore }}');
+        return $this->canManageCompanyRoles($user, 'restore_role', $role);
     }
 
     /**
@@ -87,7 +87,7 @@ class RolePolicy
      */
     public function restoreAny(User $user): bool
     {
-        return $user->can('{{ RestoreAny }}');
+        return $this->canManageCompanyRoles($user, 'restore_any_role');
     }
 
     /**
@@ -95,7 +95,7 @@ class RolePolicy
      */
     public function replicate(User $user, Role $role): bool
     {
-        return $user->can('{{ Replicate }}');
+        return $this->canManageCompanyRoles($user, 'replicate_role', $role);
     }
 
     /**
@@ -103,6 +103,24 @@ class RolePolicy
      */
     public function reorder(User $user): bool
     {
-        return $user->can('{{ Reorder }}');
+        return $this->canManageCompanyRoles($user, 'reorder_role');
+    }
+
+    /** A company can administer only roles owned by that same company. */
+    private function canManageCompanyRoles(User $user, string $permission, ?Role $role = null): bool
+    {
+        if (! $user->can($permission)) {
+            return false;
+        }
+
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+
+        if (! $user->company_id) {
+            return false;
+        }
+
+        return ! $role || (int) $role->company_id === (int) $user->company_id;
     }
 }

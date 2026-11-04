@@ -88,9 +88,9 @@ class LeadResource extends Resource
                     ->color(fn($state) => $state === LeadStatus::Active || $state === LeadStatus::Active->value ? 'success' : 'gray'),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\ViewAction::make()->label(__('crm.actions.details')),
+                Tables\Actions\EditAction::make()->label(__('crm.actions.edit')),
+                Tables\Actions\DeleteAction::make()->label(__('crm.actions.delete')),
             ]);
     }
 
