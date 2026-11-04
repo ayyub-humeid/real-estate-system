@@ -16,6 +16,7 @@
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.10.1",
         "league/flysystem-aws-s3-v3": "3.0",
+        "mpdf/mpdf": "^8.3",
         "pusher/pusher-php-server": "*",
         "stripe/stripe-php": "^20.3"
     },

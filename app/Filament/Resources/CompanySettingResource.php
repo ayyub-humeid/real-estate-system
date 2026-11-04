@@ -25,7 +25,7 @@ class CompanySettingResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Section::make(__('Company Branding'))
-                    ->description(__('Upload company logo, lease background, and signature'))
+                    ->description(__('Upload company logo, contract background, authorized signature, and stamp'))
                     ->schema([
                         Forms\Components\FileUpload::make('logo')
                             ->label(__('Company Logo'))
@@ -34,21 +34,32 @@ class CompanySettingResource extends Resource
                             ->imageEditor()
                             ->maxSize(2048),
 
-                        Forms\Components\FileUpload::make('lease_background')
-                            ->label(__('Lease Background Image'))
+                        Forms\Components\FileUpload::make('contract_background')
+                            ->label(__('Contract Background Image'))
                             ->image()
                             ->directory('company-settings/backgrounds')
                             ->imageEditor()
+                            ->imageResizeTargetWidth('1440')
+                            ->imageResizeTargetHeight('2035')
+                            ->imageResizeMode('contain')
                             ->maxSize(5120)
-                            ->helperText(__('Watermark or background image for lease documents')),
+                            ->helperText(__('Watermark or background image for contract documents')),
 
-                        Forms\Components\FileUpload::make('signature')
-                            ->label(__('Company Signature'))
+                        Forms\Components\FileUpload::make('contract_signature')
+                            ->label(__('Authorized Company Signature'))
                             ->image()
                             ->directory('company-settings/signatures')
                             ->imageEditor()
                             ->maxSize(1024)
-                            ->helperText(__('Digital signature for contracts')),
+                            ->helperText(__('Used only when an authorized company signature is explicitly recorded.')),
+
+                        Forms\Components\FileUpload::make('contract_stamp')
+                            ->label(__('Company Contract Stamp'))
+                            ->image()
+                            ->directory('company-settings/stamps')
+                            ->imageEditor()
+                            ->maxSize(1024)
+                            ->visible(fn (Forms\Get $get): bool => (bool) $get('show_contract_stamp')),
                     ])
                     ->columns(3)
                     ->collapsible(),
@@ -97,23 +108,23 @@ class CompanySettingResource extends Resource
                     ->columns(2)
                     ->collapsible(),
 
-                Forms\Components\Section::make(__('Lease Document Settings'))
+                Forms\Components\Section::make(__('Contract Document Settings'))
                     ->schema([
-                        Forms\Components\Textarea::make('lease_terms')
-                            ->label(__('Default Lease Terms & Conditions'))
+                        Forms\Components\Textarea::make('contract_terms')
+                            ->label(__('Default Contract Terms & Conditions'))
                             ->rows(5)
-                            ->helperText(__('These terms will appear in all lease contracts')),
+                            ->helperText(__('These terms are available to reusable contract templates.')),
 
-                        Forms\Components\Textarea::make('lease_footer_text')
-                            ->label(__('Lease Footer Text'))
+                        Forms\Components\Textarea::make('contract_footer_text')
+                            ->label(__('Contract Footer Text'))
                             ->rows(2)
                             ->placeholder(__('This contract is legally binding...')),
 
-                        Forms\Components\ColorPicker::make('lease_header_color')
-                            ->label(__('Lease Header Color'))
+                        Forms\Components\ColorPicker::make('contract_header_color')
+                            ->label(__('Contract Header Color'))
                             ->default('#1e40af'),
 
-                        Forms\Components\Toggle::make('show_company_stamp')
+                        Forms\Components\Toggle::make('show_contract_stamp')
                             ->label(__('Show Company Stamp/Seal'))
                             ->default(true),
                     ])
@@ -185,14 +196,14 @@ class CompanySettingResource extends Resource
                         'https://ui-avatars.com/api/?name=' . urlencode($record->company->name ?? 'Company')
                     ),
 
-                Tables\Columns\IconColumn::make('signature')
+                Tables\Columns\IconColumn::make('contract_signature')
                     ->label(__('Signature'))
                     ->boolean()
                     ->trueIcon('heroicon-o-check-circle')
                     ->falseIcon('heroicon-o-x-circle')
                     ->trueColor('success')
                     ->falseColor('gray')
-                    ->state(fn($record) => filled($record->signature)),
+                    ->state(fn($record) => filled($record->contract_signature)),
 
                 Tables\Columns\TextColumn::make('tax_id')
                     ->label(__('Tax ID'))

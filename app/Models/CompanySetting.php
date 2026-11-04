@@ -13,8 +13,9 @@ class CompanySetting extends Model
     protected $fillable = [
         'company_id',
         'logo',
-        'lease_background',
-        'signature',
+        'contract_background',
+        'contract_signature',
+        'contract_stamp',
         'company_legal_name',
         'company_address',
         'company_phone',
@@ -22,10 +23,10 @@ class CompanySetting extends Model
         'tax_id',
         'registration_number',
         'website',
-        'lease_terms',
-        'lease_footer_text',
-        'lease_header_color',
-        'show_company_stamp',
+        'contract_terms',
+        'contract_footer_text',
+        'contract_header_color',
+        'show_contract_stamp',
         'receipt_terms',
         'receipt_header_color',
         'payment_grace_period_days',
@@ -37,7 +38,7 @@ class CompanySetting extends Model
 
     protected $casts = [
         'crm_assignment_mode' => CrmAssignmentMode::class,
-        'show_company_stamp' => 'boolean',
+        'show_contract_stamp' => 'boolean',
         'payment_grace_period_days' => 'integer',
         'late_payment_fee_percentage' => 'decimal:2',
         'allow_maintenance_unit_marketing' => 'boolean',
@@ -49,15 +50,18 @@ class CompanySetting extends Model
         return storage_url($this->logo);
     }
     
-    // ✅ Helper: Get lease background URL
-    public function getLeaseBackgroundUrlAttribute(): ?string
+    public function getContractBackgroundUrlAttribute(): ?string
     {
-        return storage_url($this->lease_background);
+        return storage_url($this->contract_background);
     }
-    
-    // ✅ Helper: Get signature URL
-    public function getSignatureUrlAttribute(): ?string
+
+    public function getContractSignatureUrlAttribute(): ?string
     {
-        return storage_url($this->signature);
+        return storage_url($this->contract_signature);
+    }
+
+    public function getContractStampUrlAttribute(): ?string
+    {
+        return storage_url($this->contract_stamp);
     }
 }
