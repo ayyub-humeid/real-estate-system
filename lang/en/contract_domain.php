@@ -29,6 +29,7 @@ return [
         'manual' => 'Manual signature',
         'electronic' => 'Electronic evidence',
         'company_authorized' => 'Authorized company signature',
+        'company_authorized_notice' => 'The authorized signature and stamp configured in Company Settings will be used. No image upload is needed.',
     ],
     'content' => [
         'max_template_hint' => 'Maximum :limit characters for reliable PDF generation.',

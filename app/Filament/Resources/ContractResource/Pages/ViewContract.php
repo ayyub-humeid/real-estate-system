@@ -189,13 +189,25 @@ class ViewContract extends ViewRecord
                                 'electronic' => __('contract_domain.signing_methods.electronic'),
                                 'company_authorized' => __('contract_domain.signing_methods.company_authorized'),
                             ])
-                            ->required(),
+                            ->required()
+                            ->live()
+                            ->afterStateUpdated(function ($state, Forms\Set $set): void {
+                                if ($state === 'company_authorized') {
+                                    $set('signature_image_path', null);
+                                }
+                            }),
                         Forms\Components\FileUpload::make('signature_image_path')
                             ->label(__('Signature image'))
                             ->image()
                             ->disk(config('filesystems.default'))
                             ->directory('signatures/contracts')
-                            ->maxSize(5120),
+                            ->maxSize(5120)
+                            ->visible(fn (Forms\Get $get): bool => $get('signing_method') !== 'company_authorized')
+                            ->dehydrated(fn (Forms\Get $get): bool => $get('signing_method') !== 'company_authorized'),
+                        Forms\Components\Placeholder::make('company_authorized_signature_notice')
+                            ->label(__('Signature image'))
+                            ->content(__('contract_domain.signing_methods.company_authorized_notice'))
+                            ->visible(fn (Forms\Get $get): bool => $get('signing_method') === 'company_authorized'),
                         Forms\Components\Textarea::make('evidence.notes')->label(__('Signature evidence notes')),
                     ];
                 })

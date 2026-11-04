@@ -196,13 +196,9 @@ class ContractResource extends Resource
                 ->schema([
                     Forms\Components\Select::make('party_id')
                         ->label(__('Party'))
-                        ->options(fn (Get $get): array => Party::withoutGlobalScopes()
-                            ->where('company_id', self::formCompanyId($get))
-                            ->where('is_active', true)
-                            ->orderBy('name')
-                            ->pluck('name', 'id')
-                            ->all())
+                        ->options(fn (Get $get): array => self::partyOptions(self::formCompanyId($get)))
                         ->searchable()
+                        ->helperText(__('Choose an external party or the company itself. Only parties of this company are available.'))
                         ->required(),
                     Forms\Components\Select::make('role')
                         ->label(__('Role'))
@@ -319,7 +315,36 @@ class ContractResource extends Resource
         ];
     }
 
-    private static function formCompanyId(Get $get): ?int
+    public static function partyOptions(?int $companyId): array
+    {
+        if (! $companyId) {
+            return [];
+        }
+
+        $company = Company::withoutGlobalScopes()->with('selfParty')->find($companyId);
+
+        if (! $company) {
+            return [];
+        }
+
+        $parties = Party::withoutGlobalScopes()
+            ->where('company_id', $company->id)
+            ->where('is_active', true)
+            ->when($company->self_party_id, fn (Builder $query) => $query->whereKeyNot($company->self_party_id))
+            ->orderBy('name')
+            ->pluck('name', 'id')
+            ->all();
+
+        if (! $company->selfParty?->is_active) {
+            return $parties;
+        }
+
+        return [
+            $company->selfParty->id => __('Company').' — '.($company->selfParty->name ?: $company->name),
+        ] + $parties;
+    }
+
+    public static function formCompanyId(Get $get): ?int
     {
         return auth()->user()->isSuperAdmin()
             ? ($get('company_id') ? (int) $get('company_id') : null)

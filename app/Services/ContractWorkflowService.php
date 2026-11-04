@@ -304,7 +304,9 @@ class ContractWorkflowService
                     'company_signature_snapshot' => $setting?->contract_signature,
                     'company_stamp_snapshot' => $setting?->show_contract_stamp ? $setting?->contract_stamp : null,
                 ]);
-                $signatureImagePath ??= $setting?->contract_signature;
+                // This method is server-controlled: never accept a client-uploaded
+                // signature image in place of the company's configured signature.
+                $signatureImagePath = $setting?->contract_signature;
             }
 
             return ContractSignature::withoutGlobalScopes()->create([

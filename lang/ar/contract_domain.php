@@ -29,6 +29,7 @@ return [
         'manual' => 'توقيع يدوي',
         'electronic' => 'إثبات إلكتروني',
         'company_authorized' => 'توقيع الشركة المعتمد',
+        'company_authorized_notice' => 'سيُستخدم التوقيع والختم المعتمدان في إعدادات الشركة. لا تحتاج إلى رفع صورة.',
     ],
     'content' => [
         'max_template_hint' => 'الحد الأقصى :limit حرفًا لضمان إصدار PDF بشكل موثوق.',

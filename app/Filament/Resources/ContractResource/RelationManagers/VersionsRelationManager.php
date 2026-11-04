@@ -3,7 +3,8 @@
 namespace App\Filament\Resources\ContractResource\RelationManagers;
 
 use App\Enums\ContractVersionStatus;
-use App\Models\{ContractTemplateVersion, ContractVersion, Party};
+use App\Filament\Resources\ContractResource;
+use App\Models\{ContractTemplateVersion, ContractVersion};
 use App\Services\ContractDraftService;
 use App\Support\ContractPdfContentLimits;
 use Filament\Forms;
@@ -190,13 +191,9 @@ class VersionsRelationManager extends RelationManager
                 ->schema([
                     Forms\Components\Select::make('party_id')
                         ->label(__('Party'))
-                        ->options(fn (): array => Party::withoutGlobalScopes()
-                            ->where('company_id', $companyId)
-                            ->where('is_active', true)
-                            ->orderBy('name')
-                            ->pluck('name', 'id')
-                            ->all())
+                        ->options(fn (): array => ContractResource::partyOptions($companyId))
                         ->searchable()
+                        ->helperText(__('Choose an external party or the company itself. Only parties of this company are available.'))
                         ->required(),
                     Forms\Components\Select::make('role')
                         ->label(__('Role'))

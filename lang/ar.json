@@ -1542,5 +1542,6 @@
     "Website": "الموقع الإلكتروني",
     "You do not have permission to create a contract.": "لا تملك صلاحية إنشاء عقد.",
     "You do not have permission to generate this contract PDF.": "لا تملك صلاحية إصدار ملف PDF لهذا العقد.",
-    "You may change the template while this version is a draft. Existing contract terms are preserved to avoid losing deal-specific edits.": "يمكنك تغيير القالب ما دامت هذه النسخة مسودة. تُحفظ بنود العقد الحالية لتجنب فقدان التعديلات أو البنود الخاصة بالصفقة."
+    "You may change the template while this version is a draft. Existing contract terms are preserved to avoid losing deal-specific edits.": "يمكنك تغيير القالب ما دامت هذه النسخة مسودة. تُحفظ بنود العقد الحالية لتجنب فقدان التعديلات أو البنود الخاصة بالصفقة.",
+    "Choose an external party or the company itself. Only parties of this company are available.": "اختر طرفًا خارجيًا أو الشركة نفسها. تظهر فقط الأطراف التابعة لهذه الشركة."
 }
