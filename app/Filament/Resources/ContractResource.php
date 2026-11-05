@@ -310,6 +310,9 @@ class ContractResource extends Resource
             RelationManagers\DocumentsRelationManager::class,
             RelationManagers\ApprovalsRelationManager::class,
             RelationManagers\SignaturesRelationManager::class,
+            RelationManagers\PaymentSchedulesRelationManager::class,
+            RelationManagers\PaymentsRelationManager::class,
+            RelationManagers\FinancialHistoryRelationManager::class,
             RelationManagers\StatusHistoriesRelationManager::class,
             RelationManagers\AmendmentsRelationManager::class,
         ];

@@ -18,6 +18,12 @@ return [
         'create_contract_amendment' => 'Create contract amendment', 'view_contract_approval' => 'View contract approvals',
         'view_contract_signature' => 'View contract signatures', 'view_contract_amendment' => 'View contract amendments',
         'view_contract_status_history' => 'View contract status history',
+        'view_contract_financials' => 'View contract financials', 'create_contract_payment_schedule' => 'Create contract payment schedule',
+        'update_contract_payment_schedule' => 'Edit contract payment schedule', 'submit_contract_payment_schedule' => 'Send payment schedule for approval',
+        'approve_contract_payment_schedule' => 'Approve and issue payment schedule', 'reschedule_contract_payment_schedule' => 'Reschedule contract outstanding balance',
+        'cancel_contract_payment_schedule' => 'Cancel contract payment schedule', 'record_contract_payment' => 'Record contract payment',
+        'allocate_contract_payment' => 'Allocate contract payment', 'reverse_contract_payment' => 'Reverse or refund contract payment',
+        'manage_contract_financial_notification_routes' => 'Manage contract finance notification routing',
     ],
     'actions' => [
         'view_any' => 'View all', 'view_own' => 'View own', 'complete_any' => 'Complete any', 'force_delete_any' => 'Force delete any', 'force_delete' => 'Force delete', 'delete_any' => 'Delete any', 'restore_any' => 'Restore any',
@@ -43,7 +49,7 @@ return [
         'unit_setup' => 'Unit setup', 'create_from_approved_plan' => 'Create from approved plan', 'unit_status' => 'Unit status', 'unit_ownership' => 'Unit ownership', 'unit_history_and_documents' => 'Unit history and documents',
         'crm' => 'CRM', 'lead_workflow' => 'Lead workflow', 'opportunity_workflow' => 'Opportunity workflow', 'lead_inquiries' => 'Lead inquiries', 'pipeline_stages' => 'Pipeline stages', 'stage_requirements' => 'Stage requirements', 'requirement_completions' => 'Requirement completions', 'stage_history' => 'Stage history', 'follow_up_tasks' => 'Follow-up tasks', 'task_assignment_and_completion' => 'Task assignment and completion', 'offers_and_negotiations' => 'Offers & negotiations',
         'listings_management' => 'Listings management', 'listing_lifecycle' => 'Listing lifecycle', 'listing_pricing' => 'Listing pricing', 'reservations' => 'Reservations',
-        'contracts_agreements' => 'Contracts & agreements', 'version_workflow' => 'Version workflow', 'legal_documents_and_signatures' => 'Legal documents & signatures', 'amendments_and_audit' => 'Amendments & audit',
+        'contracts_agreements' => 'Contracts & agreements', 'version_workflow' => 'Version workflow', 'legal_documents_and_signatures' => 'Legal documents & signatures', 'amendments_and_audit' => 'Amendments & audit', 'contract_finance' => 'Contract finance',
         'other_custom_permissions' => 'Other custom permissions', 'uncategorized' => 'Uncategorized',
     ],
 ];

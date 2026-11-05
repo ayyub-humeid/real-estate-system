@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\CrmAssignmentMode;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class CompanySetting extends Model
 {
@@ -30,6 +31,7 @@ class CompanySetting extends Model
         'receipt_terms',
         'receipt_header_color',
         'payment_grace_period_days',
+        'contract_payment_reminder_days',
         'late_payment_fee_percentage',
         'allow_maintenance_unit_marketing',
         'crm_assignment_mode',
@@ -40,6 +42,7 @@ class CompanySetting extends Model
         'crm_assignment_mode' => CrmAssignmentMode::class,
         'show_contract_stamp' => 'boolean',
         'payment_grace_period_days' => 'integer',
+        'contract_payment_reminder_days' => 'integer',
         'late_payment_fee_percentage' => 'decimal:2',
         'allow_maintenance_unit_marketing' => 'boolean',
     ];
@@ -63,5 +66,10 @@ class CompanySetting extends Model
     public function getContractStampUrlAttribute(): ?string
     {
         return storage_url($this->contract_stamp);
+    }
+
+    public function contractFinancialNotificationRoutes(): HasMany
+    {
+        return $this->hasMany(ContractFinancialNotificationRoute::class, 'company_id', 'company_id');
     }
 }

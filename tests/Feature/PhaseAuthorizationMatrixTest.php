@@ -114,6 +114,10 @@ class PhaseAuthorizationMatrixTest extends TestCase
             'view_any_project_building_floor', 'view_project_building_floor', 'create_project_building_floor', 'update_project_building_floor', 'delete_project_building_floor',
             'view_any_project_planned_unit', 'view_project_planned_unit', 'create_project_planned_unit', 'update_project_planned_unit', 'delete_project_planned_unit', 'approve_planned_unit', 'cancel_planned_unit',
             'view_any_planned_unit_specification', 'view_planned_unit_specification', 'create_planned_unit_specification', 'update_planned_unit_specification', 'delete_planned_unit_specification',
+            'view_contract_financials', 'create_contract_payment_schedule', 'update_contract_payment_schedule',
+            'submit_contract_payment_schedule', 'approve_contract_payment_schedule', 'reschedule_contract_payment_schedule',
+            'cancel_contract_payment_schedule', 'record_contract_payment', 'allocate_contract_payment',
+            'reverse_contract_payment', 'manage_contract_financial_notification_routes',
         ];
 
         foreach ($expectedCustomPermissions as $permission) {

@@ -149,6 +149,13 @@ class RolesAndPermissionsSeeder extends Seeder
             'record_contract_signature', 'generate_contract_pdf', 'activate_contract',
             'create_contract_amendment', 'view_contract_approval', 'view_contract_signature',
             'view_contract_amendment', 'view_contract_status_history',
+            // Phase 07.8 — Contract financial schedules, receipts, allocation and reversals.
+            'view_contract_financials',
+            'create_contract_payment_schedule', 'update_contract_payment_schedule',
+            'submit_contract_payment_schedule', 'approve_contract_payment_schedule',
+            'reschedule_contract_payment_schedule', 'cancel_contract_payment_schedule',
+            'record_contract_payment', 'allocate_contract_payment', 'reverse_contract_payment',
+            'manage_contract_financial_notification_routes',
         ];
 
         foreach ($customDomainPermissions as $permission) {

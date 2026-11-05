@@ -64,4 +64,16 @@ class Contract extends Model
         return $this->hasManyThrough(Document::class, ContractVersion::class, 'contract_id', 'documentable_id')
             ->where('documents.documentable_type', ContractVersion::class);
     }
+    public function paymentSchedules(): HasMany
+    {
+        return $this->hasMany(ContractPaymentSchedule::class)->orderByDesc('revision_number');
+    }
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
+    public function financialEvents(): HasMany
+    {
+        return $this->hasMany(ContractFinancialEvent::class)->latest('occurred_at');
+    }
 }

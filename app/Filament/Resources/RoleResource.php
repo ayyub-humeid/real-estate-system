@@ -293,6 +293,14 @@ class RoleResource extends ShieldRoleResource
                 'exact:create_contract_amendment', 'exact:view_contract_approval', 'exact:view_contract_signature',
                 'exact:view_contract_amendment', 'exact:view_contract_status_history',
             ],
+            'Contract finance' => [
+                'exact:view_contract_financials', 'exact:create_contract_payment_schedule',
+                'exact:update_contract_payment_schedule', 'exact:submit_contract_payment_schedule',
+                'exact:approve_contract_payment_schedule', 'exact:reschedule_contract_payment_schedule',
+                'exact:cancel_contract_payment_schedule', 'exact:record_contract_payment',
+                'exact:allocate_contract_payment', 'exact:reverse_contract_payment',
+                'exact:manage_contract_financial_notification_routes',
+            ],
         ],
     ];
 

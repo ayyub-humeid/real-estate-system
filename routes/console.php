@@ -10,3 +10,4 @@ Artisan::command('inspire', function () {
 
 Schedule::command('crm:send-task-reminders')->everyFiveMinutes()->withoutOverlapping();
 Schedule::command('reservations:expire-due')->everyFiveMinutes()->withoutOverlapping();
+Schedule::command('contract-finance:send-installment-reminders')->daily()->withoutOverlapping();

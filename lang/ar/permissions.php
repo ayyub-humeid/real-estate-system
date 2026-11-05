@@ -18,6 +18,12 @@ return [
         'create_contract_amendment' => 'إنشاء ملحق للعقد', 'view_contract_approval' => 'عرض موافقات العقد',
         'view_contract_signature' => 'عرض توقيعات العقد', 'view_contract_amendment' => 'عرض ملاحق العقد',
         'view_contract_status_history' => 'عرض سجل حالة العقد',
+        'view_contract_financials' => 'عرض تمويل العقد', 'create_contract_payment_schedule' => 'إنشاء جدول دفعات للعقد',
+        'update_contract_payment_schedule' => 'تعديل جدول دفعات العقد', 'submit_contract_payment_schedule' => 'إرسال جدول الدفعات للاعتماد',
+        'approve_contract_payment_schedule' => 'اعتماد وإصدار جدول الدفعات', 'reschedule_contract_payment_schedule' => 'إعادة جدولة الرصيد المتبقي للعقد',
+        'cancel_contract_payment_schedule' => 'إلغاء جدول دفعات العقد', 'record_contract_payment' => 'تسجيل دفعة عقد',
+        'allocate_contract_payment' => 'توزيع دفعة عقد', 'reverse_contract_payment' => 'عكس أو استرداد دفعة عقد',
+        'manage_contract_financial_notification_routes' => 'إدارة توجيه إشعارات تمويل العقود',
         'confirm_offer_agreement' => 'تأكيد اتفاق العرض',
     ],
     'actions' => [
@@ -44,7 +50,7 @@ return [
         'unit_setup' => 'إعداد الوحدات', 'create_from_approved_plan' => 'الإنشاء من مخطط معتمد', 'unit_status' => 'حالة الوحدة', 'unit_ownership' => 'ملكية الوحدة', 'unit_history_and_documents' => 'سجل الوحدة ومستنداتها',
         'crm' => 'إدارة العملاء', 'lead_workflow' => 'مسار العميل المحتمل', 'opportunity_workflow' => 'مسار الفرصة', 'lead_inquiries' => 'استفسارات العملاء المحتملين', 'pipeline_stages' => 'مراحل المسار', 'stage_requirements' => 'شروط المراحل', 'requirement_completions' => 'إكمال الشروط', 'stage_history' => 'سجل المراحل', 'follow_up_tasks' => 'مهام المتابعة', 'task_assignment_and_completion' => 'تعيين وإكمال المهام', 'offers_and_negotiations' => 'العروض والتفاوض',
         'listings_management' => 'إدارة الإعلانات', 'listing_lifecycle' => 'دورة الإعلان', 'listing_pricing' => 'تسعير الإعلان', 'reservations' => 'الحجوزات',
-        'contracts_agreements' => 'العقود والاتفاقيات', 'version_workflow' => 'مسار الإصدارات', 'legal_documents_and_signatures' => 'المستندات والتوقيعات القانونية', 'amendments_and_audit' => 'الملاحق والتدقيق',
+        'contracts_agreements' => 'العقود والاتفاقيات', 'version_workflow' => 'مسار الإصدارات', 'legal_documents_and_signatures' => 'المستندات والتوقيعات القانونية', 'amendments_and_audit' => 'الملاحق والتدقيق', 'contract_finance' => 'تمويل العقود',
         'other_custom_permissions' => 'صلاحيات مخصصة أخرى', 'uncategorized' => 'غير مصنفة',
     ],
 ];

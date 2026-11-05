@@ -10,6 +10,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use App\Filament\Resources\CompanySettingResource\RelationManagers;
 
 class CompanySettingResource extends Resource
 {
@@ -180,6 +181,13 @@ class CompanySettingResource extends Resource
                             ->minValue(0)
                             ->helperText(__('Days allowed after due date before marking overdue')),
 
+                        Forms\Components\TextInput::make('contract_payment_reminder_days')
+                            ->label(__('contract_finance.settings.reminder_lead_days'))
+                            ->numeric()
+                            ->default(3)
+                            ->minValue(0)
+                            ->helperText(__('contract_finance.settings.reminder_lead_days_help')),
+
                         Forms\Components\TextInput::make('late_payment_fee_percentage')
                             ->label(__('Late Payment Fee (%)'))
                             ->numeric()
@@ -250,6 +258,13 @@ class CompanySettingResource extends Resource
             'index' => Pages\ListCompanySettings::route('/'),
             'create' => Pages\CreateCompanySetting::route('/create'),
             'edit' => Pages\EditCompanySetting::route('/{record}/edit'),
+        ];
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            RelationManagers\ContractFinancialNotificationRoutesRelationManager::class,
         ];
     }
 }

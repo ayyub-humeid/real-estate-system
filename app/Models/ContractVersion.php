@@ -31,4 +31,5 @@ class ContractVersion extends Model
     public function documents(): MorphMany { return $this->morphMany(Document::class, 'documentable'); }
     public function officialPdf(): MorphMany { return $this->documents()->where('document_type', ContractDocumentType::OfficialApprovedPdf->value); }
     public function signedFinalPdf(): MorphMany { return $this->documents()->where('document_type', ContractDocumentType::SignedFinalPdf->value); }
+    public function paymentSchedules(): HasMany { return $this->hasMany(ContractPaymentSchedule::class); }
 }
