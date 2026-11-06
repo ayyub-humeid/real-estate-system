@@ -16,6 +16,16 @@ class FinancialHistoryRelationManager extends RelationManager
         return __('contract_finance.navigation.financial_history');
     }
 
+    public static function getModelLabel(): string
+    {
+        return __('contract_finance.fields.financial_event');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('contract_finance.navigation.financial_history');
+    }
+
     public function isReadOnly(): bool
     {
         return true;
@@ -36,6 +46,8 @@ class FinancialHistoryRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('actor.name')->label(__('contract_finance.fields.changed_by'))->placeholder('—'),
                 Tables\Columns\TextColumn::make('occurred_at')->label(__('contract_finance.fields.changed_at'))->dateTime()->sortable(),
             ])
+            ->emptyStateHeading(__('contract_finance.empty.financial_history_heading'))
+            ->emptyStateDescription(__('contract_finance.empty.financial_history_description'))
             ->defaultSort('occurred_at', 'desc');
     }
 }

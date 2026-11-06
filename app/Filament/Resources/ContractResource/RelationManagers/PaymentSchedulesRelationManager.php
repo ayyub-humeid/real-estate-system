@@ -54,6 +54,8 @@ class PaymentSchedulesRelationManager extends RelationManager
                 $summary = app(ContractFinancialService::class)->summary($this->getOwnerRecord());
                 return __('contract_finance.fields.total_amount').': '.$summary['scheduled'].' · '.__('contract_finance.fields.received').': '.$summary['received'].' · '.__('contract_finance.fields.remaining').': '.$summary['outstanding'].' · '.__('contract_finance.fields.overdue').': '.$summary['overdue'];
             })
+            ->emptyStateHeading(__('contract_finance.empty.schedules_heading'))
+            ->emptyStateDescription(__('contract_finance.empty.schedules_description'))
             ->columns([
                 Tables\Columns\TextColumn::make('revision_number')->label(__('contract_finance.fields.revision'))->prefix('V')->badge(),
                 Tables\Columns\TextColumn::make('status')->label(__('contract_finance.fields.status'))->badge()
@@ -212,7 +214,7 @@ class PaymentSchedulesRelationManager extends RelationManager
                 Forms\Components\Select::make('installment_id')->label(__('contract_finance.fields.installment'))->options(fn (): array => $schedule->installments()->where('status', 'scheduled')->orderBy('sequence')->get()->mapWithKeys(fn (ContractInstallment $item) => [$item->id => '#'.$item->sequence.' — '.$item->due_date?->format('Y-m-d').' — '.$item->amount.' '.$item->currency])->all())->required()->searchable(),
                 Forms\Components\TextInput::make('allocated_amount')->label(__('contract_finance.fields.allocation_amount'))->numeric()->minValue(0.0001)->required(),
                 Forms\Components\Hidden::make('currency')->default($schedule->currency),
-            ])->columns(2)->minItems(1)->addActionLabel(__('Allocate')),
+            ])->columns(2)->minItems(1)->addActionLabel(__('contract_finance.actions.allocate_installment')),
         ];
     }
 
@@ -224,7 +226,7 @@ class PaymentSchedulesRelationManager extends RelationManager
         } catch (ValidationException $exception) {
             Notification::make()->danger()->title(__('contract_finance.errors.unable_to_update'))->body(collect($exception->errors())->flatten()->first())->persistent()->send();
         } catch (AuthorizationException) {
-            Notification::make()->danger()->title(__('Unauthorized'))->body(__('contract_finance.errors.not_authorized'))->persistent()->send();
+            Notification::make()->danger()->title(__('contract_finance.errors.unauthorized_title'))->body(__('contract_finance.errors.not_authorized'))->persistent()->send();
         } catch (\Throwable $exception) {
             report($exception);
             Notification::make()->danger()->title(__('contract_finance.errors.unexpected_error'))->body(__('contract_finance.errors.try_again_or_support'))->persistent()->send();

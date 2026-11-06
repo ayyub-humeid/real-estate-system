@@ -1,4 +1,27 @@
-3ingMode;
+<?php
+
+namespace App\Services;
+
+use App\Enums\{
+    ContractInstallmentKind,
+    ContractPaymentScheduleStatus,
+    ContractStatus,
+    ContractVersionStatus,
+};
+use App\Models\{
+    Contract,
+    ContractFinancialEvent,
+    ContractInstallment,
+    ContractParty,
+    ContractPaymentAllocation,
+    ContractPaymentSchedule,
+    ContractVersion,
+    Party,
+    Payment,
+    User,
+};
+use Brick\Math\BigDecimal;
+use Brick\Math\RoundingMode;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;

@@ -27,7 +27,7 @@ return [
         'generate_by_duration' => 'Generate by payment duration', 'replace_draft' => 'Save draft installments',
         'submit_schedule' => 'Send schedule for approval', 'issue_schedule' => 'Approve & issue schedule',
         'reschedule' => 'Reschedule outstanding balance', 'cancel_schedule' => 'Cancel schedule',
-        'record_payment' => 'Record payment', 'allocate_payment' => 'Allocate payment', 'reverse_payment' => 'Reverse / refund payment',
+        'record_payment' => 'Record payment', 'allocate_payment' => 'Allocate payment', 'allocate_installment' => 'Add installment allocation', 'reverse_payment' => 'Reverse / refund payment',
         'details' => 'Details', 'edit_installments' => 'Edit installments', 'add_installment' => 'Add installment',
     ],
     'fields' => [
@@ -45,7 +45,7 @@ return [
         'generation_method' => 'Generation method', 'manual_installments' => 'Manual installments', 'frequency' => 'Frequency',
         'direction' => 'Direction', 'incoming' => 'Incoming', 'outgoing' => 'Outgoing', 'event' => 'Event',
         'changed_by' => 'Changed by', 'changed_at' => 'Changed at', 'recipient' => 'Recipient', 'fallback' => 'Fallback',
-        'contract' => 'Contract', 'view' => 'View',
+        'contract' => 'Contract', 'view' => 'View', 'financial_event' => 'Financial event',
     ],
     'descriptions' => [
         'draft_editable' => 'Draft installments can be reviewed, added, edited, or removed before approval.',
@@ -67,6 +67,14 @@ return [
         'due' => 'An installment is due today.', 'overdue' => 'An installment is overdue.',
         'settled' => 'The contract has been fully settled.', 'contract_settled' => 'The contract has been fully settled.',
         'draft_installments_saved' => 'Draft installments saved.',
+    ],
+    'empty' => [
+        'schedules_heading' => 'No payment schedules for this contract yet.',
+        'schedules_description' => 'Create a payment schedule from the approved contract version to plan its installments.',
+        'payments_heading' => 'No payments recorded for this contract yet.',
+        'payments_description' => 'Recorded receipts and their allocations to contract installments appear here.',
+        'financial_history_heading' => 'No financial history for this contract yet.',
+        'financial_history_description' => 'Payment schedule, receipt, and financial reversal actions will appear here.',
     ],
     'errors' => [
         'company_mismatch' => 'All financial records must belong to the same company.',
@@ -96,7 +104,7 @@ return [
         'idempotency_conflict' => 'This payment request key was already used for a different contract payment.',
         'no_outstanding_balance' => 'There is no outstanding balance to reschedule.',
         'cannot_delete_issued' => 'Issued installments are historical records and cannot be deleted.',
-        'not_authorized' => 'You do not have permission to perform this contract finance action.',
+        'not_authorized' => 'You do not have permission to perform this contract finance action.', 'unauthorized_title' => 'Unauthorized',
         'unable_to_update' => 'Unable to update contract finance', 'unexpected_error' => 'An unexpected error occurred',
         'try_again_or_support' => 'Please try again or contact support.',
         'payment_date_future' => 'Payment date cannot be in the future.', 'cancellation_reason_required' => 'Enter a cancellation reason.',

@@ -46,6 +46,8 @@ class PaymentsRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('contract_allocations_count')->label(__('contract_finance.fields.allocations'))->badge(),
             ])
             ->defaultSort('payment_date', 'desc')
+            ->emptyStateHeading(__('contract_finance.empty.payments_heading'))
+            ->emptyStateDescription(__('contract_finance.empty.payments_description'))
             ->actions([
                 Tables\Actions\Action::make('reversePayment')
                     ->label(__('contract_finance.actions.reverse_payment'))
@@ -64,7 +66,7 @@ class PaymentsRelationManager extends RelationManager
                             Forms\Components\Select::make('installment_id')->label(__('contract_finance.fields.installment'))->options(fn (): array => $record->contractAllocations()->with('installment')->get()->mapWithKeys(fn ($allocation) => [$allocation->contract_installment_id => '#'.$allocation->installment?->sequence.' — '.$allocation->allocated_amount.' '.$allocation->currency])->all())->required(),
                             Forms\Components\TextInput::make('allocated_amount')->label(__('contract_finance.fields.allocation_amount'))->numeric()->minValue(0.0001)->required(),
                             Forms\Components\Hidden::make('currency')->default($record->currency),
-                        ])->minItems(1)->columns(2)->addActionLabel(__('Allocate')),
+                        ])->minItems(1)->columns(2)->addActionLabel(__('contract_finance.actions.allocate_installment')),
                     ])
                     ->action(function (Payment $record, array $data): void {
                         try {
@@ -73,10 +75,10 @@ class PaymentsRelationManager extends RelationManager
                         } catch (ValidationException $exception) {
                             Notification::make()->danger()->title(__('contract_finance.errors.unable_to_update'))->body(collect($exception->errors())->flatten()->first())->persistent()->send();
                         } catch (AuthorizationException) {
-                            Notification::make()->danger()->title(__('Unauthorized'))->body(__('contract_finance.errors.not_authorized'))->persistent()->send();
+                            Notification::make()->danger()->title(__('contract_finance.errors.unauthorized_title'))->body(__('contract_finance.errors.not_authorized'))->persistent()->send();
                         } catch (\Throwable $exception) {
                             report($exception);
-                            Notification::make()->danger()->title(__('An unexpected error occurred'))->persistent()->send();
+                            Notification::make()->danger()->title(__('contract_finance.errors.unexpected_error'))->body(__('contract_finance.errors.try_again_or_support'))->persistent()->send();
                         }
                     }),
             ]);

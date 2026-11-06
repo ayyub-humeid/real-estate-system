@@ -27,7 +27,7 @@ return [
         'generate_by_duration' => 'توليد حسب مدة السداد', 'replace_draft' => 'حفظ مسودة الأقساط',
         'submit_schedule' => 'إرسال الجدول للاعتماد', 'issue_schedule' => 'اعتماد وإصدار الجدول',
         'reschedule' => 'إعادة جدولة الرصيد المتبقي', 'cancel_schedule' => 'إلغاء الجدول',
-        'record_payment' => 'تسجيل دفعة', 'allocate_payment' => 'توزيع دفعة', 'reverse_payment' => 'عكس / استرداد دفعة',
+        'record_payment' => 'تسجيل دفعة', 'allocate_payment' => 'توزيع دفعة', 'allocate_installment' => 'إضافة توزيع للقسط', 'reverse_payment' => 'عكس / استرداد دفعة',
         'details' => 'التفاصيل', 'edit_installments' => 'تعديل الأقساط', 'add_installment' => 'إضافة قسط',
     ],
     'fields' => [
@@ -45,7 +45,7 @@ return [
         'generation_method' => 'طريقة الإنشاء', 'manual_installments' => 'إدخال الأقساط يدويًا', 'frequency' => 'تكرار الاستحقاق',
         'direction' => 'الاتجاه', 'incoming' => 'وارد', 'outgoing' => 'صادر', 'event' => 'الحدث',
         'changed_by' => 'تم بواسطة', 'changed_at' => 'تاريخ التغيير', 'recipient' => 'المستلم', 'fallback' => 'بديل',
-        'contract' => 'العقد', 'view' => 'عرض',
+        'contract' => 'العقد', 'view' => 'عرض', 'financial_event' => 'حدث مالي',
     ],
     'descriptions' => [
         'draft_editable' => 'يمكن مراجعة أقساط المسودة وإضافتها وتعديلها وحذفها قبل الاعتماد.',
@@ -67,6 +67,14 @@ return [
         'due' => 'يوجد قسط مستحق اليوم.', 'overdue' => 'يوجد قسط متأخر.',
         'settled' => 'تمت تسوية كامل رصيد العقد.', 'contract_settled' => 'تمت تسوية كامل رصيد العقد.',
         'draft_installments_saved' => 'تم حفظ مسودة الأقساط.',
+    ],
+    'empty' => [
+        'schedules_heading' => 'لا توجد جداول دفعات لهذا العقد بعد.',
+        'schedules_description' => 'أنشئ جدول الدفعات من الإصدار المعتمد لتخطيط الأقساط المستحقة.',
+        'payments_heading' => 'لا توجد دفعات مسجلة لهذا العقد بعد.',
+        'payments_description' => 'تظهر هنا الإيصالات المسجلة وتوزيعاتها على أقساط العقد.',
+        'financial_history_heading' => 'لا يوجد سجل مالي لهذا العقد بعد.',
+        'financial_history_description' => 'ستظهر هنا عمليات جدول الدفعات والدفعات والعكس المالي عند تنفيذها.',
     ],
     'errors' => [
         'company_mismatch' => 'يجب أن تنتمي جميع السجلات المالية إلى الشركة نفسها.',
@@ -96,7 +104,7 @@ return [
         'idempotency_conflict' => 'استُخدم مفتاح طلب الدفعة مسبقًا لدفعة عقد مختلفة.',
         'no_outstanding_balance' => 'لا يوجد رصيد متبقٍ لإعادة جدولته.',
         'cannot_delete_issued' => 'الأقساط الصادرة سجلات تاريخية ولا يمكن حذفها.',
-        'not_authorized' => 'لا تملك صلاحية تنفيذ إجراء تمويل العقد هذا.',
+        'not_authorized' => 'لا تملك صلاحية تنفيذ إجراء تمويل العقد هذا.', 'unauthorized_title' => 'غير مصرح لك',
         'unable_to_update' => 'تعذر تحديث تمويل العقد', 'unexpected_error' => 'حدث خطأ غير متوقع',
         'try_again_or_support' => 'حاول مرة أخرى أو تواصل مع الدعم.',
         'payment_date_future' => 'لا يمكن أن يكون تاريخ الدفعة في المستقبل.', 'cancellation_reason_required' => 'أدخل سبب الإلغاء.',
