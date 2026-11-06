@@ -26,6 +26,7 @@ use App\Models\{
     DocumentVersion,
     ProjectPlannedUnit,
     Unit,
+    UnitReservation,
     User,
 };
 use Illuminate\Auth\Access\AuthorizationException;
@@ -502,7 +503,7 @@ class ContractWorkflowService
         $partyIds = $version->parties()->pluck('id');
         $signatureCount = $version->signatures()->whereIn('contract_party_id', $partyIds)->count();
         if ($partyIds->isEmpty() || $signatureCount !== $partyIds->count()) {
-            $this->invalid('signatures', __('Record a signature for every contract party before activation.'));
+            $this->invalid('signatures', __('contract_domain.activation.missing_signatures'));
         }
     }
 
@@ -519,6 +520,18 @@ class ContractWorkflowService
             ->where('status', ContractStatus::Active->value)
             ->whereKeyNot($contract->id);
 
+        // The create form hides targets held by another active reservation.
+        // Recheck under the same activation transaction so a reservation made
+        // after the form was opened cannot be bypassed.
+        if ($unit && UnitReservation::withoutGlobalScopes()
+            ->where('unit_id', $unit->id)
+            ->where('status', \App\Enums\ReservationStatus::Active->value)
+            ->when($contract->reservation_id, fn ($query) => $query->whereKeyNot($contract->reservation_id))
+            ->lockForUpdate()
+            ->first()) {
+            $this->invalid('unit_id', __('contract_domain.activation.target_reserved'));
+        }
+
         if ($contract->contract_type->isSale()) {
             $plannedUnitId = $planned?->id ?? $unit?->planned_unit_id;
             $unitId = $unit?->id;
@@ -531,13 +544,13 @@ class ContractWorkflowService
                 }
             });
             if ($conflicts->exists()) {
-                $this->invalid('unit_id', __('This sale target already has an active contract.'));
+                $this->invalid('unit_id', __('contract_domain.activation.sale_target_unavailable'));
             }
             return;
         }
 
         if (! $unit || ! $version->start_date || ! $version->end_date) {
-            $this->invalid('dates', __('A lease requires an actual unit, start date, and end date.'));
+            $this->invalid('dates', __('contract_domain.activation.lease_details_required'));
         }
         $this->assertVersionDates($version);
         $overlap = $conflicts
@@ -549,7 +562,7 @@ class ContractWorkflowService
                 ->whereDate('end_date', '>=', $version->start_date))
             ->exists();
         if ($overlap) {
-            $this->invalid('unit_id', __('This lease period overlaps an active lease contract.'));
+            $this->invalid('unit_id', __('contract_domain.activation.lease_overlap'));
         }
     }
 

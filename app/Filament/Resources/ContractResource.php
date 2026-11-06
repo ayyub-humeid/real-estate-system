@@ -93,7 +93,7 @@ class ContractResource extends Resource
                         $set('currency', $reservation->currency);
                     }
                 })
-                ->helperText(__('An active reservation supplies its actual unit, agreed amount, and currency.')),
+                ->helperText(__('contract_domain.guidance.reservation_source')),
             Forms\Components\Select::make('property_id')
                 ->label(__('Property'))
                 ->options(fn (Get $get): array => Property::withoutGlobalScopes()
@@ -127,28 +127,18 @@ class ContractResource extends Resource
                 }),
             Forms\Components\Select::make('unit_id')
                 ->label(__('Actual unit'))
-                ->options(function (Get $get): array {
-                    $propertyId = $get('property_id');
-                    if (! $propertyId || ! self::formCompanyId($get)) {
-                        return [];
-                    }
-
-                    return Unit::withoutGlobalScopes()
-                        ->where('company_id', self::formCompanyId($get))
-                        ->where('property_id', $propertyId)
-                        ->orderBy('unit_number')
-                        ->pluck('unit_number', 'id')
-                        ->all();
-                })
+                ->options(fn (Get $get): array => self::availableActualUnitOptions($get))
                 ->searchable()
                 ->required(fn (Get $get): bool => ContractType::tryFrom((string) $get('contract_type'))?->requiresActualUnit() ?? false)
                 ->disabled(fn (Get $get): bool => ! self::formCompanyId($get) || ! $get('property_id'))
-                ->helperText(__('Select a property to load its actual units.')),
+                ->helperText(__('contract_domain.guidance.actual_unit_availability')),
             Forms\Components\Select::make('planned_unit_id')
                 ->label(__('Planned unit'))
                 ->options(fn (Get $get): array => ProjectPlannedUnit::withoutGlobalScopes()
                     ->with('floor.building.project')
                     ->where('company_id', self::formCompanyId($get))
+                    ->whereDoesntHave('contracts', fn (Builder $query) => $query
+                        ->where('status', ContractStatus::Active->value))
                     ->orderBy('code')
                     ->get()
                     ->mapWithKeys(fn (ProjectPlannedUnit $unit): array => [
@@ -157,7 +147,8 @@ class ContractResource extends Resource
                 ->searchable()
                 ->preload()
                 ->required(fn (Get $get): bool => ContractType::tryFrom((string) $get('contract_type'))?->requiresPlannedUnit() ?? false)
-                ->disabled(fn (Get $get): bool => ! self::formCompanyId($get)),
+                ->disabled(fn (Get $get): bool => ! self::formCompanyId($get))
+                ->helperText(__('contract_domain.guidance.planned_unit_availability')),
             Forms\Components\Select::make('template_version_id')
                 ->label(__('Template version'))
                 ->options(fn (Get $get): array => ContractTemplateVersion::withoutGlobalScopes()
@@ -352,5 +343,34 @@ class ContractResource extends Resource
         return auth()->user()->isSuperAdmin()
             ? ($get('company_id') ? (int) $get('company_id') : null)
             : auth()->user()->company_id;
+    }
+
+    /**
+     * Keep unavailable targets out of the create form, while the workflow
+     * service remains the final locked/concurrent availability authority.
+     */
+    private static function availableActualUnitOptions(Get $get): array
+    {
+        $companyId = self::formCompanyId($get);
+        $propertyId = $get('property_id');
+
+        if (! $companyId || ! $propertyId) {
+            return [];
+        }
+
+        $selectedReservationId = $get('reservation_id') ? (int) $get('reservation_id') : null;
+
+        return Unit::withoutGlobalScopes()
+            ->where('company_id', $companyId)
+            ->where('property_id', $propertyId)
+            ->whereDoesntHave('reservations', function (Builder $query) use ($selectedReservationId): void {
+                $query->where('status', \App\Enums\ReservationStatus::Active->value)
+                    ->when($selectedReservationId, fn (Builder $query) => $query->whereKeyNot($selectedReservationId));
+            })
+            ->whereDoesntHave('contracts', fn (Builder $query) => $query
+                ->where('status', ContractStatus::Active->value))
+            ->orderBy('unit_number')
+            ->pluck('unit_number', 'id')
+            ->all();
     }
 }
