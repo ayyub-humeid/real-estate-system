@@ -53,6 +53,7 @@ class PaymentsRelationManager extends RelationManager
                     ->label(__('contract_finance.actions.reverse_payment'))
                     ->icon('heroicon-o-arrow-uturn-left')
                     ->color('danger')
+                    ->tooltip(__('contract_finance.action_help.reverse_payment'))
                     ->visible(fn (Payment $record): bool => $record->payment_scope === 'contract_receipt' && $record->status === 'completed' && auth()->user()->can('reverse_contract_payment'))
                     ->requiresConfirmation()
                     ->modalHeading(__('contract_finance.actions.reverse_payment'))
@@ -62,7 +63,7 @@ class PaymentsRelationManager extends RelationManager
                         Forms\Components\Select::make('payment_method')->label(__('contract_finance.fields.payment_method'))->options(collect(['cash', 'bank_transfer', 'cheque', 'card', 'other'])->mapWithKeys(fn (string $method): array => [$method => __('contract_finance.payment_methods.'.$method)])->all())->required(),
                         Forms\Components\TextInput::make('reference_number')->label(__('contract_finance.fields.reference_number')),
                         Forms\Components\Hidden::make('idempotency_key')->default(fn (): string => Str::uuid()->toString()),
-                        Forms\Components\Repeater::make('allocations')->label(__('contract_finance.fields.allocations'))->schema([
+                        Forms\Components\Repeater::make('allocations')->label(__('contract_finance.fields.allocations'))->helperText(__('contract_finance.guidance.reverse_allocations'))->schema([
                             Forms\Components\Select::make('installment_id')->label(__('contract_finance.fields.installment'))->options(fn (): array => $record->contractAllocations()->with('installment')->get()->mapWithKeys(fn ($allocation) => [$allocation->contract_installment_id => '#'.$allocation->installment?->sequence.' — '.$allocation->allocated_amount.' '.$allocation->currency])->all())->required(),
                             Forms\Components\TextInput::make('allocated_amount')->label(__('contract_finance.fields.allocation_amount'))->numeric()->minValue(0.0001)->required(),
                             Forms\Components\Hidden::make('currency')->default($record->currency),

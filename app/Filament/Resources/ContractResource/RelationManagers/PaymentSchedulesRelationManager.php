@@ -71,6 +71,7 @@ class PaymentSchedulesRelationManager extends RelationManager
                     ->label(__('contract_finance.actions.create_schedule'))
                     ->icon('heroicon-o-calendar-days')
                     ->color('primary')
+                    ->tooltip(__('contract_finance.action_help.create_schedule'))
                     ->visible(fn (): bool => auth()->user()->can('create_contract_payment_schedule'))
                     ->modalHeading(__('contract_finance.actions.create_schedule'))
                     ->modalDescription(__('contract_finance.descriptions.generation_preview'))
@@ -90,6 +91,7 @@ class PaymentSchedulesRelationManager extends RelationManager
             ->actions([
                 Tables\Actions\ViewAction::make()
                     ->label(__('contract_finance.actions.details'))
+                    ->tooltip(__('contract_finance.action_help.details'))
                     ->infolist(fn (Infolists\Infolist $infolist): Infolists\Infolist => $infolist->schema([
                         Infolists\Components\Section::make(__('contract_finance.fields.schedule'))->schema([
                             Infolists\Components\TextEntry::make('revision_number')->label(__('contract_finance.fields.revision'))->prefix('V'),
@@ -107,6 +109,7 @@ class PaymentSchedulesRelationManager extends RelationManager
                 Tables\Actions\Action::make('editDraftInstallments')
                     ->label(__('contract_finance.actions.edit_installments'))
                     ->icon('heroicon-o-pencil-square')
+                    ->tooltip(__('contract_finance.action_help.edit_installments'))
                     ->visible(fn (ContractPaymentSchedule $record): bool => $record->status === ContractPaymentScheduleStatus::Draft && auth()->user()->can('update_contract_payment_schedule'))
                     ->modalHeading(__('contract_finance.actions.edit_installments'))
                     ->modalDescription(__('contract_finance.descriptions.draft_editable'))
@@ -122,6 +125,7 @@ class PaymentSchedulesRelationManager extends RelationManager
                     ->label(__('contract_finance.actions.submit_schedule'))
                     ->icon('heroicon-o-paper-airplane')
                     ->color('warning')
+                    ->tooltip(__('contract_finance.action_help.submit_schedule'))
                     ->requiresConfirmation()
                     ->visible(fn (ContractPaymentSchedule $record): bool => $record->status === ContractPaymentScheduleStatus::Draft && auth()->user()->can('submit_contract_payment_schedule'))
                     ->action(fn (ContractPaymentSchedule $record) => $this->run(fn () => app(ContractFinancialService::class)->submit(auth()->user(), $record), __('contract_finance.notifications.schedule_submitted'))),
@@ -129,6 +133,7 @@ class PaymentSchedulesRelationManager extends RelationManager
                     ->label(__('contract_finance.actions.issue_schedule'))
                     ->icon('heroicon-o-check-badge')
                     ->color('success')
+                    ->tooltip(__('contract_finance.action_help.issue_schedule'))
                     ->requiresConfirmation()
                     ->visible(fn (ContractPaymentSchedule $record): bool => $record->status === ContractPaymentScheduleStatus::PendingApproval && auth()->user()->can('approve_contract_payment_schedule'))
                     ->action(fn (ContractPaymentSchedule $record) => $this->run(fn () => app(ContractFinancialService::class)->issue(auth()->user(), $record), __('contract_finance.notifications.schedule_issued'))),
@@ -136,6 +141,7 @@ class PaymentSchedulesRelationManager extends RelationManager
                     ->label(__('contract_finance.actions.record_payment'))
                     ->icon('heroicon-o-banknotes')
                     ->color('success')
+                    ->tooltip(__('contract_finance.action_help.record_payment'))
                     ->visible(fn (ContractPaymentSchedule $record): bool => $record->status === ContractPaymentScheduleStatus::Issued
                         && auth()->user()->can('record_contract_payment')
                         && auth()->user()->can('allocate_contract_payment'))
@@ -146,6 +152,7 @@ class PaymentSchedulesRelationManager extends RelationManager
                     ->label(__('contract_finance.actions.reschedule'))
                     ->icon('heroicon-o-arrow-path')
                     ->color('info')
+                    ->tooltip(__('contract_finance.action_help.reschedule'))
                     ->visible(fn (ContractPaymentSchedule $record): bool => $record->status === ContractPaymentScheduleStatus::Issued && auth()->user()->can('reschedule_contract_payment_schedule'))
                     ->modalHeading(__('contract_finance.actions.reschedule'))
                     ->form([
@@ -158,6 +165,7 @@ class PaymentSchedulesRelationManager extends RelationManager
                     ->label(__('contract_finance.actions.cancel_schedule'))
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
+                    ->tooltip(__('contract_finance.action_help.cancel_schedule'))
                     ->requiresConfirmation()
                     ->visible(fn (ContractPaymentSchedule $record): bool => in_array($record->status, [ContractPaymentScheduleStatus::Draft, ContractPaymentScheduleStatus::PendingApproval, ContractPaymentScheduleStatus::Issued], true) && auth()->user()->can('cancel_contract_payment_schedule'))
                     ->form([Forms\Components\Textarea::make('reason')->label(__('contract_finance.fields.cancellation_reason'))->required()])
@@ -176,13 +184,13 @@ class PaymentSchedulesRelationManager extends RelationManager
             Forms\Components\Select::make('generation_mode')->label(__('contract_finance.fields.generation_method'))->options([
                 'manual' => __('contract_finance.fields.manual_installments'), 'count' => __('contract_finance.actions.generate_by_count'), 'duration' => __('contract_finance.actions.generate_by_duration'),
             ])->default('count')->required()->live(),
-            Forms\Components\TextInput::make('number_of_installments')->label(__('contract_finance.fields.number_of_installments'))->integer()->minValue(1)->visible(fn (Forms\Get $get): bool => $get('generation_mode') === 'count')->required(fn (Forms\Get $get): bool => $get('generation_mode') === 'count'),
-            Forms\Components\TextInput::make('duration')->label(__('contract_finance.fields.duration'))->integer()->minValue(1)->visible(fn (Forms\Get $get): bool => $get('generation_mode') === 'duration')->required(fn (Forms\Get $get): bool => $get('generation_mode') === 'duration'),
+            Forms\Components\TextInput::make('number_of_installments')->label(__('contract_finance.fields.number_of_installments'))->helperText(__('contract_finance.guidance.number_of_installments'))->integer()->minValue(1)->visible(fn (Forms\Get $get): bool => $get('generation_mode') === 'count')->required(fn (Forms\Get $get): bool => $get('generation_mode') === 'count'),
+            Forms\Components\TextInput::make('duration')->label(__('contract_finance.fields.duration'))->helperText(__('contract_finance.guidance.duration'))->integer()->minValue(1)->visible(fn (Forms\Get $get): bool => $get('generation_mode') === 'duration')->required(fn (Forms\Get $get): bool => $get('generation_mode') === 'duration'),
             Forms\Components\Select::make('duration_unit')->label(__('contract_finance.fields.duration_unit'))->options(['months' => __('contract_finance.fields.months'), 'years' => __('contract_finance.fields.years')])->default('months')->visible(fn (Forms\Get $get): bool => $get('generation_mode') === 'duration')->required(fn (Forms\Get $get): bool => $get('generation_mode') === 'duration'),
             Forms\Components\Select::make('frequency_preset')->label(__('contract_finance.fields.frequency'))->options(['monthly' => __('contract_finance.frequency_presets.monthly'), 'quarterly' => __('contract_finance.frequency_presets.quarterly'), 'semiannual' => __('contract_finance.frequency_presets.semiannual'), 'annually' => __('contract_finance.frequency_presets.annually'), 'custom' => __('contract_finance.frequency_presets.custom')])->default('monthly')->live()->afterStateUpdated(function ($state, Forms\Set $set): void { $set('interval_months', match ($state) { 'monthly' => 1, 'quarterly' => 3, 'semiannual' => 6, 'annually' => 12, default => null }); })->visible(fn (Forms\Get $get): bool => in_array($get('generation_mode'), ['count', 'duration'], true)),
-            Forms\Components\TextInput::make('interval_months')->label(__('contract_finance.fields.interval_months'))->integer()->minValue(1)->default(1)->required(fn (Forms\Get $get): bool => in_array($get('generation_mode'), ['count', 'duration'], true))->visible(fn (Forms\Get $get): bool => in_array($get('generation_mode'), ['count', 'duration'], true)),
+            Forms\Components\TextInput::make('interval_months')->label(__('contract_finance.fields.interval_months'))->helperText(__('contract_finance.guidance.interval_months'))->integer()->minValue(1)->default(1)->required(fn (Forms\Get $get): bool => in_array($get('generation_mode'), ['count', 'duration'], true))->visible(fn (Forms\Get $get): bool => in_array($get('generation_mode'), ['count', 'duration'], true)),
             Forms\Components\DatePicker::make('first_installment_date')->label(__('contract_finance.fields.first_installment_date'))->native(false)->required(fn (Forms\Get $get): bool => in_array($get('generation_mode'), ['count', 'duration'], true))->visible(fn (Forms\Get $get): bool => in_array($get('generation_mode'), ['count', 'duration'], true)),
-            Forms\Components\TextInput::make('down_payment_amount')->label(__('contract_finance.fields.down_payment_amount'))->numeric()->minValue(0)->live(),
+            Forms\Components\TextInput::make('down_payment_amount')->label(__('contract_finance.fields.down_payment_amount'))->helperText(__('contract_finance.guidance.down_payment'))->numeric()->minValue(0)->live(),
             Forms\Components\DatePicker::make('down_payment_due_date')->label(__('contract_finance.fields.down_payment_due_date'))->native(false)->visible(fn (Forms\Get $get): bool => (float) ($get('down_payment_amount') ?? 0) > 0)->required(fn (Forms\Get $get): bool => (float) ($get('down_payment_amount') ?? 0) > 0),
             $this->installmentRepeater()->visible(fn (Forms\Get $get): bool => $get('generation_mode') === 'manual'),
         ];
@@ -210,7 +218,7 @@ class PaymentSchedulesRelationManager extends RelationManager
             Forms\Components\Select::make('payment_method')->label(__('contract_finance.fields.payment_method'))->options(collect(['cash', 'bank_transfer', 'cheque', 'card', 'other'])->mapWithKeys(fn (string $method): array => [$method => __('contract_finance.payment_methods.'.$method)])->all())->required(),
             Forms\Components\TextInput::make('reference_number')->label(__('contract_finance.fields.reference_number')),
             Forms\Components\Hidden::make('idempotency_key')->default(fn (): string => Str::uuid()->toString()),
-            Forms\Components\Repeater::make('allocations')->label(__('contract_finance.fields.allocations'))->schema([
+            Forms\Components\Repeater::make('allocations')->label(__('contract_finance.fields.allocations'))->helperText(__('contract_finance.guidance.allocations'))->schema([
                 Forms\Components\Select::make('installment_id')->label(__('contract_finance.fields.installment'))->options(fn (): array => $schedule->installments()->where('status', 'scheduled')->orderBy('sequence')->get()->mapWithKeys(fn (ContractInstallment $item) => [$item->id => '#'.$item->sequence.' — '.$item->due_date?->format('Y-m-d').' — '.$item->amount.' '.$item->currency])->all())->required()->searchable(),
                 Forms\Components\TextInput::make('allocated_amount')->label(__('contract_finance.fields.allocation_amount'))->numeric()->minValue(0.0001)->required(),
                 Forms\Components\Hidden::make('currency')->default($schedule->currency),
