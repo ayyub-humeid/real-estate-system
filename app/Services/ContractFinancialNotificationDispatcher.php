@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\{Company, ContractFinancialEvent, ContractFinancialNotificationDelivery, ContractFinancialNotificationRoute, ContractPaymentSchedule, Payment, User};
 use App\Notifications\ContractFinancialNotification;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
 class ContractFinancialNotificationDispatcher
@@ -42,7 +43,7 @@ class ContractFinancialNotificationDispatcher
         $event = ContractFinancialEvent::withoutGlobalScopes()
             ->with(['contract', 'schedule.assignedTo'])
             ->findOrFail($eventId);
-        $permission = $this->requiredPermission($event->event_type);
+        $permission = self::requiredPermissionFor($event->event_type);
         $recipients = $this->recipients($event, $permission);
 
         foreach ($recipients as $recipient) {
@@ -102,12 +103,35 @@ class ContractFinancialNotificationDispatcher
         return (int) $user->company_id === $companyId && $user->can($permission);
     }
 
-    private function requiredPermission(string $eventType): string
+    /**
+     * Shared by dispatch and the configuration UI so an administrator is only
+     * offered recipients who can legally receive that event.
+     */
+    public static function requiredPermissionFor(string $eventType): string
     {
         return match ($eventType) {
             'schedule_submitted' => 'approve_contract_payment_schedule',
             'schedule_issued', 'schedule_rescheduled', 'schedule_cancelled' => 'view_contract_financials',
             default => 'view_contract_financials',
         };
+    }
+
+    /**
+     * A query, rather than a role-name list: company roles are customizable.
+     * Delivery still calls User::can() again, which remains the final runtime
+     * authorization decision if a role changes after this screen is rendered.
+     */
+    public static function eligibleUsersQuery(int $companyId, string $eventType): Builder
+    {
+        $permission = self::requiredPermissionFor($eventType);
+
+        return User::withoutGlobalScopes()
+            ->where('company_id', $companyId)
+            ->where(function (Builder $query) use ($permission): void {
+                $query->whereHas('permissions', fn (Builder $permissionQuery) => $permissionQuery
+                    ->where('permissions.name', $permission))
+                    ->orWhereHas('roles.permissions', fn (Builder $permissionQuery) => $permissionQuery
+                        ->where('permissions.name', $permission));
+            });
     }
 }
