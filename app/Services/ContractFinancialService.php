@@ -87,6 +87,9 @@ class ContractFinancialService
 
     public function createGeneratedDraft(User $actor, Contract $contract, ContractVersion $version, array $data): ContractPaymentSchedule
     {
+        // Presets are domain input, not merely a UI convenience. This keeps a
+        // forged request from pairing “quarterly” with an arbitrary interval.
+        $data = $this->applyFrequencyPreset($data);
         $total = $this->money($version->total_amount, 'total_amount');
         $currency = strtoupper((string) $version->currency);
         $mode = (string) ($data['generation_mode'] ?? 'count');
@@ -97,6 +100,74 @@ class ContractFinancialService
         };
 
         return $this->createDraft($actor, $contract, $version, [...$data, 'installments' => $lines]);
+    }
+
+    /**
+     * Returns the money position of every installment without floating-point
+     * arithmetic. The receipt write path recalculates and locks again.
+     *
+     * @return array<int, array{id: int, sequence: int, kind: string, due_date: ?string, currency: string, amount: string, paid: string, outstanding: string, payment_status: string}>
+     */
+    public function installmentFinancialDetails(ContractPaymentSchedule $schedule): array
+    {
+        return ContractInstallment::withoutGlobalScopes()
+            ->where('contract_payment_schedule_id', $schedule->id)
+            ->with('allocations.payment:id,direction,status')
+            ->orderBy('sequence')
+            ->get()
+            ->map(function (ContractInstallment $installment): array {
+                $amount = $this->money($installment->amount, 'amount');
+                $paid = $this->installmentNetBalance($installment);
+                $outstanding = $amount->minus($paid);
+
+                $paymentStatus = $installment->status !== 'scheduled'
+                    ? $installment->status
+                    : ($outstanding->isZero() ? 'paid' : ($paid->isGreaterThan(BigDecimal::zero()) ? 'partially_paid' : 'unpaid'));
+
+                return [
+                    'id' => $installment->id,
+                    'sequence' => $installment->sequence,
+                    'kind' => $installment->kind instanceof ContractInstallmentKind ? $installment->kind->value : (string) $installment->kind,
+                    'due_date' => $installment->due_date?->toDateString(),
+                    'currency' => $installment->currency,
+                    'amount' => $this->string($amount),
+                    'paid' => $this->string($paid),
+                    'outstanding' => $this->string($outstanding),
+                    'payment_status' => $paymentStatus,
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    /** @return array<int, array{id: int, sequence: int, kind: string, due_date: ?string, currency: string, amount: string, paid: string, outstanding: string, payment_status: string}> */
+    public function outstandingInstallments(ContractPaymentSchedule $schedule): array
+    {
+        return collect($this->installmentFinancialDetails($schedule))
+            ->filter(fn (array $installment): bool => $installment['payment_status'] === 'unpaid' || $installment['payment_status'] === 'partially_paid')
+            ->values()
+            ->all();
+    }
+
+    /** @return array{scheduled: string, paid: string, outstanding: string, paid_count: int, installment_count: int} */
+    public function scheduleFinancialSummary(ContractPaymentSchedule $schedule): array
+    {
+        $details = $this->installmentFinancialDetails($schedule);
+        $scheduled = BigDecimal::zero();
+        $paid = BigDecimal::zero();
+
+        foreach ($details as $installment) {
+            $scheduled = $scheduled->plus(BigDecimal::of($installment['amount']));
+            $paid = $paid->plus(BigDecimal::of($installment['paid']));
+        }
+
+        return [
+            'scheduled' => $this->string($scheduled),
+            'paid' => $this->string($paid),
+            'outstanding' => $this->string($scheduled->minus($paid)),
+            'paid_count' => collect($details)->where('payment_status', 'paid')->count(),
+            'installment_count' => count($details),
+        ];
     }
 
     public function addInstallment(User $actor, ContractPaymentSchedule $schedule, array $data): ContractInstallment
@@ -511,6 +582,19 @@ class ContractFinancialService
         return $this->generatedLines($total, $currency, $count, $interval, $data);
     }
 
+    private function applyFrequencyPreset(array $data): array
+    {
+        $interval = match ($data['frequency_preset'] ?? null) {
+            'monthly' => 1,
+            'quarterly' => 3,
+            'semiannual' => 6,
+            'annually' => 12,
+            default => null,
+        };
+
+        return $interval === null ? $data : [...$data, 'interval_months' => $interval];
+    }
+
     private function generatedLinesByDuration(BigDecimal $total, string $currency, array $data): array
     {
         $duration = filter_var($data['duration'] ?? null, FILTER_VALIDATE_INT);
@@ -657,8 +741,10 @@ class ContractFinancialService
 
     private function installmentNetBalance(ContractInstallment $installment): BigDecimal
     {
-        $rows = ContractPaymentAllocation::withoutGlobalScopes()->where('contract_installment_id', $installment->id)
-            ->with('payment:id,direction,status')->get();
+        $rows = $installment->relationLoaded('allocations')
+            ? $installment->allocations
+            : ContractPaymentAllocation::withoutGlobalScopes()->where('contract_installment_id', $installment->id)
+                ->with('payment:id,direction,status')->get();
         return $rows->reduce(function (BigDecimal $total, ContractPaymentAllocation $allocation): BigDecimal {
             if ($allocation->payment?->status !== 'completed') {
                 return $total;

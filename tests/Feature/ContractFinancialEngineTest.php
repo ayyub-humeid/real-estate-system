@@ -3,8 +3,8 @@
 namespace Tests\Feature;
 
 use App\Enums\{ContractPaymentScheduleStatus, ContractStatus, ContractType, ContractVersionStatus};
-use App\Models\{Company, Contract, ContractParty, ContractVersion, Party, User};
-use App\Services\{ContractFinancialReminderService, ContractFinancialService};
+use App\Models\{Company, Contract, ContractFinancialEvent, ContractFinancialNotificationDelivery, ContractFinancialNotificationRoute, ContractParty, ContractVersion, Party, User};
+use App\Services\{ContractFinancialNotificationDispatcher, ContractFinancialReminderService, ContractFinancialService};
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Permission;
@@ -48,6 +48,36 @@ class ContractFinancialEngineTest extends TestCase
             'interval_months' => 3,
             'first_installment_date' => '2027-01-01',
         ]);
+    }
+
+    public function test_standard_frequency_preset_overrides_a_tampered_interval_but_custom_keeps_it(): void
+    {
+        [, $actor, $contract, $version] = $this->activeContract(1000);
+        $this->grant($actor, ['create_contract_payment_schedule']);
+        $service = app(ContractFinancialService::class);
+
+        $quarterly = $service->createGeneratedDraft($actor, $contract, $version, [
+            'generation_mode' => 'count',
+            'number_of_installments' => 2,
+            'frequency_preset' => 'quarterly',
+            'interval_months' => 1,
+            'first_installment_date' => '2027-01-01',
+        ]);
+
+        $this->assertSame(['2027-01-01', '2027-04-01'], $quarterly->installments()
+            ->orderBy('sequence')->get()->map(fn ($installment) => $installment->due_date->toDateString())->all());
+
+        $quarterly->forceFill(['status' => ContractPaymentScheduleStatus::Cancelled])->save();
+        $custom = $service->createGeneratedDraft($actor, $contract, $version, [
+            'generation_mode' => 'count',
+            'number_of_installments' => 2,
+            'frequency_preset' => 'custom',
+            'interval_months' => 2,
+            'first_installment_date' => '2027-01-01',
+        ]);
+
+        $this->assertSame(['2027-01-01', '2027-03-01'], $custom->installments()
+            ->orderBy('sequence')->get()->map(fn ($installment) => $installment->due_date->toDateString())->all());
     }
 
     public function test_issued_schedule_accepts_partial_multi_installment_receipt_without_over_allocation(): void
@@ -108,6 +138,43 @@ class ContractFinancialEngineTest extends TestCase
         } catch (ValidationException $exception) {
             $this->assertArrayHasKey('allocated_amount', $exception->errors());
         }
+    }
+
+    public function test_installment_financial_details_show_paid_and_remaining_balances_including_down_payment(): void
+    {
+        [, $actor, $contract, $version, $buyer] = $this->activeContract(100);
+        $this->grant($actor, [
+            'create_contract_payment_schedule', 'submit_contract_payment_schedule', 'approve_contract_payment_schedule',
+            'record_contract_payment', 'allocate_contract_payment',
+        ]);
+        $service = app(ContractFinancialService::class);
+        $schedule = $service->createGeneratedDraft($actor, $contract, $version, [
+            'generation_mode' => 'count',
+            'number_of_installments' => 2,
+            'frequency_preset' => 'monthly',
+            'interval_months' => 1,
+            'first_installment_date' => '2027-01-01',
+            'down_payment_amount' => '20.0000',
+            'down_payment_due_date' => '2026-12-01',
+        ]);
+        $schedule = $service->issue($actor, $service->submit($actor, $schedule));
+        $downPayment = $schedule->installments()->orderBy('sequence')->firstOrFail();
+
+        $service->recordReceipt($actor, $schedule, [
+            'party_id' => $buyer->id, 'amount' => '20.0000', 'currency' => 'USD',
+            'payment_date' => today()->toDateString(), 'payment_method' => 'cash',
+            'allocations' => [['installment_id' => $downPayment->id, 'allocated_amount' => '20.0000', 'currency' => 'USD']],
+        ]);
+
+        $details = $service->installmentFinancialDetails($schedule);
+        $summary = $service->scheduleFinancialSummary($schedule);
+
+        $this->assertSame('down_payment', $details[0]['kind']);
+        $this->assertSame('paid', $details[0]['payment_status']);
+        $this->assertSame('20.0000', $details[0]['paid']);
+        $this->assertSame('0.0000', $details[0]['outstanding']);
+        $this->assertSame('80.0000', $summary['outstanding']);
+        $this->assertSame(1, $summary['paid_count']);
     }
 
     public function test_reschedule_keeps_partial_receipt_and_creates_new_outstanding_revision(): void
@@ -213,6 +280,73 @@ class ContractFinancialEngineTest extends TestCase
         $this->assertDatabaseHas('notifications', [
             'notifiable_id' => $actor->id,
             'type' => \App\Notifications\ContractFinancialNotification::class,
+        ]);
+    }
+
+    public function test_notification_routing_uses_primary_then_fallback_and_never_crosses_company(): void
+    {
+        [$company, $actor, $contract] = $this->activeContract(100);
+        $primary = User::factory()->create(['company_id' => $company->id]);
+        $fallback = User::factory()->create(['company_id' => $company->id]);
+        $otherCompany = Company::create(['name' => 'Foreign notification co '.str()->uuid(), 'email' => str()->uuid().'@example.test', 'is_active' => true]);
+        $foreignUser = User::factory()->create(['company_id' => $otherCompany->id]);
+
+        $this->grant($primary, ['view_contract_financials']);
+        $this->grant($fallback, ['view_contract_financials']);
+        $this->grant($foreignUser, ['view_contract_financials']);
+
+        foreach ([[$primary, false], [$fallback, true], [$foreignUser, false]] as [$user, $isFallback]) {
+            ContractFinancialNotificationRoute::withoutGlobalScopes()->create([
+                'company_id' => $company->id,
+                'event_type' => 'installment_due',
+                'user_id' => $user->id,
+                'is_fallback' => $isFallback,
+            ]);
+        }
+
+        $dispatcher = app(ContractFinancialNotificationDispatcher::class);
+        $primaryEvent = ContractFinancialEvent::withoutGlobalScopes()->create([
+            'company_id' => $company->id,
+            'contract_id' => $contract->id,
+            'event_type' => 'installment_due',
+            'idempotency_key' => 'routing-primary-'.str()->uuid(),
+            'payload' => [],
+            'actor_id' => $actor->id,
+            'occurred_at' => now(),
+        ]);
+
+        $dispatcher->dispatchForEvent($primaryEvent->id);
+        $dispatcher->dispatchForEvent($primaryEvent->id);
+
+        $this->assertDatabaseHas('notifications', ['notifiable_id' => $primary->id, 'type' => \App\Notifications\ContractFinancialNotification::class]);
+        $this->assertDatabaseMissing('notifications', ['notifiable_id' => $fallback->id, 'type' => \App\Notifications\ContractFinancialNotification::class]);
+        $this->assertDatabaseMissing('notifications', ['notifiable_id' => $foreignUser->id, 'type' => \App\Notifications\ContractFinancialNotification::class]);
+        $this->assertSame(1, ContractFinancialNotificationDelivery::withoutGlobalScopes()
+            ->where('contract_financial_event_id', $primaryEvent->id)
+            ->where('user_id', $primary->id)
+            ->count());
+
+        $primary->revokePermissionTo('view_contract_financials');
+        $fallbackEvent = ContractFinancialEvent::withoutGlobalScopes()->create([
+            'company_id' => $company->id,
+            'contract_id' => $contract->id,
+            'event_type' => 'installment_due',
+            'idempotency_key' => 'routing-fallback-'.str()->uuid(),
+            'payload' => [],
+            'actor_id' => $actor->id,
+            'occurred_at' => now(),
+        ]);
+
+        $dispatcher->dispatchForEvent($fallbackEvent->id);
+
+        $this->assertDatabaseHas('notifications', ['notifiable_id' => $fallback->id, 'type' => \App\Notifications\ContractFinancialNotification::class]);
+        $this->assertDatabaseMissing('contract_financial_notification_deliveries', [
+            'contract_financial_event_id' => $fallbackEvent->id,
+            'user_id' => $primary->id,
+        ]);
+        $this->assertDatabaseMissing('contract_financial_notification_deliveries', [
+            'contract_financial_event_id' => $fallbackEvent->id,
+            'user_id' => $foreignUser->id,
         ]);
     }
 
