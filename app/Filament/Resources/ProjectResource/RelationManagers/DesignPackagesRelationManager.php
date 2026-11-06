@@ -54,37 +54,41 @@ class DesignPackagesRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('target_submission_date')->date()->label(__('Target'))->placeholder(__('—')),
             ])
             ->headerActions([
-                Tables\Actions\Action::make('createPackage')->label(__('Create Design Package'))->icon('heroicon-o-plus')->tooltip(__('Create a new design package'))
+                Tables\Actions\Action::make('createPackage')->label(__('Create Design Package'))->icon('heroicon-o-plus')->tooltip($this->actionHelp('create_package'))
                     ->visible(fn() => auth()->user()->can('update', $this->getOwnerRecord()) && auth()->user()->can('create', ProjectDesignPackage::class))
                     ->form($this->packageForm())
                     ->action(fn(array $data) => $this->run(fn() => app(DesignEngineeringService::class)->createPackage(auth()->user(), $this->getOwnerRecord(), $data), __('Design package created'))),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make()->label(__('View'))->icon('heroicon-o-eye')
-                    ->tooltip(__('View design package details and scope items'))
+                    ->tooltip($this->actionHelp('details'))
                     ->modalWidth('5xl')->infolist($this->packageInfolist()),
-                Tables\Actions\Action::make('editPackage')->label(__('Edit'))->icon('heroicon-o-pencil-square')->tooltip(__('Edit package details'))
+                Tables\Actions\Action::make('editPackage')->label(__('Edit'))->icon('heroicon-o-pencil-square')->tooltip($this->actionHelp('edit_package'))
                     ->visible(fn(ProjectDesignPackage $record) => auth()->user()->can('update', $record))
                     ->fillForm(fn(ProjectDesignPackage $record) => $record->only(['name', 'code', 'discipline', 'description', 'target_submission_date']))->form($this->packageForm())
                     ->action(fn(ProjectDesignPackage $record, array $data) => $this->run(fn() => app(DesignEngineeringService::class)->updatePackage(auth()->user(), $record, $data), __('Design package updated'))),
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\Action::make('assignOffice')->label(__('Assign / replace office'))->icon('heroicon-o-building-office-2')
+                        ->tooltip($this->actionHelp('assign_office'))
                         ->visible(fn(ProjectDesignPackage $record) => auth()->user()->can('assignOffice', $record))
                         ->form([Forms\Components\Select::make('party_id')->label(__('Engineering office'))->options(fn() => Party::withoutGlobalScopes()->where('company_id', $this->getOwnerRecord()->company_id)->where('is_active', true)->pluck('name', 'id'))->searchable()->required(), Forms\Components\DateTimePicker::make('assigned_at')->label(__('Assigned At'))->default(now()), Forms\Components\Textarea::make('notes')->label(__('Notes'))])
                         ->action(function (ProjectDesignPackage $record, array $data) {
                             $this->run(fn() => app(DesignEngineeringService::class)->assignOffice(auth()->user(), $record, Party::withoutGlobalScopes()->findOrFail($data['party_id']), $data), __('Engineering office assigned'));
                         }),
                     Tables\Actions\Action::make('addScope')->label(__('Add scope item'))->icon('heroicon-o-list-bullet')
+                        ->tooltip($this->actionHelp('add_scope'))
                         ->visible(fn(ProjectDesignPackage $record) => $record->activeAssignment && auth()->user()->can('create', DesignPackageScopeItem::class))
                         ->form($this->scopeForm())
                         ->action(fn(ProjectDesignPackage $record, array $data) => $this->run(fn() => app(DesignEngineeringService::class)->addScopeItem(auth()->user(), $record->activeAssignment, $data), __('Scope item added'))),
                     Tables\Actions\Action::make('updateScope')->label(__('Update scope status'))->icon('heroicon-o-check-circle')
+                        ->tooltip($this->actionHelp('update_scope'))
                         ->visible(fn(ProjectDesignPackage $record) => $record->activeAssignment && auth()->user()->can('update_design_package_scope_item'))
                         ->form(fn(ProjectDesignPackage $record) => [Forms\Components\Select::make('scope_id')->label(__('Scope item'))->options($this->scopeOptions($record))->required(), Forms\Components\Select::make('status')->label(__('New status'))->options(['in_progress' => __('Start work'), 'ready' => __('Mark ready'), 'cancelled' => __('Cancel')])->required()])
                         ->action(function (ProjectDesignPackage $record, array $data) {
                             $this->run(fn() => app(DesignEngineeringService::class)->transitionScopeItem(auth()->user(), $this->scope($record, $data['scope_id']), $data['status']), __('Scope status updated'));
                         }),
                     Tables\Actions\Action::make('addDocumentVersion')->label(__('Add document version'))->icon('heroicon-o-document-plus')
+                        ->tooltip($this->actionHelp('add_document_version'))
                         ->visible(fn(ProjectDesignPackage $record) => auth()->user()->can('create', DocumentVersion::class))
                         ->form(fn(ProjectDesignPackage $record) => [
                             Forms\Components\Select::make('document_id')->label(__('Existing document'))->options($this->documentOptions($record))->searchable()->live()->helperText(__('Choose this only when uploading a new version of an existing document.')),
@@ -103,19 +107,22 @@ class DesignPackagesRelationManager extends RelationManager
                             unset($data['document_id']);
                             $this->run(fn() => app(DesignEngineeringService::class)->addDocumentVersion(auth()->user(), $record, $data, $document), __('Document version added'));
                         }),
-                ])->label(__('Prepare'))->icon('heroicon-o-wrench-screwdriver')->tooltip(__('Prepare the package: assign office, scope, and documents')),
+                ])->label(__('Prepare'))->icon('heroicon-o-wrench-screwdriver')->tooltip($this->actionHelp('prepare')),
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\Action::make('submit')->label(__('Create formal submission'))->icon('heroicon-o-paper-airplane')
+                        ->tooltip($this->actionHelp('submit'))
                         ->visible(fn(ProjectDesignPackage $record) => auth()->user()->can('submit', $record))
                         ->form(fn(ProjectDesignPackage $record) => [Forms\Components\Select::make('document_versions')->label(__('Document versions'))->multiple()->options($this->documentVersionOptions($record))->required(), Forms\Components\Textarea::make('notes')->label(__('Notes'))])
                         ->action(fn(ProjectDesignPackage $record, array $data) => $this->run(fn() => app(DesignEngineeringService::class)->submit(auth()->user(), $record, $data['document_versions'], $data['notes'] ?? null), __('Formal submission created'))),
                     Tables\Actions\Action::make('startReview')->label(__('Start review'))->icon('heroicon-o-magnifying-glass')
+                        ->tooltip($this->actionHelp('start_review'))
                         ->visible(fn(ProjectDesignPackage $record) => auth()->user()->can('review_design_submission'))
                         ->form(fn(ProjectDesignPackage $record) => [Forms\Components\Select::make('submission_id')->label(__('Formal submission'))->options($this->submissionOptions($record, 'submitted'))->required(), Forms\Components\Select::make('reviewer_id')->label(__('Reviewer'))->options($this->companyUsers())->searchable()->required()])
                         ->action(function (ProjectDesignPackage $record, array $data) {
                             $this->run(fn() => app(DesignEngineeringService::class)->startReview(auth()->user(), $this->submission($record, $data['submission_id']), User::withoutGlobalScopes()->findOrFail($data['reviewer_id'])), __('Review started'));
                         }),
                     Tables\Actions\Action::make('addFinding')->label(__('Add finding'))->icon('heroicon-o-exclamation-triangle')->color('warning')
+                        ->tooltip($this->actionHelp('add_finding'))
                         ->visible(fn() => auth()->user()->can('create_design_finding'))
                         ->form(fn(ProjectDesignPackage $record) => [Forms\Components\Select::make('review_id')->label(__('Review'))->options($this->reviewOptions($record, 'in_review'))->required(), Forms\Components\Select::make('severity')->label(__('Severity'))->options($this->severityOptions())->required(), Forms\Components\TextInput::make('title')->label(__('Title'))->required(), Forms\Components\Textarea::make('description')->label(__('Description'))->required(), Forms\Components\Select::make('design_package_scope_item_id')->label(__('Scope item'))->options($this->scopeOptions($record)), Forms\Components\Select::make('document_version_id')->label(__('Document version'))->options($this->documentVersionOptions($record))])
                         ->action(function (ProjectDesignPackage $record, array $data) {
@@ -124,48 +131,60 @@ class DesignPackagesRelationManager extends RelationManager
                             $this->run(fn() => app(DesignEngineeringService::class)->createFinding(auth()->user(), $review, $data), __('Finding recorded'));
                         }),
                     Tables\Actions\Action::make('completeReview')->label(__('Complete review'))->icon('heroicon-o-check-badge')
+                        ->tooltip($this->actionHelp('complete_review'))
                         ->visible(fn() => auth()->user()->can('review_design_submission'))
                         ->form(fn(ProjectDesignPackage $record) => [Forms\Components\Select::make('review_id')->label(__('Review'))->options($this->reviewOptions($record, 'in_review'))->required(), Forms\Components\Textarea::make('summary')->label(__('Summary'))])
                         ->action(function (ProjectDesignPackage $record, array $data) {
                             $this->run(fn() => app(DesignEngineeringService::class)->completeReview(auth()->user(), DesignPackageReview::withoutGlobalScopes()->findOrFail($data['review_id']), $data['summary'] ?? null), __('Review completed'));
                         }),
                     Tables\Actions\Action::make('waiveFinding')->label(__('Waive finding'))->icon('heroicon-o-shield-check')->color('warning')
+                        ->tooltip($this->actionHelp('waive_finding'))
                         ->visible(fn() => auth()->user()->can('waive_design_finding'))
                         ->form(fn(ProjectDesignPackage $record) => [Forms\Components\Select::make('finding_id')->label(__('Finding'))->options($this->findingOptions($record))->required(), Forms\Components\Textarea::make('notes')->label(__('Notes'))->required()])
                         ->action(function (ProjectDesignPackage $record, array $data) {
                             $this->run(fn() => app(DesignEngineeringService::class)->waiveFinding(auth()->user(), $this->finding($record, $data['finding_id']), $data['notes']), __('Finding waived'));
                         }),
-                ])->label(__('Review'))->icon('heroicon-o-clipboard-document-check')->tooltip(__('Review submissions and manage findings')),
+                ])->label(__('Review'))->icon('heroicon-o-clipboard-document-check')->tooltip($this->actionHelp('review')),
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\Action::make('requestRevision')->label(__('Request revision'))->icon('heroicon-o-arrow-path')
+                        ->tooltip($this->actionHelp('request_revision'))
                         ->visible(fn() => auth()->user()->can('request_design_revision'))
                         ->form(fn(ProjectDesignPackage $record) => [Forms\Components\Select::make('submission_id')->label(__('Reviewed submission'))->options($this->submissionOptions($record, 'reviewed'))->required(), Forms\Components\Select::make('finding_ids')->label(__('Findings to resolve'))->multiple()->options($this->findingOptions($record))->required(), Forms\Components\Textarea::make('description')->label(__('Description'))])
                         ->action(function (ProjectDesignPackage $record, array $data) {
                             $this->run(fn() => app(DesignEngineeringService::class)->requestRevision(auth()->user(), $this->submission($record, $data['submission_id']), $data['finding_ids'], $data['description'] ?? null), __('Revision requested'));
                         }),
                     Tables\Actions\Action::make('updateRevision')->label(__('Start / mark revision ready'))->icon('heroicon-o-arrow-uturn-right')
+                        ->tooltip($this->actionHelp('update_revision'))
                         ->visible(fn() => auth()->user()->can('submit_design_revision'))
                         ->form(fn(ProjectDesignPackage $record) => [Forms\Components\Select::make('revision_id')->label(__('Revision'))->options($this->revisionOptions($record))->required(), Forms\Components\Select::make('status')->label(__('New status'))->options(['in_progress' => __('Start revision'), 'ready' => __('Mark ready')])->required()])
                         ->action(function (ProjectDesignPackage $record, array $data) {
                             $this->run(fn() => app(DesignEngineeringService::class)->transitionRevision(auth()->user(), $this->revision($record, $data['revision_id']), $data['status']), __('Revision status updated'));
                         }),
                     Tables\Actions\Action::make('resubmit')->label(__('Resubmit ready revision'))->icon('heroicon-o-paper-airplane')
+                        ->tooltip($this->actionHelp('resubmit'))
                         ->visible(fn(ProjectDesignPackage $record) => auth()->user()->can('submit', $record))
                         ->form(fn(ProjectDesignPackage $record) => [Forms\Components\Select::make('revision_id')->label(__('Ready revision'))->options($this->revisionOptions($record, 'ready'))->required(), Forms\Components\Select::make('document_versions')->label(__('Document versions'))->multiple()->options($this->documentVersionOptions($record))->required(), Forms\Components\Textarea::make('notes')->label(__('Notes'))])
                         ->action(function (ProjectDesignPackage $record, array $data) {
                             $this->run(fn() => app(DesignEngineeringService::class)->submit(auth()->user(), $record, $data['document_versions'], $data['notes'] ?? null, $this->revision($record, $data['revision_id'])), __('Resubmission created'));
                         }),
                     Tables\Actions\Action::make('approve')->label(__('Approve exact submission'))->icon('heroicon-o-check-circle')->color('success')->requiresConfirmation()
+                        ->tooltip($this->actionHelp('approve'))
                         ->visible(fn(ProjectDesignPackage $record) => auth()->user()->can('approve', $record))
                         ->form(fn(ProjectDesignPackage $record) => [Forms\Components\Select::make('submission_id')->label(__('Reviewed submission'))->options($this->submissionOptions($record, 'reviewed'))->required(), Forms\Components\Textarea::make('notes')->label(__('Notes'))])
                         ->action(function (ProjectDesignPackage $record, array $data) {
                             $this->run(fn() => app(DesignEngineeringService::class)->approve(auth()->user(), $record, $this->submission($record, $data['submission_id']), $data['notes'] ?? null), __('Design package approved'));
                         }),
                     Tables\Actions\Action::make('close')->label(__('Close package'))->icon('heroicon-o-lock-closed')->color('success')->requiresConfirmation()
+                        ->tooltip($this->actionHelp('close'))
                         ->visible(fn(ProjectDesignPackage $record) => auth()->user()->can('close', $record))
                         ->action(fn(ProjectDesignPackage $record) => $this->run(fn() => app(DesignEngineeringService::class)->close(auth()->user(), $record), __('Design package closed'))),
-                ])->label(__('Formal workflow'))->icon('heroicon-o-arrow-right-circle')->tooltip(__('Manage revisions, approval, and closure')),
+                ])->label(__('Formal workflow'))->icon('heroicon-o-arrow-right-circle')->tooltip($this->actionHelp('formal_workflow')),
             ]);
+    }
+
+    private function actionHelp(string $action): string
+    {
+        return __('project.design_package_action_help.'.$action);
     }
 
     private function packageForm(): array
