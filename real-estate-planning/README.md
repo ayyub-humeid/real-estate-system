@@ -20,9 +20,11 @@ Before modifying code, read:
 1. real-estate-planning/README.md
 2. real-estate-planning/00-domain-rules-and-global-conventions.md
 3. real-estate-planning/00-existing-system-gap-analysis.md
-4. Current phase SPEC.md
-5. All previous phase IMPLEMENTATION-REPORT.md files that already exist
-6. Current phase PROMPT.md
+4. real-estate-planning/00-ui-localization-and-resource-quality-guardrails.md
+5. real-estate-planning/00-defensive-quality-and-performance-guardrails.md
+6. Current phase SPEC.md
+7. All previous phase IMPLEMENTATION-REPORT.md files that already exist
+8. Current phase PROMPT.md
 ```
 
 The gap-analysis file is a working implementation bridge, not a substitute for inspecting the actual repository.
