@@ -14,6 +14,16 @@ class UnitsRelationManager extends RelationManager
     protected static bool $isLazy = true;
     protected static string $relationship = 'units';
 
+    public static function getModelLabel(): string
+    {
+        return __('Unit');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('Units');
+    }
+
     /** Allow authorized users to add/manage units from the Property view page. */
     public function isReadOnly(): bool
     {
@@ -95,6 +105,7 @@ class UnitsRelationManager extends RelationManager
             ])
             ->headerActions([
                 Tables\Actions\CreateAction::make()
+                    ->label(__('Create Unit'))
                     ->mutateFormDataUsing(function (array $data): array {
                         $data['company_id'] = $this->getOwnerRecord()->company_id;
 
@@ -102,8 +113,8 @@ class UnitsRelationManager extends RelationManager
                     }),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\EditAction::make()->label(__('Edit')),
+                Tables\Actions\DeleteAction::make()->label(__('Delete')),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

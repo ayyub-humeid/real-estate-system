@@ -17,6 +17,16 @@ class PropertyAcquisitionsRelationManager extends RelationManager
 {
     protected static string $relationship = 'propertyAcquisitions';
 
+    public static function getModelLabel(): string
+    {
+        return __('Property acquisition');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('Property acquisitions');
+    }
+
     /** The relation exposes its own guarded acquisition-creation workflow. */
     public function isReadOnly(): bool
     {
@@ -145,9 +155,9 @@ class PropertyAcquisitionsRelationManager extends RelationManager
                     }),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\ViewAction::make()->label(__('View')),
+                Tables\Actions\EditAction::make()->label(__('Edit')),
+                Tables\Actions\DeleteAction::make()->label(__('Delete')),
             ]);
     }
 }

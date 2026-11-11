@@ -20,6 +20,16 @@ class PaymentsRelationManager extends RelationManager
 {
     protected static string $relationship = 'payments';
 
+    public static function getModelLabel(): string
+    {
+        return __('Payment');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('Payments');
+    }
+
     public static function getTitle($ownerRecord, string $pageClass): string
     {
         return __('contract_finance.navigation.payments');

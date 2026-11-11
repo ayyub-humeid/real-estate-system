@@ -16,6 +16,16 @@ class OwnershipsRelationManager extends RelationManager
     protected static bool $isLazy = true;
     protected static string $relationship = 'ownerships';
 
+    public static function getModelLabel(): string
+    {
+        return __('Property ownership');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('Property ownerships');
+    }
+
     /** Ownership changes use the explicit replacement workflow on the view page. */
     public function isReadOnly(): bool
     {

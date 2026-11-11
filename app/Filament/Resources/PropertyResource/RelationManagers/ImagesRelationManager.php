@@ -15,6 +15,16 @@ class ImagesRelationManager extends RelationManager
     // Filament scopes queries automatically by imageable_type + imageable_id.
     protected static string $relationship = 'images';
 
+    public static function getModelLabel(): string
+    {
+        return __('Property image');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('Property images');
+    }
+
     /** The gallery is intentionally manageable from the Property view page. */
     public function isReadOnly(): bool
     {
@@ -93,8 +103,8 @@ class ImagesRelationManager extends RelationManager
                 Tables\Actions\CreateAction::make()->label(__('Upload Image')),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\EditAction::make()->label(__('Edit')),
+                Tables\Actions\DeleteAction::make()->label(__('Delete')),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

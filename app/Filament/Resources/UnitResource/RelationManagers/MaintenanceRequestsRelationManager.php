@@ -170,6 +170,7 @@ class MaintenanceRequestsRelationManager extends RelationManager
             ])
             ->headerActions([
                 Tables\Actions\CreateAction::make()
+                    ->label(__('Create maintenance request'))
                     ->mutateFormDataUsing(function (array $data): array {
                         $data['company_id'] = $this->getOwnerRecord()->company_id;
 
@@ -177,9 +178,9 @@ class MaintenanceRequestsRelationManager extends RelationManager
                     }),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\ViewAction::make()->label(__('View')),
+                Tables\Actions\EditAction::make()->label(__('Edit')),
+                Tables\Actions\DeleteAction::make()->label(__('Delete')),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
