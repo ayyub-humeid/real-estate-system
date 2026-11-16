@@ -9,6 +9,7 @@
 /.idea
 /.nova
 /.phpunit.cache
+ADJUSTMENT_PLAN.md
 /.vscode
 /.zed
 /auth.json
