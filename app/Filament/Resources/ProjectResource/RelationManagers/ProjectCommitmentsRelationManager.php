@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\ProjectResource\RelationManagers;
 
+use App\Enums\Currency;
 use App\Models\{BudgetItem, FinancialCommitment, Party};
 use App\Services\BudgetingService;
 use Filament\Forms;
@@ -139,7 +140,13 @@ class ProjectCommitmentsRelationManager extends RelationManager
             Forms\Components\Textarea::make('description')->label(__('Description'))->required(),
             Forms\Components\TextInput::make('reference_number')->label(__('Reference number')),
             Forms\Components\TextInput::make('amount')->label(__('Amount'))->numeric()->required(),
-            Forms\Components\TextInput::make('currency')->label(__('Currency'))->default($this->getOwnerRecord()->currency)->required(),
+            Forms\Components\Select::make('currency')
+                ->label(__('Currency'))
+                ->options(Currency::options())
+                ->default($this->getOwnerRecord()->currency)
+                ->searchable()
+                ->native(false)
+                ->required(),
             Forms\Components\TextInput::make('budget_amount')->label(__('Project-currency amount'))
                 ->helperText(fn (): string => __('Project currency:') . ' ' . $this->getOwnerRecord()->currency)
                 ->numeric()->required(),

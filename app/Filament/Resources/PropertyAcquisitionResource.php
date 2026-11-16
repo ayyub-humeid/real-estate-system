@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Enums\Currency;
 use App\Filament\Resources\PropertyAcquisitionResource\Pages;
 use App\Filament\Resources\PropertyAcquisitionResource\RelationManagers;
 use App\Models\PropertyAcquisition;
@@ -56,8 +57,13 @@ class PropertyAcquisitionResource extends Resource
                 ->required(),
             Forms\Components\DatePicker::make('acquisition_date')->label(__('Acquisition Date')),
             Forms\Components\TextInput::make('agreed_value')->label(__('Agreed Value'))->numeric()->live(),
-            Forms\Components\TextInput::make('currency')->label(__('Currency'))
-                ->maxLength(10)->required(fn(Forms\Get $get): bool => filled($get('agreed_value'))),
+            Forms\Components\Select::make('currency')
+                ->label(__('Currency'))
+                ->options(Currency::options())
+                ->default('ILS')
+                ->searchable()
+                ->native(false)
+                ->required(fn(Forms\Get $get): bool => filled($get('agreed_value'))),
 
             // Land acquisition enhancement fields
             Forms\Components\TextInput::make('total_land_area_m2')
@@ -119,14 +125,14 @@ class PropertyAcquisitionResource extends Resource
             Tables\Columns\TextColumn::make('acquisition_properties_count')->label(__('Properties')),
             Tables\Columns\TextColumn::make('due_diligence_cases_count')->label(__('Due Diligence Cases')),
         ])->actions([
-            Tables\Actions\ViewAction::make(),
-            Tables\Actions\EditAction::make(),
-            Tables\Actions\DeleteAction::make(),
-        ])->bulkActions([
-            Tables\Actions\BulkActionGroup::make([
-                Tables\Actions\DeleteBulkAction::make(),
-            ]),
-        ])
+                    Tables\Actions\ViewAction::make(),
+                    Tables\Actions\EditAction::make(),
+                    Tables\Actions\DeleteAction::make(),
+                ])->bulkActions([
+                    Tables\Actions\BulkActionGroup::make([
+                        Tables\Actions\DeleteBulkAction::make(),
+                    ]),
+                ])
             ->emptyStateHeading(__('No property acquisitions found'))
             ->emptyStateIcon('heroicon-o-document-check');
     }

@@ -1,5 +1,6 @@
 <?php
 namespace App\Filament\Resources;
+use App\Enums\Currency;
 use App\Filament\Resources\ProjectResource\Pages;
 use App\Filament\Resources\ProjectResource\RelationManagers;
 use App\Models\{Company, Project};
@@ -41,7 +42,13 @@ class ProjectResource extends Resource
                 ->searchable()
                 ->native(false)
                 ->required(),
-            Forms\Components\TextInput::make('currency')->label(__('Currency'))->required()->length(3)->extraInputAttributes(['style' => 'text-transform: uppercase;'])->default('USD')
+            Forms\Components\Select::make('currency')
+                ->label(__('Currency'))
+                ->options(Currency::options())
+                ->default('USD')
+                ->searchable()
+                ->native(false)
+                ->required()
                 ->disabled(fn (?Project $record): bool => $record && ($record->budgets()->exists() || $record->commitments()->exists() || $record->actualCosts()->exists() || $record->payments()->exists())),
             Forms\Components\DatePicker::make('start_date')->label(__('Start Date')),
             Forms\Components\DatePicker::make('expected_completion_date')->label(__('Expected Completion Date')),

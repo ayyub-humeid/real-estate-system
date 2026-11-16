@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\ProjectResource\RelationManagers;
 
+use App\Enums\Currency;
 use App\Models\{ActualCost, Party, Payment};
 use App\Services\BudgetingService;
 use Filament\Forms;
@@ -56,7 +57,13 @@ class ProjectPaymentsRelationManager extends RelationManager
                             ->options(Party::withoutGlobalScopes()->where('company_id', $this->getOwnerRecord()->company_id)->pluck('name', 'id'))
                             ->required()->searchable(),
                         Forms\Components\TextInput::make('amount')->label(__('Amount'))->numeric()->required(),
-                        Forms\Components\TextInput::make('currency')->label(__('Currency'))->default($this->getOwnerRecord()->currency)->required(),
+                        Forms\Components\Select::make('currency')
+                            ->label(__('Currency'))
+                            ->options(Currency::options())
+                            ->default($this->getOwnerRecord()->currency)
+                            ->searchable()
+                            ->native(false)
+                            ->required(),
                         Forms\Components\TextInput::make('project_amount')->label(__('Project-currency amount'))
                             ->helperText(fn (): string => __('Project currency:') . ' ' . $this->getOwnerRecord()->currency)
                             ->numeric()->required(),
