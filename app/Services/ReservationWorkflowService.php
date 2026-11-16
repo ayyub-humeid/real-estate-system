@@ -3,7 +3,8 @@
 namespace App\Services;
 
 use App\Enums\{OfferRevisionStatus, OfferStatus, OpportunityType, ReservationSource, ReservationStatus, RentFrequency, UnitStatus};
-use App\Models\{Company, CrmOffer, CrmOfferRevision, Opportunity, Party, Unit, UnitReservation, UnitReservationNumberSequence, User};
+use App\Models\{Company, CrmOffer, CrmOfferRevision, Lead, Opportunity, Party, Unit, UnitReservation, UnitReservationNumberSequence, User};
+use App\Services\LeadPartyConversionService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -58,10 +59,12 @@ class ReservationWorkflowService
             $this->assertReservableUnit($unit);
             $this->validateSource($locked);
             $this->availability->assertCanActivate($locked, $unit);
+            $this->setUnitStatus($unit->id, UnitStatus::Reserved, 'reserved_by_activation', $actor->id);
             $payload = $this->snapshots->make($locked->loadMissing(['offer', 'offerRevision']), $unit);
             $locked->snapshot()->create(['company_id' => $locked->company_id, ...$payload, 'created_by' => $actor->id, 'created_at' => now()]);
             $locked->forceFill(['status' => ReservationStatus::Active->value, 'approved_by' => $actor->id, 'activated_at' => now()])->save();
             $this->history($locked, ReservationStatus::Pending, ReservationStatus::Active, 'approve_and_activate', $actor);
+            $this->autoConvertLeadToParty($locked, $actor);
             return $locked->fresh(['snapshot', 'unit', 'customer']);
         });
     }
@@ -74,7 +77,7 @@ class ReservationWorkflowService
     public function cancelReservation(User $actor, UnitReservation $reservation, ?string $reason = null): UnitReservation
     {
         $this->authorize($actor, 'cancelReservation', $reservation);
-        return $this->transition($actor, $reservation, ReservationStatus::Active, ReservationStatus::Cancelled, 'cancel_reservation', ['cancelled_by' => $actor->id, 'cancelled_at' => now(), 'cancellation_reason' => $reason], $reason);
+        return $this->transition($actor, $reservation, ReservationStatus::Active, ReservationStatus::Cancelled, 'cancel_reservation', ['cancelled_by' => $actor->id, 'cancelled_at' => now(), 'cancellation_reason' => $reason], $reason, $reservation->unit_id);
     }
     public function extendReservation(User $actor, UnitReservation $reservation, string $validUntil): UnitReservation
     {
@@ -98,6 +101,7 @@ class ReservationWorkflowService
             if (! $locked->valid_until || $locked->valid_until->isFuture()) $this->invalid('valid_until', 'not_expired');
             $locked->forceFill(['status' => ReservationStatus::Expired->value, 'expired_at' => now()])->save();
             $this->history($locked, ReservationStatus::Active, ReservationStatus::Expired, 'expire_reservation', $actor);
+            $this->releaseUnit($locked->unit_id);
             return $locked->refresh();
         });
     }
@@ -118,6 +122,7 @@ class ReservationWorkflowService
                     if (! $locked || $locked->status !== ReservationStatus::Active || ! $locked->valid_until || $locked->valid_until->greaterThan(now())) return false;
                     $locked->forceFill(['status' => ReservationStatus::Expired->value, 'expired_at' => now()])->save();
                     $this->history($locked, ReservationStatus::Active, ReservationStatus::Expired, 'expire_reservation', null);
+                    $this->releaseUnit($locked->unit_id);
                     return true;
                 });
                 if ($expired) $count++;
@@ -125,12 +130,32 @@ class ReservationWorkflowService
         return $count;
     }
 
-    private function transition(User $actor, UnitReservation $reservation, ReservationStatus $from, ReservationStatus $to, string $action, array $attributes, ?string $reason): UnitReservation
+    private function transition(User $actor, UnitReservation $reservation, ReservationStatus $from, ReservationStatus $to, string $action, array $attributes, ?string $reason, ?int $unitId = null): UnitReservation
     {
-        return DB::transaction(function () use ($actor, $reservation, $from, $to, $action, $attributes, $reason): UnitReservation {
+        return DB::transaction(function () use ($actor, $reservation, $from, $to, $action, $attributes, $reason, $unitId): UnitReservation {
             $locked = $this->locked($reservation); if ($locked->status !== $from) $this->invalid('status', $from->value.'_required');
-            $locked->forceFill(['status' => $to->value, ...$attributes])->save(); $this->history($locked, $from, $to, $action, $actor, $reason); return $locked->refresh();
+            $locked->forceFill(['status' => $to->value, ...$attributes])->save();
+            if ($to === ReservationStatus::Cancelled && $unitId) { $this->releaseUnit($unitId); }
+            $this->history($locked, $from, $to, $action, $actor, $reason); return $locked->refresh();
         });
+    }
+
+    private function setUnitStatus(int $unitId, UnitStatus $status, string $reason, ?int $changedBy = null): void
+    {
+        $unit = Unit::withoutGlobalScopes()->lockForUpdate()->findOrFail($unitId);
+        $previous = $unit->status instanceof UnitStatus ? $unit->status->value : (string) $unit->status;
+        $unit->update(['status' => $status->value]);
+        $unit->statusHistories()->create(['company_id' => $unit->company_id, 'unit_id' => $unitId, 'from_status' => $previous, 'to_status' => $status->value, 'reason' => $reason, 'changed_by' => $changedBy, 'changed_at' => now(), 'created_at' => now()]);
+    }
+
+    private function releaseUnit(?int $unitId): void
+    {
+        if (! $unitId) return;
+        $unit = Unit::withoutGlobalScopes()->lockForUpdate()->find($unitId);
+        if (! $unit || $unit->status !== UnitStatus::Reserved->value) return;
+        $stillActive = UnitReservation::withoutGlobalScopes()->where('unit_id', $unitId)->where('status', ReservationStatus::Active->value)->exists();
+        if ($stillActive) return;
+        $this->setUnitStatus($unitId, UnitStatus::Ready, 'released_on_cancellation_or_expiry');
     }
 
     private function attributes(int $companyId, array $data): array
@@ -187,6 +212,22 @@ class ReservationWorkflowService
     private function locked(UnitReservation $reservation): UnitReservation { return UnitReservation::withoutGlobalScopes()->lockForUpdate()->findOrFail($reservation->id); }
     private function nextNumber(int $companyId): string { $year = (int) now()->format('Y'); $sequence = UnitReservationNumberSequence::query()->where(['company_id' => $companyId, 'year' => $year])->lockForUpdate()->first(); if (! $sequence) { UnitReservationNumberSequence::create(['company_id' => $companyId, 'year' => $year, 'next_number' => 2]); $number = 1; } else { $number = $sequence->next_number; $sequence->increment('next_number'); } return sprintf('RES-%d-%06d', $year, $number); }
     private function history(UnitReservation $reservation, ?ReservationStatus $from, ReservationStatus $to, string $action, ?User $actor, ?string $reason = null, ?array $metadata = null): void { $reservation->statusHistories()->create(['company_id' => $reservation->company_id, 'from_status' => $from?->value, 'to_status' => $to->value, 'action' => $action, 'reason' => $reason, 'metadata' => $metadata, 'changed_by' => $actor?->id, 'created_at' => now()]); }
+    private function autoConvertLeadToParty(UnitReservation $reservation, User $actor): void
+    {
+        $party = Party::withoutGlobalScopes()->find($reservation->customer_party_id);
+        if (! $party || blank($party->phone) || $party->lead_id) return;
+        $lead = Lead::withoutGlobalScopes()->where('company_id', $reservation->company_id)
+            ->where('phone', $party->phone)
+            ->whereDoesntHave('party')
+            ->first();
+        if (! $lead) return;
+        try {
+            $party->update(['lead_id' => $lead->id]);
+        } catch (\Throwable) {
+            // Auto-conversion is best-effort; never block reservation activation.
+        }
+    }
+
     private function authorize(User $user, string $ability, object $record): void { if (! $user->can($ability, $record)) throw new AuthorizationException; }
     private function invalid(string $field, string $key): never { throw ValidationException::withMessages([$field => __('reservations.errors.'.$key)]); }
 }

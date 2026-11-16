@@ -24,6 +24,7 @@ class CrmOfferPolicy
     public function reorder(User $user): bool { return false; }
     public function createRevision(User $user, CrmOffer $record): bool { return $this->canForRecord($user, 'create_offer_revision', $record) || $this->ownsOffer($user, $record, 'manage_own_crm_offer'); }
     public function assign(User $user, CrmOffer $record): bool { return $this->canForRecord($user, 'assign_offer', $record); }
+    public function accept(User $user, CrmOffer $record): bool { return $this->canForRecord($user, 'accept_offer', $record) || $this->ownsOffer($user, $record, 'manage_own_crm_offer'); }
     public function withdraw(User $user, CrmOffer $record): bool { return $this->canForRecord($user, 'withdraw_offer', $record) || $this->ownsOffer($user, $record, 'manage_own_crm_offer'); }
     public function close(User $user, CrmOffer $record): bool { return $this->canForRecord($user, 'close_offer', $record); }
     public function expire(User $user, CrmOffer $record): bool { return $this->canForRecord($user, 'expire_offer', $record); }

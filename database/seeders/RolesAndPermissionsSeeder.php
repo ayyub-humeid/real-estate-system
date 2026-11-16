@@ -124,6 +124,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'publish_listing', 'pause_listing', 'archive_listing', 'change_listing_price',
             // Phase 07.3 — CRM relation-manager and workflow permissions.
             'assign_lead', 'assign_opportunity', 'move_opportunity_stage', 'close_won_opportunity', 'close_lost_opportunity',
+            'convert_lead_to_party',
             'view_any_lead_inquiry', 'view_lead_inquiry', 'create_lead_inquiry', 'update_lead_inquiry',
             'view_any_crm_pipeline_stage', 'view_crm_pipeline_stage', 'create_crm_pipeline_stage', 'update_crm_pipeline_stage', 'delete_crm_pipeline_stage',
             'view_any_crm_stage_requirement', 'view_crm_stage_requirement', 'create_crm_stage_requirement', 'update_crm_stage_requirement', 'delete_crm_stage_requirement',
@@ -136,6 +137,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'create_crm_activity', 'view_crm_activity',
             // Phase 07.5 — Offer negotiation revisions and approval workflow.
             'view_own_crm_offer', 'manage_own_crm_offer',
+            'accept_offer', 'convert_offer_to_reservation',
             'view_any_offer_revision', 'view_offer_revision', 'create_offer_revision', 'update_offer_revision', 'delete_offer_revision',
             'view_any_offer_approval', 'view_offer_approval',
             'finalize_offer_revision', 'request_offer_approval', 'approve_offer_revision', 'reject_offer_revision',
