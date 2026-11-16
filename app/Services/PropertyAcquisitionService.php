@@ -282,6 +282,89 @@ class PropertyAcquisitionService
             "{$reason} for acquisition {$acquisition->reference_number}; approval is required again.",
         ));
     }
+    /**
+     * Converts a completed acquisition into a Project, optionally seeding a
+     * draft budget version with the land purchase value.
+     *
+     * Field contract (schema-enforced, no DB defaults):
+     * - project_budgets.version_number NOT NULL -> computed under lock (max + 1)
+     * - budget_items.budget_line_id NOT NULL   -> a BudgetLine is created first
+     * - budget_items.planned_amount NOT NULL  -> seeded from agreed_value
+     */
+    public function convertToProject(User $actor, PropertyAcquisition $acquisition, array $data): \App\Models\Project
+    {
+        $this->authorize($actor, 'create', new \App\Models\Project(['company_id' => $acquisition->company_id]));
+        if ($acquisition->status !== 'completed') {
+            throw ValidationException::withMessages(['status' => __('Only completed acquisitions can be converted to a project.')]);
+        }
+
+        return DB::transaction(function () use ($actor, $acquisition, $data): \App\Models\Project {
+            $acquisition = $acquisition->fresh('acquisitionProperties.property');
+
+            $project = \App\Models\Project::create([
+                'company_id' => $acquisition->company_id,
+                'name' => $data['project_name'],
+                'project_type' => $data['project_type'],
+                'currency' => $acquisition->currency,
+                'status' => 'planning',
+                'start_date' => now(),
+                'description' => $acquisition->description,
+            ]);
+
+            foreach ($acquisition->acquisitionProperties as $acqProp) {
+                if ($acqProp->property) {
+                    \App\Models\ProjectProperty::create([
+                        'company_id' => $acquisition->company_id,
+                        'project_id' => $project->id,
+                        'property_id' => $acqProp->property->id,
+                        'attached_at' => now(),
+                    ]);
+                }
+            }
+
+            if (! empty($data['seed_budget']) && $acquisition->agreed_value) {
+                $nextVersion = ((int) \App\Models\ProjectBudget::withoutGlobalScopes()
+                    ->where('project_id', $project->id)
+                    ->lockForUpdate()
+                    ->max('version_number')) + 1;
+
+                $budget = \App\Models\ProjectBudget::create([
+                    'company_id' => $acquisition->company_id,
+                    'project_id' => $project->id,
+                    'version_number' => $nextVersion,
+                    'name' => __('acquisition.budget.initial_budget_name'),
+                    'status' => 'draft',
+                ]);
+
+                $category = \App\Models\BudgetCategory::create([
+                    'company_id' => $acquisition->company_id,
+                    'project_budget_id' => $budget->id,
+                    'name' => __('acquisition.budget.land_cost_category'),
+                    'code' => 'LAND_COST',
+                    'sort_order' => 1,
+                ]);
+
+                $line = \App\Models\BudgetLine::create([
+                    'company_id' => $acquisition->company_id,
+                    'project_id' => $project->id,
+                ]);
+
+                \App\Models\BudgetItem::create([
+                    'company_id' => $acquisition->company_id,
+                    'budget_category_id' => $category->id,
+                    'budget_line_id' => $line->id,
+                    'name' => __('acquisition.budget.land_purchase_item'),
+                    'code' => 'LAND_PURCHASE',
+                    'planned_amount' => $acquisition->agreed_value,
+                    'quantity' => 1,
+                    'unit_cost' => $acquisition->agreed_value,
+                ]);
+            }
+
+            return $project;
+        });
+    }
+
     private function authorize(User $user,string $ability,object $record):void { if (!$user->can($ability,$record)) throw new AuthorizationException; }
     private function sameCompany(object $left, object $right):void { if ((int)$left->company_id !== (int)$right->company_id) throw ValidationException::withMessages(['company_id'=>'Records from different companies cannot be associated.']); }
     private function notify(User $actor, ?PropertyAcquisition $acquisition, string $title, string $body, ?int $companyId = null, bool $ownershipEvent = false):void

@@ -26,7 +26,7 @@ class PropertyAcquisitionResource extends Resource
             ->searchable()
             ->preload()
             ->required()
-            ->visible(fn (): bool => auth()->user()->isSuperAdmin());
+            ->visible(fn(): bool => auth()->user()->isSuperAdmin());
     }
 
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
@@ -56,7 +56,27 @@ class PropertyAcquisitionResource extends Resource
                 ->required(),
             Forms\Components\DatePicker::make('acquisition_date')->label(__('Acquisition Date')),
             Forms\Components\TextInput::make('agreed_value')->label(__('Agreed Value'))->numeric()->live(),
-            Forms\Components\TextInput::make('currency')->label(__('Currency'))->maxLength(10)->required(fn (Forms\Get $get): bool => filled($get('agreed_value'))),
+            Forms\Components\TextInput::make('currency')->label(__('Currency'))
+                ->maxLength(10)->required(fn(Forms\Get $get): bool => filled($get('agreed_value'))),
+
+            // Land acquisition enhancement fields
+            Forms\Components\TextInput::make('total_land_area_m2')
+                ->label(__('acquisition.fields.total_land_area_m2'))
+                ->numeric()->minValue(0)->step(0.01),
+            Forms\Components\TextInput::make('title_deed_number')->label(__('acquisition.fields.title_deed_number'))->maxLength(100),
+            Forms\Components\Select::make('seller_party_id')
+                ->label(__('acquisition.fields.seller_party'))
+                ->relationship('sellerParty', 'name')
+                ->searchable()
+                ->preload()
+                ->nullable(),
+            Forms\Components\TextInput::make('latitude')
+                ->label(__('acquisition.fields.latitude'))->numeric()->step(0.00000001)->minValue(-90)->maxValue(90),
+            Forms\Components\TextInput::make('longitude')
+                ->label(__('acquisition.fields.longitude'))->numeric()->step(0.00000001)->minValue(-180)->maxValue(180),
+            Forms\Components\Textarea::make('location_details')
+                ->label(__('acquisition.fields.location_details'))->columnSpanFull()->rows(3),
+
             Forms\Components\Textarea::make('description')->label(__('Description'))->columnSpanFull(),
             Forms\Components\Textarea::make('notes')->label(__('Notes'))->columnSpanFull(),
         ]);
@@ -69,7 +89,7 @@ class PropertyAcquisitionResource extends Resource
             Tables\Columns\TextColumn::make('type')
                 ->label(__('Type'))
                 ->badge()
-                ->formatStateUsing(fn (?string $state): string => $state ? match ($state) {
+                ->formatStateUsing(fn(?string $state): string => $state ? match ($state) {
                     'cash_purchase' => __('cash_purchase'),
                     'installment_purchase' => __('installment_purchase'),
                     'partnership' => __('partnership'),
@@ -88,7 +108,7 @@ class PropertyAcquisitionResource extends Resource
                     'success' => 'completed',
                     'danger' => 'cancelled',
                 ])
-                ->formatStateUsing(fn (?string $state): string => $state ? match ($state) {
+                ->formatStateUsing(fn(?string $state): string => $state ? match ($state) {
                     'draft' => __('draft'),
                     'under_due_diligence' => __('under_due_diligence'),
                     'approved' => __('approved'),
@@ -107,8 +127,8 @@ class PropertyAcquisitionResource extends Resource
                 Tables\Actions\DeleteBulkAction::make(),
             ]),
         ])
-        ->emptyStateHeading(__('No property acquisitions found'))
-        ->emptyStateIcon('heroicon-o-document-check');
+            ->emptyStateHeading(__('No property acquisitions found'))
+            ->emptyStateIcon('heroicon-o-document-check');
     }
 
     public static function getRelations(): array

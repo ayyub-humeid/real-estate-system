@@ -10,6 +10,7 @@ use App\Enums\UnitType;
 use App\Models\Project;
 use App\Models\ProjectPlannedUnit;
 use App\Models\Party;
+use App\Enums\Currency;
 use App\Services\PropertyDescriptionService;
 use App\Services\UnitSetupService;
 use Filament\Forms;
@@ -75,6 +76,32 @@ class UnitResource extends Resource
                         ->required()
                         ->maxLength(50)
                         ->prefixIcon('heroicon-m-hashtag'),
+
+                    // Pricing fields
+                    Forms\Components\TextInput::make('sale_price')
+                        ->label(__('unit.fields.sale_price'))
+                        ->numeric()
+                        ->minValue(0)
+                        ->step(0.01)
+                        ->prefixIcon('heroicon-m-currency-dollar'),
+                    Forms\Components\Select::make('sale_currency')
+                        ->label(__('unit.fields.sale_currency'))
+                        ->options(Currency::options())
+                        ->default('USD')
+                        ->native(false)
+                        ->prefixIcon('heroicon-m-currency-dollar'),
+                    Forms\Components\TextInput::make('rent_price')
+                        ->label(__('unit.fields.rent_price'))
+                        ->numeric()
+                        ->minValue(0)
+                        ->step(0.01)
+                        ->prefixIcon('heroicon-m-currency-dollar'),
+                    Forms\Components\Select::make('rent_currency')
+                        ->label(__('unit.fields.rent_currency'))
+                        ->options(Currency::options())
+                        ->default('USD')
+                        ->native(false)
+                        ->prefixIcon('heroicon-m-currency-dollar'),
 
                     Forms\Components\Select::make('type')
                         ->label(__('Type'))
@@ -243,9 +270,15 @@ class UnitResource extends Resource
                     ->formatStateUsing(fn(?int $state) => $state ? number_format($state) : '—')
                     ->toggleable(isToggledHiddenByDefault: true),
 
+                Tables\Columns\TextColumn::make('sale_price')
+                    ->label(__('unit.fields.sale_price'))
+                    ->money(fn(Unit $record) => $record->sale_currency ?? 'USD')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 Tables\Columns\TextColumn::make('rent_price')
-                    ->label(__('Legacy rent'))
-                    ->money('USD')
+                    ->label(__('unit.fields.rent_price'))
+                    ->money(fn(Unit $record) => $record->rent_currency ?? 'USD')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 

@@ -53,7 +53,10 @@ class Unit extends Model
         'company_id',
         'property_id',
         'unit_number',
+        'sale_price',
+        'sale_currency',
         'rent_price',
+        'rent_currency',
         'status',
         'project_id',
         'planned_unit_id',
@@ -72,6 +75,7 @@ class Unit extends Model
     ];
 
     protected $casts = [
+        'sale_price' => 'decimal:2',
         'rent_price' => 'decimal:2',
         'actual_area' => 'decimal:2',
         'ready_at' => 'datetime',

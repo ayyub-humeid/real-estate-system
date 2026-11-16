@@ -219,6 +219,46 @@ class PropertyAcquisitionWorkflowTest extends TestCase
         $this->assertSame($otherCompany->id, $otherParty->company_id);
     }
 
+    public function test_converting_completed_acquisition_to_project_seeds_budget_with_version_number_and_line(): void
+    {
+        $company = Company::create(['name' => 'A', 'email' => 'a@test.com']);
+        $actor = $this->actor($company, ['view_property::acquisition', 'create_project']);
+        $property = $this->property($company);
+        $acquisition = PropertyAcquisition::withoutGlobalScopes()->create([
+            'company_id' => $company->id,
+            'reference_number' => 'ACQ-001',
+            'type' => 'cash_purchase',
+            'status' => 'completed',
+            'agreed_value' => 250000,
+            'currency' => 'USD',
+        ]);
+        \App\Models\AcquisitionProperty::withoutGlobalScopes()->create([
+            'company_id' => $company->id,
+            'property_acquisition_id' => $acquisition->id,
+            'property_id' => $property->id,
+        ]);
+
+        $project = app(PropertyAcquisitionService::class)->convertToProject($actor, $acquisition, [
+            'project_name' => 'ACQ-001 - Project',
+            'project_type' => 'residential',
+            'seed_budget' => true,
+        ]);
+
+        $project = \App\Models\Project::withoutGlobalScopes()->where('company_id', $company->id)->firstOrFail();
+        $this->assertSame('planning', $project->status);
+        $this->assertSame('USD', $project->currency);
+        $this->assertTrue(\App\Models\ProjectProperty::withoutGlobalScopes()->where('project_id', $project->id)->where('property_id', $property->id)->exists());
+
+        // Regression: project_budgets.version_number is NOT NULL without default
+        $budget = \App\Models\ProjectBudget::withoutGlobalScopes()->where('project_id', $project->id)->firstOrFail();
+        $this->assertSame(1, $budget->version_number);
+
+        // Regression: budget_items requires budget_line_id + planned_amount (both NOT NULL)
+        $item = \App\Models\BudgetItem::withoutGlobalScopes()->where('budget_category_id', $budget->categories()->firstOrFail()->id)->firstOrFail();
+        $this->assertNotNull($item->budget_line_id);
+        $this->assertSame('250000.0000', $item->planned_amount);
+    }
+
     public function test_current_company_and_external_company_can_share_an_acquisition_as_partners(): void
     {
         $company = Company::create(['name' => 'Our Company', 'email' => 'ours@test.com']);
