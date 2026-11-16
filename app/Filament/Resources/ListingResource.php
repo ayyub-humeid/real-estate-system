@@ -27,6 +27,11 @@ class ListingResource extends Resource
     protected static ?string $navigationGroup = '💼 Sales & Marketing';
     protected static ?int $navigationSort = 1;
 
+    public static function canViewAny(): bool
+    {
+        return config('features.advertisements');
+    }
+
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
         return parent::getEloquentQuery()->with(['listable', 'createdBy']);

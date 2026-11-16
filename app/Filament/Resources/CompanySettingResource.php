@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\CompanySettingResource\Pages;
 use App\Models\CompanySetting;
 use App\Enums\CrmAssignmentMode;
+use App\Enums\Currency;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -122,6 +123,13 @@ class CompanySettingResource extends Resource
                             ->label(__('Website'))
                             ->url()
                             ->maxLength(255),
+
+                        Forms\Components\Select::make('currency')
+                            ->label(__('settings.default_currency'))
+                            ->options(Currency::options())
+                            ->default('USD')
+                            ->required()
+                            ->helperText(__('settings.default_currency_help')),
                     ])
                     ->columns(2)
                     ->collapsible(),
@@ -233,6 +241,16 @@ class CompanySettingResource extends Resource
                 Tables\Columns\TextColumn::make('tax_id')
                     ->label(__('Tax ID'))
                     ->toggleable(),
+
+                Tables\Columns\TextColumn::make('currency')
+                    ->label(__('Default Currency'))
+                    ->formatStateUsing(fn (?string $state): string => $state ? (Currency::tryFrom($state)?->getLabel() ?? $state) : '—')
+                    ->badge()
+                    ->color(fn (?string $state): string => match ($state) {
+                        'USD' => 'primary',
+                        'ILS' => 'success',
+                        default => 'gray',
+                    }),
 
                 Tables\Columns\TextColumn::make('updated_at')
                     ->dateTime()

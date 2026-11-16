@@ -4,7 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Enums\{CrmInquirySource, OpportunityType};
 use App\Filament\Resources\OpportunityResource\{Pages, RelationManagers};
-use App\Models\{Company, CrmPipeline, CrmPipelineStage, Lead, Listing, Opportunity, User};
+use App\Models\{Company, CrmPipeline, CrmPipelineStage, Lead, Opportunity, User};
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -56,12 +56,6 @@ class OpportunityResource extends Resource
                         ->orderBy('name')->pluck('name', 'id'))
                     ->searchable()
                     ->required(),
-                Forms\Components\Select::make('listing_id')
-                    ->label(__('crm.fields.listing'))
-                    ->options(fn (Forms\Get $get) => Listing::withoutGlobalScopes()
-                        ->when(static::companyId($get), fn ($query, $companyId) => $query->where('company_id', $companyId), fn ($query) => $query->whereRaw('1 = 0'))
-                        ->orderBy('title')->pluck('title', 'id'))
-                    ->searchable(),
                 Forms\Components\Select::make('type')
                     ->label(__('crm.fields.type'))
                     ->options(OpportunityType::options())
@@ -109,7 +103,6 @@ class OpportunityResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('lead.name')->label(__('crm.fields.lead'))->searchable(),
-                Tables\Columns\TextColumn::make('listing.title')->label(__('crm.fields.listing'))->placeholder(__('—')),
                 Tables\Columns\TextColumn::make('type')->label(__('crm.fields.type'))->badge()
                     ->formatStateUsing(fn ($state) => $state instanceof OpportunityType ? $state->getLabel() : __('crm.opportunity_types.' . $state))
                     ->color(fn ($state) => ($state instanceof OpportunityType ? $state : OpportunityType::tryFrom((string) $state)) === OpportunityType::Sale ? 'success' : 'info'),

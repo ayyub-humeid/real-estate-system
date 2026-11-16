@@ -19,7 +19,7 @@ return [
 //             'wsPort' => env('VITE_REVERB_PORT', 8080),
 //             'wssPort' => env('VITE_REVERB_PORT', 8080),
 //  'encrypted' => env('VITE_REVERB_SCHEME') === 'https',
-    // 'forceTLS' => env('VITE_REVERB_SCHEME') === 'https',
+//     'forceTLS' => env('VITE_REVERB_SCHEME') === 'https',
 
     'broadcasting' => [
         'echo' => [
@@ -90,6 +90,19 @@ return [
     */
 
     'livewire_loading_delay' => 'default',
+
+    /*
+    |--------------------------------------------------------------------------
+    | Date & Time Format
+    |--------------------------------------------------------------------------
+    |
+    | These formats are used by Filament's DatePicker, DateTimePicker, and
+    | table columns. Set to 'd/m/Y' for DD/MM/YYYY format.
+    |
+    */
+
+    'date_format' => 'd/m/Y',
+    'datetime_format' => 'd/m/Y H:i',
 
     /*
     |--------------------------------------------------------------------------

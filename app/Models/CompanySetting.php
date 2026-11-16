@@ -36,6 +36,7 @@ class CompanySetting extends Model
         'allow_maintenance_unit_marketing',
         'crm_assignment_mode',
         'crm_round_robin_last_user_id',
+        'currency',
     ];
 
     protected $casts = [

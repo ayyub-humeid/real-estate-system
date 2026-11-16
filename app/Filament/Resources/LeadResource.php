@@ -87,6 +87,11 @@ class LeadResource extends Resource
                     // `$status` makes the container try to instantiate LeadStatus.
                     ->color(fn($state) => $state === LeadStatus::Active || $state === LeadStatus::Active->value ? 'success' : 'gray'),
             ])
+            ->filters([
+                Tables\Filters\SelectFilter::make('first_source')
+                    ->label(__('crm.fields.source'))
+                    ->options(CrmInquirySource::options()),
+            ])
             ->actions([
                 Tables\Actions\ViewAction::make()->label(__('crm.actions.details')),
                 Tables\Actions\EditAction::make()->label(__('crm.actions.edit')),
