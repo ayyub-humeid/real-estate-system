@@ -72,6 +72,15 @@ return [
         'sales_manager' => 'Sales manager', 'site_engineer' => 'Site engineer',
         'coordinator' => 'Coordinator', 'team_member' => 'Team member',
     ],
+    'variance' => [
+        'title' => 'Project Variance',
+        'approved_budget' => 'Approved Budget',
+        'committed_obligations' => 'Committed Obligations',
+        'approved_actual_costs' => 'Approved Actual Costs',
+        'budget_variance' => 'Budget Variance',
+        'under_budget' => 'Under budget',
+        'over_budget' => 'Over budget',
+    ],
     'errors' => [
         'property_already_attached' => 'This property has already been attached to the project.',
         'property_already_detached' => 'This property is already detached from the project.',

@@ -1,9 +1,12 @@
 <?php
+
 namespace App\Filament\Resources;
+
 use App\Models\ActualCost;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+
 class ActualCostResource extends Resource
 {
     use \App\Filament\Resources\Concerns\UsesLocalizedResourceLabels;
@@ -15,7 +18,12 @@ class ActualCostResource extends Resource
         return $table->columns([
             Tables\Columns\TextColumn::make('project.name'),
             Tables\Columns\TextColumn::make('name'),
-            Tables\Columns\TextColumn::make('status')->badge()
+            Tables\Columns\TextColumn::make('status')->label(__('Status'))->badge()->colors([
+                'gray' => 'draft',
+                'warning' => 'pending_approval',
+                'success' => 'approved',
+                'danger' => ['rejected', 'cancelled'],
+            ])->formatStateUsing(fn(?string $state): string => $state ? __('project.statuses.' . $state) : __('—')),
         ]);
     }
     public static function getPages(): array

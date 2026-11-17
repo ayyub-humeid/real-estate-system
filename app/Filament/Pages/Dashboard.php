@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use App\Filament\Widgets\FinancialOverviewStats;
 use App\Filament\Widgets\FinancialTrendChart;
+use App\Filament\Widgets\FinancialVarianceWidget;
 use App\Filament\Widgets\OccupancyStats;
 use Filament\Pages\Dashboard as BaseDashboard;
 use Filament\Widgets\AccountWidget;
@@ -34,11 +35,12 @@ class Dashboard extends BaseDashboard
         $widgets = [AccountWidget::class];
 
         // Only add financial/occupancy widgets if the user is an admin or manager
-        if ($user && $user->hasAnyRole(['super_admin', 'company_admin', 'property_manager'])) {
-            $widgets[] = FinancialOverviewStats::class;
-            $widgets[] = OccupancyStats::class;
-            $widgets[] = FinancialTrendChart::class;
-        }
+        // if ($user && $user->hasAnyRole(['super_admin', 'company_admin', 'property_manager'])) {
+        $widgets[] = FinancialOverviewStats::class;
+        $widgets[] = FinancialVarianceWidget::class;
+        $widgets[] = OccupancyStats::class;
+        $widgets[] = FinancialTrendChart::class;
+        // }
 
         return $widgets;
     }

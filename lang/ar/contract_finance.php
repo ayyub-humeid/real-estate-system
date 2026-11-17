@@ -26,6 +26,8 @@ return [
     'payment_methods' => [
         'cash' => 'نقدًا', 'bank_transfer' => 'تحويل بنكي', 'cheque' => 'شيك', 'card' => 'بطاقة', 'other' => 'أخرى',
     ],
+    'change_order' => 'أمر تعديل',
+    'change_orders' => 'أوامر التعديل',
     'navigation' => [
         'payment_schedule' => 'جدول الدفعات', 'installments' => 'الأقساط', 'payments' => 'الدفعات',
         'financial_history' => 'السجل المالي',

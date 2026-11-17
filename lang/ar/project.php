@@ -72,6 +72,15 @@ return [
         'sales_manager' => 'مدير المبيعات', 'site_engineer' => 'مهندس الموقع',
         'coordinator' => 'منسق', 'team_member' => 'عضو فريق',
     ],
+    'variance' => [
+        'title' => 'التباين المالي للمشروع',
+        'approved_budget' => 'الميزانية المعتمدة',
+        'committed_obligations' => 'الالتزامات الملتزم بها',
+        'approved_actual_costs' => 'التكاليف الفعلية المعتمدة',
+        'budget_variance' => 'التباين في الميزانية',
+        'under_budget' => 'تحت الميزانية',
+        'over_budget' => 'فوق الميزانية',
+    ],
     'errors' => [
         'property_already_attached' => 'هذا العقار مرتبط بالمشروع بالفعل.',
         'property_already_detached' => 'هذا العقار مفصول عن المشروع بالفعل.',

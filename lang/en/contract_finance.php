@@ -26,6 +26,8 @@ return [
     'payment_methods' => [
         'cash' => 'Cash', 'bank_transfer' => 'Bank transfer', 'cheque' => 'Cheque', 'card' => 'Card', 'other' => 'Other',
     ],
+    'change_order' => 'Change Order',
+    'change_orders' => 'Change Orders',
     'navigation' => [
         'payment_schedule' => 'Payment schedule', 'installments' => 'Installments', 'payments' => 'Payments',
         'financial_history' => 'Financial history',
