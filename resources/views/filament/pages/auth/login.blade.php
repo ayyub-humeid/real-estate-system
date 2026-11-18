@@ -6,19 +6,23 @@
 <div
     class="madar-login"
     dir="{{ $isRtl ? 'rtl' : 'ltr' }}"
-    x-data
+    x-data="{ ready: false }"
     x-cloak
     x-init="
         const localeKey = 'madar.locale';
         const storedLocale = localStorage.getItem(localeKey);
-        const locale = ['ar', 'en'].includes(storedLocale) ? storedLocale : 'ar';
 
-        localStorage.setItem(localeKey, locale);
-
-        if (locale !== @js($locale)) {
-            $wire.switchLocale(locale);
+        if (['ar', 'en'].includes(storedLocale) && storedLocale !== @js($locale)) {
+            localStorage.setItem(localeKey, storedLocale);
+            $wire.switchLocale(storedLocale);
+            return;
         }
+
+        localStorage.setItem(localeKey, @js($locale));
+        ready = true;
     "
+    x-show="ready"
+    x-transition.opacity.duration.150ms
 >
     <style>
         [x-cloak] { display: none !important; }

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages\Auth;
 
+use Filament\Http\Responses\Auth\Contracts\LoginResponse;
 use Filament\Pages\Auth\Login as BaseLogin;
 use Filament\Facades\Filament;
 use Illuminate\Contracts\Support\Htmlable;
@@ -20,6 +21,23 @@ class Login extends BaseLogin
     public function getTitle(): string | Htmlable
     {
         return __('auth_login.sign_in');
+    }
+
+    public function authenticate(): ?LoginResponse
+    {
+        $chosenLocale = session('locale');
+
+        $response = parent::authenticate();
+
+        if (in_array($chosenLocale, ['en', 'ar'], true)) {
+            $user = Filament::auth()->user();
+
+            if ($user && $user->locale !== $chosenLocale) {
+                $user->forceFill(['locale' => $chosenLocale])->save();
+            }
+        }
+
+        return $response;
     }
 
     public function switchLocale(string $locale): void
