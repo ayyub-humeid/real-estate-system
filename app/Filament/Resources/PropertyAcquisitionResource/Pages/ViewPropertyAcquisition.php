@@ -1,6 +1,7 @@
 <?php
 namespace App\Filament\Resources\PropertyAcquisitionResource\Pages;
 
+use App\Enums\AcquisitionStatus;
 use App\Filament\Resources\PropertyAcquisitionResource;
 use App\Services\PropertyAcquisitionService;
 use App\Models\Project;
@@ -22,38 +23,38 @@ class ViewPropertyAcquisition extends ViewRecord
         return [
             Actions\Action::make('startDueDiligence')
                 ->label(__('Start due diligence'))
-                ->visible(fn() => $this->record->status === 'draft')
+                ->visible(fn() => $this->record->status === AcquisitionStatus::Draft->value)
                 ->authorize('update')
                 ->action(function() {
-                    $this->performTransition('under_due_diligence', __('Due Diligence Started'));
+                    $this->performTransition(AcquisitionStatus::UnderDueDiligence->value, __('Due Diligence Started'));
                 }),
 
             Actions\Action::make('approve')
                 ->label(__('Approve acquisition'))
-                ->visible(fn() => $this->record->status === 'under_due_diligence')
+                ->visible(fn() => $this->record->status === AcquisitionStatus::UnderDueDiligence->value)
                 ->authorize('approve')
                 ->action(function() {
-                    $this->performTransition('approved', __('Acquisition Approved'));
+                    $this->performTransition(AcquisitionStatus::Approved->value, __('Acquisition Approved'));
                 }),
 
             Actions\Action::make('complete')
                 ->label(__('Complete acquisition'))
-                ->visible(fn() => $this->record->status === 'approved')
+                ->visible(fn() => $this->record->status === AcquisitionStatus::Approved->value)
                 ->authorize('complete')
                 ->action(function() {
-                    $this->performTransition('completed', __('Acquisition Completed'));
+                    $this->performTransition(AcquisitionStatus::Completed->value, __('Acquisition Completed'));
                 }),
 
             Actions\Action::make('cancel')
                 ->label(__('Cancel acquisition'))
-                ->visible(fn() => !in_array($this->record->status, ['cancelled', 'completed']))
+                ->visible(fn() => !AcquisitionStatus::tryFrom((string) $this->record->status)?->isClosed())
                 ->requiresConfirmation()
                 ->form([
                     \Filament\Forms\Components\Textarea::make('reason')->label(__('Cancellation Reason'))->required()
                 ])
                 ->authorize('cancel')
                 ->action(function(array $data) {
-                    $this->performTransition('cancelled', __('Acquisition Cancelled'), $data['reason']);
+                    $this->performTransition(AcquisitionStatus::Cancelled->value, __('Acquisition Cancelled'), $data['reason']);
                 }),
 
             // Convert Acquisition to Project - visible only when status = completed
@@ -61,7 +62,7 @@ class ViewPropertyAcquisition extends ViewRecord
                 ->label(__('acquisition.actions.convert_to_project'))
                 ->icon('heroicon-o-plus-circle')
                 ->color('success')
-                ->visible(fn() => $this->record->status === 'completed')
+                ->visible(fn() => $this->record->status === AcquisitionStatus::Completed->value)
                 ->authorize('create', Project::class)
                 ->requiresConfirmation()
                 ->modalHeading(__('acquisition.modals.convert_heading'))
@@ -72,7 +73,7 @@ class ViewPropertyAcquisition extends ViewRecord
                         ->label(__('acquisition.fields.project_name'))
                         ->required()
                         ->maxLength(255)
-                        ->default(fn() => $this->record->reference_number . ' - Project'),
+                        ->default(fn() => __('acquisition.default_project_name', ['reference' => $this->record->reference_number])),
                     \Filament\Forms\Components\Select::make('project_type')
                         ->label(__('acquisition.fields.project_type'))
                         ->options([
@@ -114,7 +115,7 @@ class ViewPropertyAcquisition extends ViewRecord
         } catch (ValidationException $exception) {
             Notification::make()
                 ->danger()
-                ->title(__('Cannot convert acquisition'))
+                ->title(__('acquisition.notifications.cannot_convert'))
                 ->body(collect($exception->errors())->flatten()->first())
                 ->send();
         } catch (AuthorizationException) {
@@ -126,7 +127,7 @@ class ViewPropertyAcquisition extends ViewRecord
         } catch (\Exception $e) {
             Notification::make()
                 ->danger()
-                ->title(__('Conversion failed'))
+                ->title(__('acquisition.notifications.conversion_failed'))
                 ->body($e->getMessage())
                 ->send();
         }
@@ -145,7 +146,7 @@ class ViewPropertyAcquisition extends ViewRecord
             Notification::make()
                 ->success()
                 ->title($successTitle)
-                ->body(__('Current status: :status', ['status' => __($this->record->status)]))
+                ->body(__('Current status: :status', ['status' => AcquisitionStatus::labelFor($this->record->status)]))
                 ->send();
         } catch (ValidationException $exception) {
             Notification::make()

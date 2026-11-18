@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources;
 
-use App\Enums\Currency;
+use App\Enums\{AcquisitionStatus, AcquisitionType, Currency};
 use App\Filament\Resources\PropertyAcquisitionResource\Pages;
 use App\Filament\Resources\PropertyAcquisitionResource\RelationManagers;
 use App\Models\PropertyAcquisition;
@@ -46,14 +46,7 @@ class PropertyAcquisitionResource extends Resource
                 ->dehydrated(false),
             Forms\Components\Select::make('type')
                 ->label(__('Type'))
-                ->options([
-                    'cash_purchase' => __('cash_purchase'),
-                    'installment_purchase' => __('installment_purchase'),
-                    'partnership' => __('partnership'),
-                    'land_for_units' => __('land_for_units'),
-                    'profit_sharing' => __('profit_sharing'),
-                    'owned_existing' => __('owned_existing'),
-                ])
+                ->options(AcquisitionType::options())
                 ->required(),
             Forms\Components\DatePicker::make('acquisition_date')->label(__('Acquisition Date')),
             Forms\Components\TextInput::make('agreed_value')->label(__('Agreed Value'))->numeric()->live(),
@@ -95,33 +88,12 @@ class PropertyAcquisitionResource extends Resource
             Tables\Columns\TextColumn::make('type')
                 ->label(__('Type'))
                 ->badge()
-                ->formatStateUsing(fn(?string $state): string => $state ? match ($state) {
-                    'cash_purchase' => __('cash_purchase'),
-                    'installment_purchase' => __('installment_purchase'),
-                    'partnership' => __('partnership'),
-                    'land_for_units' => __('land_for_units'),
-                    'profit_sharing' => __('profit_sharing'),
-                    'owned_existing' => __('owned_existing'),
-                    default => $state,
-                } : '—'),
+                ->formatStateUsing(fn(?string $state): string => AcquisitionType::labelFor($state)),
             Tables\Columns\TextColumn::make('status')
                 ->label(__('Status'))
                 ->badge()
-                ->colors([
-                    'gray' => 'draft',
-                    'warning' => 'under_due_diligence',
-                    'info' => 'approved',
-                    'success' => 'completed',
-                    'danger' => 'cancelled',
-                ])
-                ->formatStateUsing(fn(?string $state): string => $state ? match ($state) {
-                    'draft' => __('draft'),
-                    'under_due_diligence' => __('under_due_diligence'),
-                    'approved' => __('approved'),
-                    'completed' => __('completed'),
-                    'cancelled' => __('cancelled'),
-                    default => $state,
-                } : '—'),
+                ->color(fn(?string $state): string|array|null => AcquisitionStatus::tryFrom((string) $state)?->getColor() ?? 'gray')
+                ->formatStateUsing(fn(?string $state): string => AcquisitionStatus::labelFor($state)),
             Tables\Columns\TextColumn::make('acquisition_properties_count')->label(__('Properties')),
             Tables\Columns\TextColumn::make('due_diligence_cases_count')->label(__('Due Diligence Cases')),
         ])->actions([
