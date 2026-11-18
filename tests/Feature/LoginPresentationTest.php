@@ -6,9 +6,18 @@ use Tests\TestCase;
 
 class LoginPresentationTest extends TestCase
 {
-    public function test_login_page_renders_the_english_split_brand_experience(): void
+    public function test_login_page_defaults_to_arabic_when_no_locale_was_chosen(): void
     {
         $this->get('/admin/login')
+            ->assertOk()
+            ->assertSee('مرحبًا بعودتك')
+            ->assertSee('dir="rtl"', false);
+    }
+
+    public function test_login_page_renders_the_english_split_brand_experience(): void
+    {
+        $this->withSession(['locale' => 'en'])
+            ->get('/admin/login')
             ->assertOk()
             ->assertSee('madar-login-background.png')
             ->assertSee('Welcome back')
