@@ -10,7 +10,6 @@ class Payment extends Model
     use \App\Traits\HasCompany;
 
     public const STATUSES = ['pending', 'completed', 'failed', 'voided'];
-
     protected $fillable = [
         'company_id', 'project_id', 'contract_id', 'contract_payment_schedule_id', 'party_id', 'direction', 'payment_scope', 'idempotency_key', 'amount', 'currency',
         'project_amount', 'exchange_rate_to_project', 'payment_date', 'reference_number',

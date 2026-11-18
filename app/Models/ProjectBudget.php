@@ -5,8 +5,7 @@ use Illuminate\Database\Eloquent\Relations\{BelongsTo, HasMany};
 class ProjectBudget extends Model
 {
     use \App\Traits\HasCompany;
-    public const STATUSES = ['draft', 'pending_approval', 'approved', 'superseded', 'closed', 'cancelled'];
-    protected $attributes = ['status' => 'draft'];
+    public const STATUSES = ['draft', 'pending_approval', 'approved', 'superseded', 'closed', 'cancelled'];    protected $attributes = ['status' => 'draft'];
     protected $fillable = ['company_id', 'project_id', 'version_number', 'name', 'notes'];
     protected $casts = ['submitted_at' => 'datetime', 'approved_at' => 'datetime', 'closed_at' => 'datetime'];
     public function project(): BelongsTo
