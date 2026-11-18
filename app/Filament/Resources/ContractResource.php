@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Enums\Currency;
 use App\Filament\Resources\ContractResource\Pages;
 use App\Filament\Resources\ContractResource\RelationManagers;
 use App\Enums\{ContractStatus, ContractType};
@@ -173,12 +174,13 @@ class ContractResource extends Resource
                 ->minValue(0)
                 ->required()
                 ->helperText(__('Filled automatically from the selected reservation when available.')),
-            Forms\Components\TextInput::make('currency')
+            Forms\Components\Select::make('currency')
                 ->label(__('Currency'))
+                ->options(Currency::options())
                 ->default('USD')
-                ->length(3)
-                ->required()
-                ->dehydrateStateUsing(fn (?string $state): ?string => $state ? strtoupper($state) : null),
+                ->native(false)
+                ->searchable()
+                ->required(),
             Forms\Components\DatePicker::make('start_date')->label(__('Start date')),
             Forms\Components\DatePicker::make('end_date')->label(__('End date')),
             Forms\Components\DatePicker::make('delivery_date')->label(__('Delivery date')),

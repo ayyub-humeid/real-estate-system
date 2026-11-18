@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Enums\Currency;
 use App\Enums\{OfferPaymentMethod, OfferStatus, OpportunityType, ReservationSource, ReservationStatus, RentFrequency, UnitStatus};
 use App\Filament\Resources\UnitReservationResource\{Pages, RelationManagers};
 use App\Models\{Company, CrmOffer, Party, Unit, UnitReservation};
@@ -39,7 +40,14 @@ class UnitReservationResource extends Resource
             Forms\Components\Select::make('unit_id')->label(__('reservations.fields.unit'))->options(fn (Forms\Get $get) => static::availableReadyUnitOptions(static::companyId($get)))->searchable()->visible(fn (Forms\Get $get) => $is($get, ReservationSource::Direct) || ($is($get, ReservationSource::AcceptedOffer) && static::acceptedOfferRequiresManualUnit($get('offer_id'))))->required(fn (Forms\Get $get) => $is($get, ReservationSource::Direct) || ($is($get, ReservationSource::AcceptedOffer) && static::acceptedOfferRequiresManualUnit($get('offer_id')))),
             Forms\Components\Select::make('transaction_type')->label(__('reservations.fields.transaction_type'))->options(OpportunityType::options())->required()->visible(fn (Forms\Get $get) => $is($get, ReservationSource::Direct))->live(),
             Forms\Components\TextInput::make('agreed_amount')->label(__('reservations.fields.agreed_amount'))->numeric()->minValue(0.01)->required()->visible(fn (Forms\Get $get) => $is($get, ReservationSource::Direct)),
-            Forms\Components\TextInput::make('currency')->label(__('reservations.fields.currency'))->length(3)->default('USD')->required()->visible(fn (Forms\Get $get) => $is($get, ReservationSource::Direct)),
+            Forms\Components\Select::make('currency')
+                ->label(__('reservations.fields.currency'))
+                ->options(Currency::options())
+                ->default('USD')
+                ->native(false)
+                ->searchable()
+                ->required()
+                ->visible(fn (Forms\Get $get) => $is($get, ReservationSource::Direct)),
             Forms\Components\TextInput::make('down_payment_amount')->label(__('reservations.fields.down_payment_amount'))->numeric()->minValue(0)->visible(fn (Forms\Get $get) => $is($get, ReservationSource::Direct) && ($get('transaction_type') === OpportunityType::Sale->value)),
             Forms\Components\Select::make('payment_method')->label(__('reservations.fields.payment_method'))->options(OfferPaymentMethod::options())->native(false)->visible(fn (Forms\Get $get) => $is($get, ReservationSource::Direct) && ($get('transaction_type') === OpportunityType::Sale->value)),
             Forms\Components\Textarea::make('payment_terms')->label(__('reservations.fields.payment_terms'))->visible(fn (Forms\Get $get) => $is($get, ReservationSource::Direct) && ($get('transaction_type') === OpportunityType::Sale->value))->columnSpanFull(),

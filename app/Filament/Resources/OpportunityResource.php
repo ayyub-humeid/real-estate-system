@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Enums\Currency;
 use App\Enums\{CrmInquirySource, OpportunityType};
 use App\Filament\Resources\OpportunityResource\{Pages, RelationManagers};
 use App\Models\{Company, CrmPipeline, CrmPipelineStage, Lead, Opportunity, User};
@@ -87,7 +88,12 @@ class OpportunityResource extends Resource
                     ->disabled(fn (?Opportunity $record) => $record !== null),
                 Forms\Components\TextInput::make('budget_min')->label(__('crm.fields.budget_min'))->numeric()->minValue(0)->lte('budget_max'),
                 Forms\Components\TextInput::make('budget_max')->label(__('crm.fields.budget_max'))->numeric()->minValue(0)->gte('budget_min'),
-                Forms\Components\TextInput::make('currency')->label(__('crm.fields.currency'))->length(3),
+                Forms\Components\Select::make('currency')
+                    ->label(__('crm.fields.currency'))
+                    ->options(Currency::options())
+                    ->default('USD')
+                    ->native(false)
+                    ->searchable(),
                 Forms\Components\TextInput::make('preferred_property_type')->label(__('crm.fields.preferred_property_type')),
                 Forms\Components\TextInput::make('preferred_location')->label(__('crm.fields.preferred_location')),
                 Forms\Components\TextInput::make('preferred_bedrooms')->label(__('crm.fields.preferred_bedrooms'))->numeric()->integer()->minValue(0),

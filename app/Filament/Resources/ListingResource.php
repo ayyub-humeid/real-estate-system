@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Enums\Currency;
 use App\Enums\{ListingStatus, ListingType, RentFrequency};
 use App\Filament\Resources\ListingResource\Pages;
 use App\Filament\Resources\ListingResource\RelationManagers;
@@ -84,7 +85,13 @@ class ListingResource extends Resource
                     Forms\Components\TextInput::make('title')->label(__('Title'))->required()->maxLength(255)->columnSpan(2),
                     Forms\Components\Textarea::make('description')->label(__('Description'))->rows(4)->columnSpanFull(),
                     Forms\Components\TextInput::make('asking_price')->label(__('Asking price'))->numeric()->minValue(0.01)->required()->prefix('$'),
-                    Forms\Components\TextInput::make('currency')->label(__('Currency'))->required()->length(3)->default('USD')->extraInputAttributes(['style' => 'text-transform: uppercase;']),
+                    Forms\Components\Select::make('currency')
+                        ->label(__('Currency'))
+                        ->options(Currency::options())
+                        ->default('USD')
+                        ->native(false)
+                        ->searchable()
+                        ->required(),
                     Forms\Components\Select::make('rent_frequency')
                         ->label(__('Rent frequency'))
                         ->options(RentFrequency::options())
