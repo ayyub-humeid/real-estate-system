@@ -6,6 +6,15 @@ use Illuminate\Database\Eloquent\Model;
 
 class Plan extends Model
 {
+    use \App\Models\Concerns\PreventsDeletionWithHistory;
+
+    protected function deletionChecks(): array
+    {
+        return [
+            'subscriptions' => fn (): bool => \Illuminate\Support\Facades\DB::table('subscriptions')->where('plan_id', $this->id)->exists(),
+        ];
+    }
+
     protected $fillable = [
         'name',
         'slug',

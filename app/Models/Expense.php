@@ -8,6 +8,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Expense extends Model
 {
     use \App\Traits\HasCompany;
+    use \App\Models\Concerns\PreventsDeletionWithHistory;
+
+    protected function deletionChecks(): array
+    {
+        return [
+            'paid_expense' => $this->getOriginal('status') === self::STATUS_PAID,
+        ];
+    }
 
     protected static function boot()
     {
