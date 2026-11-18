@@ -12,6 +12,22 @@ use Illuminate\Support\Facades\Auth;
 class Property extends Model
 {
     use \App\Traits\HasCompany;
+    use \App\Models\Concerns\PreventsDeletionWithHistory;
+
+    /** Units (and through them leases and payments) cascade from properties. */
+    protected function deletionChecks(): array
+    {
+        $has = fn (string $table): \Closure => fn (): bool => \Illuminate\Support\Facades\DB::table($table)->where('property_id', $this->id)->exists();
+
+        return [
+            'units' => $has('units'),
+            'leases' => $has('leases'),
+            'ownership_history' => $has('property_ownerships'),
+            'acquisitions' => $has('acquisition_properties'),
+            'project_links' => $has('project_properties'),
+            'contracts' => $has('contracts'),
+        ];
+    }
 
     protected $fillable = [
         'company_id',

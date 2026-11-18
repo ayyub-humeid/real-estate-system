@@ -14,6 +14,24 @@ use Illuminate\Support\Facades\Log;
 class Unit extends Model
 {
     use \App\Traits\HasCompany;
+    use \App\Models\Concerns\PreventsDeletionWithHistory;
+
+    /** Leases (with payments), ownership and status history cascade from units. */
+    protected function deletionChecks(): array
+    {
+        $has = fn (string $table): \Closure => fn (): bool => \Illuminate\Support\Facades\DB::table($table)->where('unit_id', $this->id)->exists();
+
+        return [
+            'leases' => $has('leases'),
+            'ownership_history' => $has('unit_ownerships'),
+            'status_history' => $has('unit_status_histories'),
+            'maintenance_requests' => $has('maintenance_requests'),
+            'reservations' => $has('unit_reservations'),
+            'contracts' => $has('contracts'),
+            'ratings' => $has('ratings'),
+            'documents' => fn (): bool => $this->documents()->exists(),
+        ];
+    }
 
     protected static function boot()
     {

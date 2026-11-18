@@ -10,6 +10,18 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Location extends Model
 {
     use HasCompany;
+    use \App\Models\Concerns\PreventsDeletionWithHistory;
+
+    /** Child locations cascade; properties restrict. */
+    protected function deletionChecks(): array
+    {
+        $db = \Illuminate\Support\Facades\DB::class;
+
+        return [
+            'properties' => fn (): bool => $db::table('properties')->where('location_id', $this->id)->exists(),
+            'child_locations' => fn (): bool => $db::table('locations')->where('parent_id', $this->id)->exists(),
+        ];
+    }
     protected $fillable = [
         'company_id',
         'parent_id',
