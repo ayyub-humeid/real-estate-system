@@ -13,6 +13,7 @@ use Illuminate\Validation\ValidationException;
 class Project extends Model
 {
     use \App\Traits\HasCompany;
+    use \App\Models\Concerns\PreventsDeletionWithHistory;
 
     public const STATUSES = ['planning', 'approved', 'in_progress', 'completed', 'closed', 'cancelled'];
     protected $fillable = ['company_id', 'name', 'project_type', 'currency', 'status', 'start_date', 'expected_completion_date', 'description', 'approved_by', 'approved_at', 'completed_at', 'closed_at', 'cancelled_at', 'cancellation_reason'];
@@ -36,44 +37,27 @@ class Project extends Model
             }
         });
 
-        // Contract, financial, construction, design and unit history is never
-        // erased with the project; only pure planning data may be removed.
-        static::deleting(function (self $project): void {
-            $blockers = $project->deletionBlockers();
-
-            if ($blockers !== []) {
-                throw ValidationException::withMessages([
-                    'project' => __('project.delete.blocked_body', [
-                        'items' => implode(__('project.delete.separator'), $blockers),
-                    ]),
-                ]);
-            }
-
-            $project->purgePlanningData();
-        });
+        // The PreventsDeletionWithHistory guard runs first (trait listeners register
+        // before booted()), so this only ever purges pure planning data.
+        static::deleting(fn (self $project) => $project->purgePlanningData());
     }
 
-    /** @return array<int, string> Translated reasons this project must not be deleted. */
-    public function deletionBlockers(): array
+    /** Contract, financial, construction, design and unit history is never erased with the project. */
+    protected function deletionChecks(): array
     {
-        $checks = [
-            'contracts' => fn () => $this->contracts()->withoutGlobalScopes()->exists(),
-            'payments' => fn () => $this->payments()->withoutGlobalScopes()->exists(),
-            'commitments' => fn () => $this->commitments()->withoutGlobalScopes()->exists(),
-            'actual_costs' => fn () => $this->actualCosts()->withoutGlobalScopes()->exists(),
-            'constructions' => fn () => $this->constructions()->withoutGlobalScopes()->exists(),
-            'design_packages' => fn () => $this->designPackages()->withoutGlobalScopes()->exists(),
-            'units' => fn () => $this->units()->withoutGlobalScopes()->exists(),
-            'approved_budgets' => fn () => $this->budgets()->withoutGlobalScopes()
+        $has = fn (string $table): \Closure => fn (): bool => DB::table($table)->where('project_id', $this->id)->exists();
+
+        return [
+            'contracts' => $has('contracts'),
+            'payments' => $has('payments'),
+            'commitments' => $has('financial_commitments'),
+            'actual_costs' => $has('actual_costs'),
+            'constructions' => $has('project_constructions'),
+            'design_packages' => $has('project_design_packages'),
+            'units' => $has('units'),
+            'approved_budgets' => fn (): bool => DB::table('project_budgets')->where('project_id', $this->id)
                 ->where('status', '!=', ProjectBudgetStatus::Draft->value)->exists(),
         ];
-
-        return collect($checks)
-            ->filter(fn (\Closure $check) => $check())
-            ->keys()
-            ->map(fn (string $key) => __('project.delete.blockers.' . $key))
-            ->values()
-            ->all();
     }
 
     /** Removes draft budgets, buildings, members and property links through Eloquent so model events run. */
