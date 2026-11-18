@@ -3,7 +3,9 @@
 namespace App\Filament\Pages;
 
 use App\Filament\Widgets\FinancialTrendChart;
+use App\Filament\Widgets\FinancialVarianceWidget;
 use App\Filament\Widgets\OccupancyStats;
+use App\Filament\Widgets\OperationalOverviewWidget;
 use Filament\Pages\Dashboard as BaseDashboard;
 use Filament\Widgets\AccountWidget;
 
@@ -11,37 +13,30 @@ class Dashboard extends BaseDashboard
 {
     protected static ?string $navigationIcon = 'heroicon-o-home';
 
-    protected static ?string $navigationLabel = 'Dashboard';
-
     protected static ?int $navigationSort = -2;
 
     public static function getNavigationLabel(): string
     {
-        return __('Dashboard');
+        return __('dashboard.nav_label');
     }
 
-    public function getTitle(): string | \Illuminate\Contracts\Support\Htmlable
+    public function getTitle(): string|\Illuminate\Contracts\Support\Htmlable
     {
-        return __('Dashboard');
+        return __('dashboard.title');
     }
 
     public function getWidgets(): array
     {
-        $user = auth()->user();
-
-        // Always show AccountWidget for all users
-        $widgets = [AccountWidget::class];
-
-        // Only add financial/occupancy widgets if the user is an admin or manager
-        if ($user && $user->hasAnyRole(['super_admin', 'company_admin', 'property_manager'])) {
-            $widgets[] = OccupancyStats::class;
-            $widgets[] = FinancialTrendChart::class;
-        }
-
-        return $widgets;
+        return [
+            AccountWidget::class,
+            OperationalOverviewWidget::class,
+            FinancialVarianceWidget::class,
+            OccupancyStats::class,
+            FinancialTrendChart::class,
+        ];
     }
 
-    public function getColumns(): int | string | array
+    public function getColumns(): int|string|array
     {
         return 2;
     }

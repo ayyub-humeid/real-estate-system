@@ -2,78 +2,91 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\{ActualCost,FinancialCommitment,Payment,ProjectBudget};
+use App\Enums\{ActualCostStatus, FinancialCommitmentStatus, PaymentStatus, ProjectBudgetStatus};
+use App\Models\{ActualCost, FinancialCommitment, Payment, ProjectBudget};
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
-use Illuminate\Support\Facades\DB;
 
-/**
- * Dashboard widget showing both monetary totals and record counts.
- * Monetary totals are grouped by currency for clarity.
- */
 class FinancialOverviewStats extends BaseWidget
 {
     protected static bool $isLazy = false;
 
     public static function canView(): bool
     {
-        return auth()->user()->hasAnyRole(['super_admin', 'company_admin', 'financial_manager']);
+        if (! auth()->check()) {
+            return false;
+        }
+
+        $user = auth()->user();
+
+        return $user->isSuperAdmin() || $user->canAny([
+            'view_any_financial::commitment',
+            'view_any_actual::cost',
+            'view_any_payment',
+        ]);
     }
 
     protected function getStats(): array
     {
-        // Active commitments - count and total by currency
         $commitments = FinancialCommitment::query()
-            ->where('status', 'committed')
-            ->selectRaw('currency, COUNT(*) as count, SUM(amount) as total')
+            ->where('status', FinancialCommitmentStatus::Committed->value)
+            ->selectRaw('currency, COUNT(*) as cnt, SUM(amount) as total')
             ->groupBy('currency')
             ->get();
 
-        // Approved actual costs - count and total by currency
         $actualCosts = ActualCost::query()
-            ->where('status', 'approved')
-            ->selectRaw('currency, COUNT(*) as count, SUM(amount) as total')
+            ->where('status', ActualCostStatus::Approved->value)
+            ->selectRaw('currency, COUNT(*) as cnt, SUM(amount) as total')
             ->groupBy('currency')
             ->get();
 
-        // Completed outgoing payments - count and total by currency
         $payments = Payment::query()
-            ->where('status', 'completed')
+            ->where('status', PaymentStatus::Completed->value)
             ->where('direction', 'outgoing')
-            ->selectRaw('currency, COUNT(*) as count, SUM(amount) as total')
+            ->selectRaw('currency, COUNT(*) as cnt, SUM(amount) as total')
             ->groupBy('currency')
             ->get();
 
-        // Budget baselines - count only (multi-currency per project)
-        $budgetCount = ProjectBudget::query()->where('status', 'approved')->count();
+        $budgetCount = ProjectBudget::query()->where('status', ProjectBudgetStatus::Approved->value)->count();
 
         return [
-            Stat::make(__('Current budget baselines'), $budgetCount)
-                ->description(__('One current baseline per project'))
+            Stat::make(__('dashboard.kpis.current_budget_baselines'), $budgetCount)
+                ->description(__('dashboard.descriptions.one_baseline_per_project'))
                 ->descriptionIcon('heroicon-m-calculator')
                 ->color('info'),
 
-            Stat::make(__('Active commitments'), $commitments->sum('count'))
-                ->description($this->formatCurrencyBreakdown($commitments))
+            Stat::make(
+                __('dashboard.kpis.active_commitments'),
+                $commitments->sum('cnt') . ' — ' . $this->formatTotals($commitments)
+            )
+                ->description(__('dashboard.descriptions.committed_obligations'))
                 ->descriptionIcon('heroicon-m-document-currency-dollar')
                 ->color('warning'),
 
-            Stat::make(__('Approved actual costs'), $actualCosts->sum('count'))
-                ->description($this->formatCurrencyBreakdown($actualCosts))
+            Stat::make(
+                __('dashboard.kpis.approved_actual_costs'),
+                $actualCosts->sum('cnt') . ' — ' . $this->formatTotals($actualCosts)
+            )
+                ->description(__('dashboard.descriptions.approved_actual_costs'))
                 ->descriptionIcon('heroicon-m-receipt-percent')
                 ->color('success'),
 
-            Stat::make(__('Completed project payments'), $payments->sum('count'))
-                ->description($this->formatCurrencyBreakdown($payments))
+            Stat::make(
+                __('dashboard.kpis.completed_project_payments'),
+                $payments->sum('cnt') . ' — ' . $this->formatTotals($payments)
+            )
+                ->description(__('dashboard.descriptions.completed_payments_detail'))
                 ->descriptionIcon('heroicon-m-banknotes')
                 ->color('primary'),
         ];
     }
 
-    private function formatCurrencyBreakdown($collection): string
+    private function formatTotals($collection): string
     {
-        return $collection->map(function ($item) {
-            return "{$item->currency}: " . number_format($item->total, 2) . " ({$item->count} records)";
-        })->implode('; ');
+        if ($collection->isEmpty()) {
+            return __('dashboard.descriptions.no_active_records');
+        }
+
+        return $collection->map(fn ($row) => number_format($row->total, 2) . ' ' . $row->currency)->implode(' | ');
     }
 }
