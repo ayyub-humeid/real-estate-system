@@ -8,6 +8,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class AcquisitionProperty extends Model
 {
     use \App\Traits\HasCompany;
+    use \App\Models\Concerns\PreventsDeletionWithHistory;
+
+    protected function deletionChecks(): array
+    {
+        return [
+            'closed_acquisition' => fn (): bool => (bool) \App\Enums\AcquisitionStatus::tryFrom((string) $this->acquisition()->withoutGlobalScopes()->value('status'))?->isClosed(),
+        ];
+    }
     protected $fillable = ['company_id', 'property_acquisition_id', 'property_id', 'share_percentage', 'allocated_value', 'notes'];
     protected $casts = ['share_percentage' => 'decimal:2', 'allocated_value' => 'decimal:2'];
     public function acquisition(): BelongsTo
