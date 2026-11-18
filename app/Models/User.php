@@ -20,6 +20,22 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable implements FilamentUser
 {
     use HasFactory, Notifiable, HasApiTokens, HasCompany, HasRoles;
+    use \App\Models\Concerns\PreventsDeletionWithHistory;
+
+    /** users → tenants → leases → payments cascade (hard delete); expenses and maintenance requests cascade too. */
+    protected function deletionChecks(): array
+    {
+        $db = \Illuminate\Support\Facades\DB::class;
+
+        return [
+            'leases' => fn (): bool => $db::table('leases')
+                ->whereIn('tenant_id', $db::table('tenants')->where('user_id', $this->id)->select('id'))
+                ->exists(),
+            'payments' => fn (): bool => $db::table('payments')->where('recorded_by', $this->id)->exists(),
+            'expenses' => fn (): bool => $db::table('expenses')->where('created_by', $this->id)->exists(),
+            'maintenance_requests' => fn (): bool => $db::table('maintenance_requests')->where('reported_by_id', $this->id)->exists(),
+        ];
+    }
 
     protected $fillable = [
         'company_id',

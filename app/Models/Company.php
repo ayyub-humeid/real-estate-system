@@ -14,6 +14,26 @@ use App\Models\Property;
 
 class Company extends Model
 {
+    use \App\Models\Concerns\PreventsDeletionWithHistory;
+
+    /** Every company table cascades from companies.id, so a company with business data is deactivated, never deleted. */
+    protected function deletionChecks(): array
+    {
+        $has = fn (string $table): \Closure => fn (): bool => \Illuminate\Support\Facades\DB::table($table)->where('company_id', $this->id)->exists();
+
+        return [
+            'properties' => $has('properties'),
+            'units' => $has('units'),
+            'projects' => $has('projects'),
+            'contracts' => $has('contracts'),
+            'leases' => $has('leases'),
+            'payments' => $has('payments'),
+            'acquisitions' => $has('property_acquisitions'),
+            'expenses' => $has('expenses'),
+            'subscriptions' => $has('subscriptions'),
+        ];
+    }
+
     protected $fillable = [
         'name',
         'email',
