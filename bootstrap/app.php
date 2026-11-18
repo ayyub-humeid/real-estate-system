@@ -26,6 +26,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
         ]);
+
+        // Locale is set by SetApplicationLocale (Filament panel middleware)
+        // and SetUserLocale (Filament auth middleware). No web-global locale
+        // middleware is needed; the API and non-Filament routes use config default.
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Render Spatie's role/permission failures the same way the rest of the

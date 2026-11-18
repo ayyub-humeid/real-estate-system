@@ -43,6 +43,9 @@ class AppServiceProvider extends ServiceProvider
         BaseFilter::configureUsing(fn (BaseFilter $component) => $component->translateLabel());
         Action::configureUsing(fn (Action $component) => $component->translateLabel());
 
+        \Filament\Forms\Components\DatePicker::configureUsing(fn (\Filament\Forms\Components\DatePicker $datePicker) => $datePicker->displayFormat('d/m/Y')->native(false));
+        \Filament\Forms\Components\DateTimePicker::configureUsing(fn (\Filament\Forms\Components\DateTimePicker $dateTimePicker) => $dateTimePicker->displayFormat('d/m/Y H:i')->native(false));
+
         Schema::defaultStringLength(191);
         Relation::morphMap([
             'planned_unit' => \App\Models\ProjectPlannedUnit::class,

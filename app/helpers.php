@@ -24,3 +24,21 @@ if (!function_exists('storage_url')) {
         return \Illuminate\Support\Facades\Storage::url($path);
     }
 }
+
+if (!function_exists('trans_safe')) {
+    /**
+     * Return a translated string, guarding against PHP translation files
+     * that return arrays (e.g. lang/ar/dashboard.php) colliding with
+     * JSON keys on case-insensitive filesystems (Windows).
+     */
+    function trans_safe(string $key, array $replace = [], ?string $locale = null): string
+    {
+        $result = __($key, $replace, $locale);
+
+        if (is_array($result)) {
+            return $key;
+        }
+
+        return (string) $result;
+    }
+}
