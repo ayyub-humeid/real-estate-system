@@ -107,6 +107,13 @@ class ProjectResource extends Resource
             RelationManagers\ProjectContractsRelationManager::class,
         ];
     }
+    public static function getWidgets(): array
+    {
+        return [
+            \App\Filament\Widgets\FinancialVarianceWidget::class,
+        ];
+    }
+
     public static function getPages(): array
     {
         return [
