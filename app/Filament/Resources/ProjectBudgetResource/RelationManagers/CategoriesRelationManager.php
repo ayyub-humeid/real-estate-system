@@ -37,7 +37,7 @@ class CategoriesRelationManager extends RelationManager
                     ->money(fn (): string => $this->getOwnerRecord()->project->currency),
             ])
             ->headerActions([
-                Tables\Actions\CreateAction::make()
+                Action::make('addCategory')
                     ->label(__('budget.actions.add_category'))
                     ->icon('heroicon-o-folder-plus')
                     ->visible(fn (): bool => $this->getOwnerRecord()->status === 'draft')
@@ -50,11 +50,12 @@ class CategoriesRelationManager extends RelationManager
                         Forms\Components\Textarea::make('description'),
                         Forms\Components\TextInput::make('sort_order')->numeric()->default(0),
                     ])
-                    ->mutateFormDataUsing(function (array $data): array {
-                        $data['company_id'] = $this->getOwnerRecord()->company_id;
-                        return $data;
+                    ->action(function (array $data): void {
+                        $ownerRecord = $this->getOwnerRecord();
+                        $data['company_id'] = $ownerRecord->company_id;
+                        app(BudgetingService::class)->addCategory(auth()->user(), $ownerRecord, $data);
                     })
-                    ->using(fn (array $data, ProjectBudget $ownerRecord) => app(BudgetingService::class)->addCategory(auth()->user(), $ownerRecord, $data)),
+                    ->modalHeading(__('budget.actions.add_category')),
 
                 // Quick add budget item (without category selection - uses first category or creates default)
                 Action::make('quickAddItem')

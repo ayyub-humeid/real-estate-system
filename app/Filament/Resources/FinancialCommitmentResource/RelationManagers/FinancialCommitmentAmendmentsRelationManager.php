@@ -68,6 +68,15 @@ class FinancialCommitmentAmendmentsRelationManager extends RelationManager
                             ->required(),
                     ])
                     ->action(fn (array $data) => $this->run(fn () => app(BudgetingService::class)->requestCommitmentAmendment(auth()->user(), $this->getOwnerRecord(), $data))),
+            ])
+            ->actions([
+                Tables\Actions\Action::make('approve')
+                    ->label(__('Approve'))
+                    ->icon('heroicon-o-check-circle')
+                    ->color('success')
+                    ->visible(fn (FinancialCommitmentAmendment $record): bool => $record->status === 'pending_approval' && auth()->user()->can('approve', $record))
+                    ->requiresConfirmation()
+                    ->action(fn (FinancialCommitmentAmendment $record) => $this->run(fn () => app(BudgetingService::class)->approveCommitmentAmendment(auth()->user(), $record))),
             ]);
     }
 
