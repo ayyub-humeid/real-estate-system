@@ -11,10 +11,7 @@ enum Currency: string implements HasLabel
 
     public function getLabel(): ?string
     {
-        return match ($this) {
-            self::USD => 'US Dollar ($)',
-            self::ILS => 'Israeli Shekel (₪)',
-        };
+        return __('enums.currency.' . $this->value);
     }
 
     public function getSymbol(): string
