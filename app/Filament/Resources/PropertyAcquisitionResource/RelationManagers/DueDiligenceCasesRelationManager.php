@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\PropertyAcquisitionResource\RelationManagers;
 
+use App\Enums\{AcquisitionStatus, DueDiligenceStatus};
 use App\Models\DueDiligenceCase;
 use App\Models\DueDiligenceItem;
 use App\Models\Property;
@@ -91,12 +92,8 @@ class DueDiligenceCasesRelationManager extends RelationManager
             Forms\Components\Toggle::make('is_required')->label(__('Required'))->default(true),
             Forms\Components\Select::make('status')
                 ->label(__('Status'))
-                ->options([
-                    'pending' => __('Pending'),
-                    'passed'  => __('Passed'),
-                    'failed'  => __('Failed'),
-                ])
-                ->default('pending'),
+                ->options(DueDiligenceStatus::itemOptions())
+                ->default(DueDiligenceStatus::Pending->value),
             Forms\Components\TextInput::make('sort_order')
                 ->label(__('Sort Order'))
                 ->numeric()
@@ -120,13 +117,8 @@ class DueDiligenceCasesRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('status')
                     ->label(__('Status'))
                     ->badge()
-                    ->formatStateUsing(fn (?string $state): string => match ($state) {
-                        'pending' => __('Pending'),
-                        'passed'  => __('Passed'),
-                        'failed'  => __('Failed'),
-                        'cleared' => __('Cleared'),
-                        default   => $state ?? '—',
-                    }),
+                    ->color(fn (?string $state): string|array|null => DueDiligenceStatus::tryFrom((string) $state)?->getColor() ?? 'gray')
+                    ->formatStateUsing(fn (?string $state): string => DueDiligenceStatus::labelFor($state)),
                 Tables\Columns\TextColumn::make('property.name')->label(__('Property')),
                 Tables\Columns\TextColumn::make('items_count')->counts('items')->label(__('Items Count')),
             ])
@@ -134,7 +126,7 @@ class DueDiligenceCasesRelationManager extends RelationManager
                 Tables\Actions\Action::make('createCase')
                     ->label(__('Create Case'))
                     ->visible(fn (): bool => auth()->user()->can('create', \App\Models\DueDiligenceCase::class)
-                        && ! in_array($this->getOwnerRecord()->status, ['completed', 'cancelled'], true))
+                        && ! $this->acquisitionIsClosed())
                     ->form($this->caseFormSchema(saveItemsRelationship: false))
                     ->action(function (array $data) {
                         try {
@@ -155,7 +147,7 @@ class DueDiligenceCasesRelationManager extends RelationManager
                 Tables\Actions\Action::make('addItem')
                     ->label(__('Add checklist item'))
                     ->visible(fn (): bool => auth()->user()->can('create', DueDiligenceItem::class)
-                        && ! in_array($this->getOwnerRecord()->status, ['completed', 'cancelled'], true))
+                        && ! $this->acquisitionIsClosed())
                     ->form($this->checklistItemSchema())
                     ->action(function (DueDiligenceCase $record, array $data) {
                         try {
@@ -173,7 +165,7 @@ class DueDiligenceCasesRelationManager extends RelationManager
                         Forms\Components\Select::make('item_id')
                             ->label(__('Checklist item'))
                             ->options(fn ($record) => $record->items()
-                                ->whereNotIn('status', ['passed', 'waived'])
+                                ->whereNotIn('status', [DueDiligenceStatus::Passed->value, DueDiligenceStatus::Waived->value])
                                 ->pluck('title', 'id'))
                             ->required(),
                         Forms\Components\Textarea::make('notes')->label(__('Notes')),
@@ -223,7 +215,12 @@ class DueDiligenceCasesRelationManager extends RelationManager
     private function sendUnauthorizedNotification(string $action): void
     {
         Notification::make()->danger()->title(__('Unauthorized'))
-            ->body(__('You do not have permission to :action.', ['action' => $action]))->send();
+            ->body(__('acquisition.errors.no_permission_action', ['action' => $action]))->send();
+    }
+
+    private function acquisitionIsClosed(): bool
+    {
+        return (bool) AcquisitionStatus::tryFrom((string) $this->getOwnerRecord()->status)?->isClosed();
     }
 }
 

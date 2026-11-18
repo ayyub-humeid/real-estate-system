@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\PropertyAcquisitionResource\RelationManagers;
 
+use App\Enums\Currency;
 use App\Models\Property;
 use App\Services\PropertyAcquisitionService;
 use Filament\Forms;
@@ -22,34 +23,53 @@ class AcquisitionPropertiesRelationManager extends RelationManager
         return __('Properties');
     }
 
+    private function currencyCode(): string
+    {
+        return $this->getOwnerRecord()->currency ?: Currency::USD->value;
+    }
+
+    private function currencySymbol(): string
+    {
+        return Currency::tryFrom($this->currencyCode())?->getSymbol() ?? $this->currencyCode();
+    }
+
+    private function propertyOptions(): array
+    {
+        return Property::withoutGlobalScopes()
+            ->where('company_id', $this->getOwnerRecord()->company_id)
+            ->pluck('name', 'id')
+            ->all();
+    }
+
+    private function shareField(): Forms\Components\TextInput
+    {
+        return Forms\Components\TextInput::make('share_percentage')
+            ->label(__('Share Percentage (%)'))
+            ->numeric()
+            ->minValue(0)
+            ->maxValue(100)
+            ->suffix('%');
+    }
+
+    private function allocatedValueField(): Forms\Components\TextInput
+    {
+        return Forms\Components\TextInput::make('allocated_value')
+            ->label(__('Allocated Value'))
+            ->numeric()
+            ->prefix(fn (): string => $this->currencySymbol());
+    }
+
     public function form(Form $form): Form
     {
         return $form->schema([
             Forms\Components\Select::make('property_id')
                 ->label(__('Property'))
-                ->options(function () {
-                    $companyId = $this->getOwnerRecord()->company_id;
-
-                    return Property::withoutGlobalScopes()
-                        ->where('company_id', $companyId)
-                        ->pluck('name', 'id');
-                })
+                ->options(fn (): array => $this->propertyOptions())
                 ->searchable()
                 ->preload()
                 ->required(),
-
-            Forms\Components\TextInput::make('share_percentage')
-                ->label(__('Share Percentage (%)'))
-                ->numeric()
-                ->minValue(0)
-                ->maxValue(100)
-                ->suffix('%'),
-
-            Forms\Components\TextInput::make('allocated_value')
-                ->label(__('Allocated Value'))
-                ->numeric()
-                ->prefix('$'),
-
+            $this->shareField(),
+            $this->allocatedValueField(),
             Forms\Components\Textarea::make('notes')->label(__('Notes')),
         ]);
     }
@@ -65,7 +85,7 @@ class AcquisitionPropertiesRelationManager extends RelationManager
                     ->suffix('%'),
                 Tables\Columns\TextColumn::make('allocated_value')
                     ->label(__('Allocated Value'))
-                    ->money('USD'),
+                    ->money(fn (): string => $this->currencyCode()),
             ])
             ->headerActions([
                 Tables\Actions\Action::make('addProperty')
@@ -74,12 +94,7 @@ class AcquisitionPropertiesRelationManager extends RelationManager
                     ->form([
                         Forms\Components\Select::make('property_id')
                             ->label(__('Property'))
-                            ->options(function () {
-                                $companyId = $this->getOwnerRecord()->company_id;
-                                return Property::withoutGlobalScopes()
-                                    ->where('company_id', $companyId)
-                                    ->pluck('name', 'id');
-                            })
+                            ->options(fn (): array => $this->propertyOptions())
                             ->searchable()
                             ->preload()
                             ->required()
@@ -87,21 +102,13 @@ class AcquisitionPropertiesRelationManager extends RelationManager
                                 function () {
                                     return function (string $attribute, $value, \Closure $fail) {
                                         if ($this->getOwnerRecord()->acquisitionProperties()->where('property_id', $value)->exists()) {
-                                            $fail(__('This property is already attached to this acquisition.'));
+                                            $fail(__('acquisition.errors.property_already_attached'));
                                         }
                                     };
                                 }
                             ]),
-                        Forms\Components\TextInput::make('share_percentage')
-                            ->label(__('Share Percentage (%)'))
-                            ->numeric()
-                            ->minValue(0)
-                            ->maxValue(100)
-                            ->suffix('%'),
-                        Forms\Components\TextInput::make('allocated_value')
-                            ->label(__('Allocated Value'))
-                            ->numeric()
-                            ->prefix('$'),
+                        $this->shareField(),
+                        $this->allocatedValueField(),
                         Forms\Components\Textarea::make('notes')->label(__('Notes')),
                     ])
                     ->action(function (array $data) {
