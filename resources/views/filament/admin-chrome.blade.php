@@ -499,5 +499,114 @@
     html:not(.dark) .fi-ta-table thead tr {
         background-color: #f9fafb !important;
     }
+
+    /* =====================================================================
+       Dashboard — Enhanced stat cards (AI-aesthetic)
+       Uses Filament's per-card --c-* CSS custom properties so every accent
+       automatically matches the card's assigned color.
+       ===================================================================== */
+
+    /* ── Dark-mode dashboard stat cards ── */
+    html.dark .fi-wi-stats-overview-stat {
+        background: linear-gradient(145deg, #18181C 0%, #131318 100%) !important;
+        border: 1px solid rgba(148, 163, 184, .10) !important;
+        border-radius: 1rem !important;
+        box-shadow:
+            0 1px 0 rgba(255, 255, 255, .03) inset,
+            0 4px 20px rgba(0, 0, 0, .22) !important;
+        transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease !important;
+        overflow: hidden;
+        position: relative;
+    }
+    html.dark .fi-wi-stats-overview-stat::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background: radial-gradient(
+            ellipse 120% 80% at 85% 0%,
+            rgba(var(--c-400), .08) 0%,
+            transparent 65%
+        );
+        pointer-events: none;
+    }
+    html.dark .fi-wi-stats-overview-stat::after {
+        content: '';
+        position: absolute;
+        top: 0; left: 10%; right: 10%;
+        height: 1px;
+        background: linear-gradient(90deg,
+            transparent,
+            rgba(var(--c-400), .55),
+            transparent
+        );
+    }
+    html.dark .fi-wi-stats-overview-stat:hover {
+        transform: translateY(-2px) !important;
+        border-color: rgba(var(--c-400), .22) !important;
+        box-shadow:
+            0 1px 0 rgba(255, 255, 255, .04) inset,
+            0 8px 32px rgba(0, 0, 0, .32),
+            0 0 24px rgba(var(--c-400), .06) !important;
+    }
+    html.dark .fi-wi-stats-overview-stat-value {
+        color: #f1f5f9 !important;
+        font-weight: 800 !important;
+        letter-spacing: -.03em;
+    }
+    html.dark .fi-wi-stats-overview-stat-description {
+        color: #94a3b8 !important;
+        font-size: .78rem !important;
+    }
+    html.dark .fi-wi-stats-overview-stat-chart {
+        opacity: .85;
+    }
+
+    /* ── Light-mode dashboard stat cards ── */
+    html:not(.dark) .fi-wi-stats-overview-stat {
+        background: #ffffff !important;
+        border: 1px solid #e5e7eb !important;
+        border-radius: 1rem !important;
+        border-left: 3px solid rgba(var(--c-500), .6) !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, .04), 0 4px 14px rgba(0, 0, 0, .03) !important;
+        transition: transform .22s ease, box-shadow .22s ease !important;
+        overflow: hidden;
+        position: relative;
+    }
+    html:not(.dark) .fi-wi-stats-overview-stat::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background: radial-gradient(
+            ellipse 100% 90% at 90% 0%,
+            rgba(var(--c-400), .04) 0%,
+            transparent 60%
+        );
+        pointer-events: none;
+    }
+    html:not(.dark) .fi-wi-stats-overview-stat:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, .07), 0 0 0 1px rgba(var(--c-400), .10) !important;
+    }
+
+    /* ── Dark-mode chart widget ── */
+    html.dark .fi-wi-chart {
+        background: linear-gradient(145deg, #18181C 0%, #131318 100%) !important;
+        border: 1px solid rgba(148, 163, 184, .10) !important;
+        border-radius: 1rem !important;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, .22) !important;
+    }
+
+    /* ── Light-mode chart widget ── */
+    html:not(.dark) .fi-wi-chart {
+        border-radius: 1rem !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, .04), 0 4px 14px rgba(0, 0, 0, .03) !important;
+    }
+
+    /* ── Widget grid spacing ── */
+    .fi-page-dashboard .fi-wi-stats-overview-stats-ctn {
+        gap: 1rem !important;
+    }
 </style>
 
