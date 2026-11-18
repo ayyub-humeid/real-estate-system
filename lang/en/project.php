@@ -113,4 +113,21 @@ return [
         'status_changed_title' => 'Project status changed',
         'status_changed_body' => 'Project :project is now :status.',
     ],
+    'delete' => [
+        'blocked_title' => 'Project cannot be deleted',
+        'blocked_body' => 'This project has :items. Cancel or close it instead so its history is kept.',
+        'failed_title' => 'Project could not be deleted',
+        'failed_body' => 'Another record still depends on this project. Nothing was changed.',
+        'separator' => ', ',
+        'blockers' => [
+            'contracts' => 'contracts',
+            'payments' => 'payments',
+            'commitments' => 'financial commitments',
+            'actual_costs' => 'actual costs',
+            'constructions' => 'construction records',
+            'design_packages' => 'design packages',
+            'units' => 'actual units',
+            'approved_budgets' => 'submitted or approved budgets',
+        ],
+    ],
 ];

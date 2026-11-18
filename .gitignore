@@ -23,3 +23,15 @@ ADJUSTMENT_PLAN.md
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Editor and backup leftovers
+*.bak
+*.swp
+*.tmp
+*.orig
+
+# One-off local debug scripts in the project root
+/get_*.php
+
+# Local Claude Code settings
+.claude/settings.local.json

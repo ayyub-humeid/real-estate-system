@@ -176,6 +176,7 @@ class ListingWorkflowTest extends TestCase
 
     public function test_listing_resource_form_and_view_publish_action_follow_the_real_workflow(): void
     {
+        config(['features.advertisements' => true]);
         $company = $this->company('filament');
         $actor = $this->actor($company, $this->listingPermissions());
         $unit = $this->actualUnit($company);

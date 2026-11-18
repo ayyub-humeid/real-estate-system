@@ -113,4 +113,21 @@ return [
         'status_changed_title' => 'تم تغيير حالة المشروع',
         'status_changed_body' => 'أصبحت حالة المشروع :project «:status».',
     ],
+    'delete' => [
+        'blocked_title' => 'لا يمكن حذف المشروع',
+        'blocked_body' => 'يحتوي هذا المشروع على :items. قم بإلغائه أو إغلاقه بدلاً من حذفه للحفاظ على سجله.',
+        'failed_title' => 'تعذّر حذف المشروع',
+        'failed_body' => 'لا يزال سجل آخر مرتبطاً بهذا المشروع. لم يتم تغيير أي بيانات.',
+        'separator' => '، ',
+        'blockers' => [
+            'contracts' => 'عقود',
+            'payments' => 'دفعات',
+            'commitments' => 'التزامات مالية',
+            'actual_costs' => 'تكاليف فعلية',
+            'constructions' => 'سجلات تنفيذ',
+            'design_packages' => 'حزم تصميم',
+            'units' => 'وحدات فعلية',
+            'approved_budgets' => 'ميزانيات مقدّمة أو معتمدة',
+        ],
+    ],
 ];

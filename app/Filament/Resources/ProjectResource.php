@@ -8,6 +8,10 @@ use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
+use Filament\Notifications\Notification;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -67,11 +71,53 @@ class ProjectResource extends Resource
             Tables\Columns\TextColumn::make('active_project_properties_count')->label(__('Properties')),
             Tables\Columns\TextColumn::make('active_members_count')->label(__('Members')),
             Tables\Columns\TextColumn::make('buildings_count')->label(__('Buildings'))
-        ])->actions([Tables\Actions\ViewAction::make(), Tables\Actions\EditAction::make(), Tables\Actions\DeleteAction::make()])
+        ])->actions([Tables\Actions\ViewAction::make(), Tables\Actions\EditAction::make(), static::deleteAction()])
         ->emptyStateHeading(__('No projects yet'))
         ->emptyStateDescription(__('Create your first project to get started.'))
         ->emptyStateIcon('heroicon-o-building-office-2');
     }
+    private static function deleteAction(): Tables\Actions\DeleteAction
+    {
+        return Tables\Actions\DeleteAction::make()
+            ->before(function (Tables\Actions\DeleteAction $action, Project $record): void {
+                $blockers = $record->deletionBlockers();
+
+                if ($blockers === []) {
+                    return;
+                }
+
+                Notification::make()
+                    ->danger()
+                    ->title(__('project.delete.blocked_title'))
+                    ->body(__('project.delete.blocked_body', ['items' => implode(__('project.delete.separator'), $blockers)]))
+                    ->persistent()
+                    ->send();
+
+                $action->cancel();
+            })
+            ->using(function (Project $record, Tables\Actions\DeleteAction $action): bool {
+                try {
+                    return DB::transaction(fn (): bool => (bool) $record->delete());
+                } catch (ValidationException $exception) {
+                    $message = collect($exception->errors())->flatten()->first();
+                } catch (QueryException $exception) {
+                    report($exception);
+                    $message = __('project.delete.failed_body');
+                }
+
+                Notification::make()
+                    ->danger()
+                    ->title(__('project.delete.failed_title'))
+                    ->body($message)
+                    ->persistent()
+                    ->send();
+
+                $action->cancel();
+
+                return false;
+            });
+    }
+
     public static function infolist(Infolist $infolist): Infolist
     {
         return $infolist->schema([
