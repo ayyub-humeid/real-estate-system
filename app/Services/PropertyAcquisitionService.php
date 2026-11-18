@@ -23,12 +23,22 @@ class PropertyAcquisitionService
         return DB::transaction(function () use ($companyId, $attributes): PropertyAcquisition {
             Company::withoutGlobalScopes()->lockForUpdate()->findOrFail($companyId);
 
-            return PropertyAcquisition::withoutGlobalScopes()->create([
+            $acquisition = PropertyAcquisition::withoutGlobalScopes()->create([
                 ...collect($attributes)->except(['company_id', 'reference_number'])->all(),
                 'company_id' => $companyId,
                 'reference_number' => $this->nextReference($companyId),
                 'status' => 'draft',
             ]);
+
+            if ($acquisition->seller_party_id) {
+                $acquisition->acquisitionParties()->firstOrCreate([
+                    'company_id' => $companyId,
+                    'party_id' => $acquisition->seller_party_id,
+                    'role' => 'seller',
+                ]);
+            }
+
+            return $acquisition;
         });
     }
 
@@ -37,7 +47,7 @@ class PropertyAcquisitionService
         $this->authorize($actor, 'create', new DueDiligenceCase(['company_id' => $acquisition->company_id]));
         if (in_array($acquisition->status, ['completed', 'cancelled'], true)) {
             throw ValidationException::withMessages([
-                'status' => 'Due-diligence cases cannot be added to a completed or cancelled acquisition.',
+                'status' => __('acquisition.errors.case_on_closed'),
             ]);
         }
         if (!empty($attributes['property_id'])) {
@@ -45,7 +55,7 @@ class PropertyAcquisitionService
             $this->sameCompany($acquisition, $property);
             if (! $acquisition->acquisitionProperties()->where('property_id', $property->id)->exists()) {
                 throw ValidationException::withMessages([
-                    'property_id' => 'The selected property must be attached to this acquisition.',
+                    'property_id' => __('acquisition.errors.property_not_attached'),
                 ]);
             }
         }
@@ -63,7 +73,7 @@ class PropertyAcquisitionService
                 $case->items()->create(array_merge($item, ['company_id' => $acquisition->company_id]));
             }
 
-            $this->reopenDueDiligenceIfApproved($actor, $acquisition, 'A new due-diligence case was added');
+            $this->reopenDueDiligenceIfApproved($actor, $acquisition, 'acquisition.notify.reason_case_added');
 
             return $case;
         });
@@ -76,7 +86,7 @@ class PropertyAcquisitionService
 
         if (in_array($acquisition->status, ['completed', 'cancelled'], true)) {
             throw ValidationException::withMessages([
-                'status' => 'Checklist items cannot be added to a completed or cancelled acquisition.',
+                'status' => __('acquisition.errors.item_on_closed'),
             ]);
         }
 
@@ -94,7 +104,7 @@ class PropertyAcquisitionService
                 ]);
             }
 
-            $this->reopenDueDiligenceIfApproved($actor, $acquisition, 'A new checklist item was added');
+            $this->reopenDueDiligenceIfApproved($actor, $acquisition, 'acquisition.notify.reason_item_added');
 
             return $item;
         });
@@ -162,7 +172,7 @@ class PropertyAcquisitionService
     {
         $this->authorize($actor, 'update', $acquisition); $this->sameCompany($acquisition, $property);
         if ($acquisition->acquisitionProperties()->where('property_id', $property->id)->exists()) {
-            throw ValidationException::withMessages(['property_id' => 'This property is already attached to this acquisition.']);
+            throw ValidationException::withMessages(['property_id' => __('acquisition.errors.property_already_attached')]);
         }
         return AcquisitionProperty::create(array_merge($attributes, ['company_id'=>$acquisition->company_id, 'property_acquisition_id'=>$acquisition->id, 'property_id'=>$property->id]));
     }
@@ -170,7 +180,7 @@ class PropertyAcquisitionService
     {
         $this->authorize($actor, 'update', $acquisition); $this->sameCompany($acquisition, $party);
         if ($acquisition->acquisitionParties()->where('party_id', $party->id)->where('role', $role)->exists()) {
-            throw ValidationException::withMessages(['party_id' => "This party is already attached as a {$role} to this acquisition."]);
+            throw ValidationException::withMessages(['party_id' => __('acquisition.errors.party_already_attached', ['role' => \App\Enums\AcquisitionPartyRole::labelFor($role)])]);
         }
         $this->validateAcquisitionPartyShare($acquisition, $role, $attributes['share_percentage'] ?? null);
         return AcquisitionParty::create(array_merge($attributes, ['company_id'=>$acquisition->company_id, 'property_acquisition_id'=>$acquisition->id, 'party_id'=>$party->id, 'role'=>$role]));
@@ -191,23 +201,23 @@ class PropertyAcquisitionService
         $this->authorize($actor, $abilities[$to] ?? 'update', $acquisition);
         $from=$acquisition->status;
         $allowed=['draft'=>['under_due_diligence','cancelled'], 'under_due_diligence'=>['approved','cancelled'], 'approved'=>['completed','cancelled']];
-        if (!in_array($to, $allowed[$from] ?? [], true)) throw ValidationException::withMessages(['status'=>"Cannot transition an acquisition from {$from} to {$to}."]);
-        if ($to==='under_due_diligence' && (!$acquisition->acquisitionProperties()->exists() || !$acquisition->acquisitionParties()->exists())) throw ValidationException::withMessages(['status'=>'At least one property and one involved party are required before due diligence.']);
-        if ($to==='approved' && $acquisition->dueDiligenceCases()->where('status','!=','cleared')->exists()) throw ValidationException::withMessages(['status'=>'All due-diligence cases must be cleared before approval.']);
+        if (!in_array($to, $allowed[$from] ?? [], true)) throw ValidationException::withMessages(['status'=>__('acquisition.errors.invalid_transition', ['from' => \App\Enums\AcquisitionStatus::labelFor($from), 'to' => \App\Enums\AcquisitionStatus::labelFor($to)])]);
+        if ($to==='under_due_diligence' && (!$acquisition->acquisitionProperties()->exists() || !$acquisition->acquisitionParties()->exists())) throw ValidationException::withMessages(['status'=>__('acquisition.errors.needs_property_and_party')]);
+        if ($to==='approved' && $acquisition->dueDiligenceCases()->where('status','!=','cleared')->exists()) throw ValidationException::withMessages(['status'=>__('acquisition.errors.cases_not_cleared')]);
         return DB::transaction(function () use ($actor,$acquisition,$to,$reason) {
             $data=['status'=>$to];
             if ($to==='approved') $data += ['approved_by'=>$actor->id,'approved_at'=>now()];
             if ($to==='completed') $data += ['completed_at'=>now()];
             if ($to==='cancelled') $data += ['cancelled_at'=>now(),'cancellation_reason'=>$reason];
             $acquisition->update($data);
-            DB::afterCommit(fn()=>$this->notify($actor, $acquisition, ucfirst(str_replace('_',' ',$to)), "Acquisition {$acquisition->reference_number} is {$to}."));
+            DB::afterCommit(fn()=>$this->notify($actor, $acquisition, 'acquisition.notify.status_title', 'acquisition.notify.status_body', null, false, ['status' => $to, 'reference' => $acquisition->reference_number]));
             return $acquisition->refresh();
         });
     }
     public function waiveItem(User $actor, DueDiligenceItem $item, ?string $notes=null): DueDiligenceItem
     {
         $this->authorize($actor,'waive',$item);
-        if (in_array($item->status,['passed','waived'],true)) throw ValidationException::withMessages(['status'=>'Only unresolved items may be waived.']);
+        if (in_array($item->status,['passed','waived'],true)) throw ValidationException::withMessages(['status'=>__('acquisition.errors.only_unresolved_waivable')]);
         $item->update(['status'=>'waived','checked_by'=>$actor->id,'checked_at'=>now(),'notes'=>$notes]); return $item->refresh();
     }
     public function clearCase(User $actor, DueDiligenceCase $case): DueDiligenceCase
@@ -216,11 +226,11 @@ class PropertyAcquisitionService
         $blocking = $case->items()->where('is_required', true)->whereNotIn('status', ['passed', 'waived'])->exists();
         if ($blocking) {
             $case->update(['status' => 'blocked']);
-            throw ValidationException::withMessages(['status' => 'Required due-diligence items are pending or failed.']);
+            throw ValidationException::withMessages(['status' => __('acquisition.errors.items_blocking')]);
         }
         return DB::transaction(function () use ($actor, $case) {
             $case->update(['status'=>'cleared','completed_at'=>now(),'completed_by'=>$actor->id]);
-            DB::afterCommit(fn()=>$this->notify($actor,$case->acquisition,'Due diligence cleared',"Due-diligence case #{$case->id} was cleared.")); return $case->refresh();
+            DB::afterCommit(fn()=>$this->notify($actor,$case->acquisition,'acquisition.notify.cleared_title','acquisition.notify.cleared_body',null,false,['id'=>$case->id])); return $case->refresh();
         });
     }
     /** @param array<int,array{party: Party, percentage: numeric, notes?: string}> $owners */
@@ -228,14 +238,14 @@ class PropertyAcquisitionService
     {
         $this->authorize($actor,'change',new PropertyOwnership(['company_id'=>$property->company_id]));
         $total=collect($owners)->sum(fn($owner)=>(float)$owner['percentage']);
-        if (abs($total-100)>0.001 || collect($owners)->contains(fn($owner)=>(float)$owner['percentage']<=0 || (float)$owner['percentage']>100)) throw ValidationException::withMessages(['ownership_percentage'=>'Active ownership must contain valid percentages totaling 100.']);
+        if (abs($total-100)>0.001 || collect($owners)->contains(fn($owner)=>(float)$owner['percentage']<=0 || (float)$owner['percentage']>100)) throw ValidationException::withMessages(['ownership_percentage'=>__('acquisition.errors.ownership_total')]);
         if ($acquisition) $this->sameCompany($property,$acquisition);
         return DB::transaction(function() use($actor,$property,$owners,$startDate,$acquisition) {
             foreach($owners as $owner) $this->sameCompany($property,$owner['party']);
             PropertyOwnership::where('property_id',$property->id)->whereNull('end_date')->update(['end_date'=>$startDate]);
             $createdOwnership=null;
             foreach($owners as $owner) $createdOwnership=PropertyOwnership::create(['company_id'=>$property->company_id,'property_id'=>$property->id,'party_id'=>$owner['party']->id,'ownership_percentage'=>$owner['percentage'],'start_date'=>$startDate,'acquisition_id'=>$acquisition?->id,'notes'=>$owner['notes']??null]);
-            DB::afterCommit(fn()=>$this->notify($actor, $acquisition, 'Property ownership changed', "Ownership history for {$property->name} was updated.", $property->company_id, true));
+            DB::afterCommit(fn()=>$this->notify($actor, $acquisition, 'acquisition.notify.ownership_title', 'acquisition.notify.ownership_body', $property->company_id, true, ['property' => $property->name]));
             return $createdOwnership;
         });
     }
@@ -243,7 +253,7 @@ class PropertyAcquisitionService
     public function partyForCompany(Property $property, Company $company): Party
     {
         if ((int) $property->company_id !== (int) $company->id) {
-            throw ValidationException::withMessages(['company_id' => 'The ownership company must match the property company.']);
+            throw ValidationException::withMessages(['company_id' => __('acquisition.errors.ownership_company')]);
         }
 
         return $this->selfPartyForCompany($company);
@@ -257,12 +267,12 @@ class PropertyAcquisitionService
     {
         if ($sharePercentage === null || $sharePercentage === '') return;
         $share = (float) $sharePercentage;
-        if ($share <= 0 || $share > 100) throw ValidationException::withMessages(['share_percentage' => 'Share percentage must be greater than 0 and no more than 100.']);
+        if ($share <= 0 || $share > 100) throw ValidationException::withMessages(['share_percentage' => __('acquisition.errors.share_range')]);
         $allocated = (float) $acquisition->acquisitionParties()
             ->where('role', $role)
             ->when($exceptId, fn ($query) => $query->whereKeyNot($exceptId))
             ->sum('share_percentage');
-        if ($allocated + $share > 100) throw ValidationException::withMessages(['share_percentage' => "Total \"{$role}\" share would exceed 100%."]);
+        if ($allocated + $share > 100) throw ValidationException::withMessages(['share_percentage' => __('acquisition.errors.share_exceeds', ['role' => \App\Enums\AcquisitionPartyRole::labelFor($role)])]);
     }
     private function reopenDueDiligenceIfApproved(User $actor, PropertyAcquisition $acquisition, string $reason): void
     {
@@ -278,8 +288,11 @@ class PropertyAcquisitionService
         DB::afterCommit(fn () => $this->notify(
             $actor,
             $acquisition,
-            'Due diligence reopened',
-            "{$reason} for acquisition {$acquisition->reference_number}; approval is required again.",
+            'acquisition.notify.reopened_title',
+            'acquisition.notify.reopened_body',
+            null,
+            false,
+            ['reason' => $reason, 'reference' => $acquisition->reference_number],
         ));
     }
     /**
@@ -366,8 +379,9 @@ class PropertyAcquisitionService
     }
 
     private function authorize(User $user,string $ability,object $record):void { if (!$user->can($ability,$record)) throw new AuthorizationException; }
-    private function sameCompany(object $left, object $right):void { if ((int)$left->company_id !== (int)$right->company_id) throw ValidationException::withMessages(['company_id'=>'Records from different companies cannot be associated.']); }
-    private function notify(User $actor, ?PropertyAcquisition $acquisition, string $title, string $body, ?int $companyId = null, bool $ownershipEvent = false):void
+    private function sameCompany(object $left, object $right):void { if ((int)$left->company_id !== (int)$right->company_id) throw ValidationException::withMessages(['company_id'=>__('acquisition.errors.cross_company')]); }
+    /** $title/$body are translation keys; $params are resolved per recipient locale. */
+    private function notify(User $actor, ?PropertyAcquisition $acquisition, string $title, string $body, ?int $companyId = null, bool $ownershipEvent = false, array $params = []):void
     {
         $companyId ??= $acquisition?->company_id;
         if (!$companyId) return;
@@ -375,6 +389,6 @@ class PropertyAcquisitionService
             ->filter(fn(User $user) => $user->id === $actor->id
                 || $user->can('view_property::acquisition')
                 || ($ownershipEvent && $user->can('view_property_ownership')))
-            ->each->notify(new AcquisitionWorkflowNotification($title, $body, $acquisition?->id));
+            ->each->notify(new AcquisitionWorkflowNotification($title, $body, $acquisition?->id, $params));
     }
 }
