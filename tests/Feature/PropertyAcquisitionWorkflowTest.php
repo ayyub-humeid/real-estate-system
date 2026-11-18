@@ -124,7 +124,7 @@ class PropertyAcquisitionWorkflowTest extends TestCase
             $this->fail('Due diligence must require both a property and a party.');
         } catch (ValidationException $exception) {
             $this->assertSame(
-                'At least one property and one involved party are required before due diligence.',
+                __('acquisition.errors.needs_property_and_party'),
                 $exception->errors()['status'][0],
             );
             $this->assertSame('draft', $acquisition->fresh()->status);

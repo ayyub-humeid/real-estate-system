@@ -121,10 +121,10 @@ class Phase2FinancialControlsTest extends TestCase
         $widget = new FinancialVarianceWidget();
         $stats = $this->widgetStats($widget);
 
-        $this->assertSame('Approved budget', $stats[0]->getLabel());
-        $this->assertSame('Committed obligations', $stats[1]->getLabel());
-        $this->assertSame('Approved actual costs', $stats[2]->getLabel());
-        $this->assertSame('Budget variance', $stats[3]->getLabel());
+        $this->assertSame(__('dashboard.kpis.approved_budget'), $stats[0]->getLabel());
+        $this->assertSame(__('dashboard.kpis.committed_obligations'), $stats[1]->getLabel());
+        $this->assertSame(__('dashboard.kpis.approved_actual_costs'), $stats[2]->getLabel());
+        $this->assertSame(__('dashboard.kpis.budget_variance'), $stats[3]->getLabel());
     }
 
     public function test_financial_commitment_resource_table_has_colored_status_badges(): void
@@ -190,9 +190,9 @@ class Phase2FinancialControlsTest extends TestCase
         $widget = new FinancialOverviewStats();
         $stats = $this->widgetStats($widget);
 
-        $this->assertSame('Active commitments', $stats[1]->getLabel());
-        $this->assertSame('Approved actual costs', $stats[2]->getLabel());
-        $this->assertSame('Completed project payments', $stats[3]->getLabel());
+        $this->assertSame(__('dashboard.kpis.active_commitments'), $stats[1]->getLabel());
+        $this->assertSame(__('dashboard.kpis.approved_actual_costs'), $stats[2]->getLabel());
+        $this->assertSame(__('dashboard.kpis.completed_project_payments'), $stats[3]->getLabel());
     }
 
     public function test_change_order_creates_financial_commitment_amendment(): void
