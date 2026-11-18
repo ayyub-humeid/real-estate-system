@@ -47,6 +47,13 @@ class DueDiligenceCasesRelationManager extends RelationManager
             ->schema($this->checklistItemSchema())
             ->defaultItems(0)
             ->addActionLabel(__('Add checklist item'))
+            ->deleteAction(fn (Forms\Components\Actions\Action $action) => $action->visible(
+                fn (array $arguments, Forms\Components\Repeater $component): bool => ! in_array(
+                    $component->getState()[$arguments['item']]['status'] ?? null,
+                    [DueDiligenceStatus::Passed->value, DueDiligenceStatus::Waived->value],
+                    true,
+                ),
+            ))
             ->columnSpanFull();
 
         // EditAction saves an existing Case's items through Eloquent. Create Case is a
