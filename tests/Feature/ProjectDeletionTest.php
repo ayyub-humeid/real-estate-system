@@ -92,13 +92,13 @@ class ProjectDeletionTest extends TestCase
         $project = $this->project($company);
         $this->draftBudget($project)->forceFill(['status' => 'approved'])->save();
 
-        $this->assertSame([__('project.delete.blockers.approved_budgets')], $project->deletionBlockers());
+        $this->assertSame([__('deletion.blockers.approved_budgets')], $project->deletionBlockers());
 
         try {
             $project->delete();
             $this->fail('Deleting a project with history must be rejected.');
         } catch (ValidationException $exception) {
-            $this->assertArrayHasKey('project', $exception->errors());
+            $this->assertArrayHasKey('record', $exception->errors());
         }
 
         $this->assertNotNull(Project::withoutGlobalScopes()->find($project->id));
@@ -119,7 +119,7 @@ class ProjectDeletionTest extends TestCase
 
         Livewire::test(ListProjects::class)
             ->callTableAction('delete', $project)
-            ->assertNotified(__('project.delete.blocked_title'));
+            ->assertNotified(__('deletion.blocked_title'));
 
         $this->assertNotNull(Project::withoutGlobalScopes()->find($project->id));
     }
