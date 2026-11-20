@@ -148,7 +148,7 @@ class RolesAndPermissionsSeeder extends Seeder
             // Phase 07.7 — Contract version/legal workflow children. Contract CRUD is Shield generated.
             'submit_contract_version', 'approve_contract_version', 'request_contract_revision',
             'create_contract_revision', 'update_contract_version', 'attach_contract_document',
-            'record_contract_signature', 'generate_contract_pdf', 'activate_contract',
+            'record_contract_signature', 'generate_contract_pdf', 'activate_contract', 'end_contract',
             'create_contract_amendment', 'view_contract_approval', 'view_contract_signature',
             'view_contract_amendment', 'view_contract_status_history',
             // Phase 07.8 — Contract financial schedules, receipts, allocation and reversals.

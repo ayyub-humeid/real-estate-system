@@ -287,7 +287,7 @@ class RoleResource extends ShieldRoleResource
                 'exact:request_contract_revision', 'exact:create_contract_revision',
             ],
             'Legal documents and signatures' => [
-                'exact:attach_contract_document', 'exact:record_contract_signature', 'exact:generate_contract_pdf', 'exact:activate_contract',
+                'exact:attach_contract_document', 'exact:record_contract_signature', 'exact:generate_contract_pdf', 'exact:activate_contract', 'exact:end_contract',
             ],
             'Amendments and audit' => [
                 'exact:create_contract_amendment', 'exact:view_contract_approval', 'exact:view_contract_signature',

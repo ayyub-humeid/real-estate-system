@@ -15,6 +15,7 @@ return [
         'create_contract_revision' => 'إنشاء تعديل للعقد', 'attach_contract_document' => 'إرفاق مستند قانوني للعقد',
         'record_contract_signature' => 'تسجيل توقيع العقد', 'generate_contract_pdf' => 'إصدار ملف PDF للعقد',
         'activate_contract' => 'تفعيل العقد',
+        'end_contract' => 'إنهاء عقد الإيجار',
         'create_contract_amendment' => 'إنشاء ملحق للعقد', 'view_contract_approval' => 'عرض موافقات العقد',
         'view_contract_signature' => 'عرض توقيعات العقد', 'view_contract_amendment' => 'عرض ملاحق العقد',
         'view_contract_status_history' => 'عرض سجل حالة العقد',

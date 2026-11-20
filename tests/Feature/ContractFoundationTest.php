@@ -633,13 +633,168 @@ class ContractFoundationTest extends TestCase
     }
 
     /** @return array{0:Company,1:User,2:Unit} */
+    public function test_activating_a_sale_on_a_reserved_unit_sells_it_and_converts_the_reservation(): void
+    {
+        Storage::fake(config('filesystems.default'));
+        [$company, $user, $unit] = $this->companyUserAndUnit('Sale outcome');
+        $this->grant($user, ['create_contract', 'submit_contract_version', 'approve_contract_version', 'record_contract_signature', 'activate_contract']);
+        $buyer = Party::create(['company_id' => $company->id, 'type' => 'person', 'name' => 'Buyer', 'is_active' => true]);
+        $unit->update(['status' => 'reserved']);
+        $reservation = UnitReservation::create([
+            'company_id' => $company->id, 'reservation_number' => 'RES-OUT-0001', 'source' => ReservationSource::Direct,
+            'transaction_type' => OpportunityType::Sale, 'unit_id' => $unit->id, 'customer_party_id' => $buyer->id,
+            'agreed_amount' => 90000, 'currency' => 'USD', 'valid_until' => now()->subDay(),
+        ]);
+        $reservation->forceFill(['status' => ReservationStatus::Active])->save();
+        $template = $this->templateVersion($user, ContractType::Sale);
+        $contract = app(ContractDraftService::class)->create($user, [
+            'contract_type' => ContractType::Sale, 'reservation_id' => $reservation->id, 'template_version_id' => $template->id,
+            'parties' => [['party_id' => $buyer->id, 'role' => 'buyer']],
+            'terms' => [['term_type' => 'commercial', 'title' => 'Price', 'text' => 'Agreed price']],
+        ]);
+
+        $this->signAndActivate($user, $contract, 'sale-outcome.pdf');
+
+        $this->assertSame('sold', $unit->fresh()->status);
+        $this->assertSame(ReservationStatus::Converted, $reservation->fresh()->status);
+        $this->assertDatabaseHas('unit_status_histories', ['unit_id' => $unit->id, 'from_status' => 'reserved', 'to_status' => 'sold', 'reason' => 'sold_by_contract']);
+        $this->assertDatabaseHas('reservation_status_histories', ['reservation_id' => $reservation->id, 'to_status' => 'converted', 'action' => 'converted_to_contract']);
+
+        // Past its valid_until, the scheduler must leave a converted reservation alone and keep the unit sold.
+        $this->assertSame(0, app(\App\Services\ReservationWorkflowService::class)->expireDueReservations());
+        $this->assertSame('sold', $unit->fresh()->status);
+    }
+
+    public function test_a_unit_that_is_not_ready_cannot_be_sold_or_rented_by_activation(): void
+    {
+        Storage::fake(config('filesystems.default'));
+        [$company, $user, $unit] = $this->companyUserAndUnit('Unit not ready');
+        $this->grant($user, ['create_contract', 'submit_contract_version', 'approve_contract_version', 'record_contract_signature', 'activate_contract']);
+        $buyer = Party::create(['company_id' => $company->id, 'type' => 'person', 'name' => 'Buyer', 'is_active' => true]);
+        $unit->update(['status' => 'maintenance']);
+        $contract = $this->draft($user, $unit, $buyer, 1000);
+
+        try {
+            $this->signAndActivate($user, $contract, 'not-ready.pdf');
+            $this->fail('Activation should be rejected for a unit under maintenance.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('unit_id', $exception->errors());
+        }
+        $this->assertSame('maintenance', $unit->fresh()->status);
+        $this->assertSame(ContractStatus::Approved, $contract->fresh()->status);
+    }
+
+    public function test_lease_activation_rents_the_unit_and_ending_it_makes_the_unit_ready_again(): void
+    {
+        Storage::fake(config('filesystems.default'));
+        [$company, $user, $unit] = $this->companyUserAndUnit('Lease outcome');
+        $this->grant($user, ['create_contract', 'submit_contract_version', 'approve_contract_version', 'record_contract_signature', 'activate_contract']);
+        $tenant = Party::create(['company_id' => $company->id, 'type' => 'person', 'name' => 'Tenant', 'is_active' => true]);
+        $lease = $this->leaseDraft($user, $unit, $tenant, '2026-01-01', '2026-12-31');
+        $this->signAndActivate($user, $lease, 'lease-outcome.pdf');
+        $this->assertSame('rented', $unit->fresh()->status);
+
+        // No permission: refused, nothing changes.
+        try {
+            app(ContractWorkflowService::class)->endContract($user, $lease->fresh(), '2026-06-01', 'Tenant left');
+            $this->fail('Ending needs the end_contract permission.');
+        } catch (\Illuminate\Auth\Access\AuthorizationException) {
+        }
+        $this->assertSame(ContractStatus::Active, $lease->fresh()->status);
+
+        $this->grant($user, ['end_contract']);
+        $user->forgetCachedPermissions();
+        app(ContractWorkflowService::class)->endContract($user, $lease->fresh(), '2026-06-01', 'Tenant left');
+
+        $ended = $lease->fresh();
+        $this->assertSame(ContractStatus::Ended, $ended->status);
+        $this->assertSame('2026-06-01', $ended->ended_at->toDateString());
+        $this->assertSame('Tenant left', $ended->end_reason);
+        $this->assertSame('ready', $unit->fresh()->status);
+        $this->assertDatabaseHas('unit_status_histories', ['unit_id' => $unit->id, 'from_status' => 'rented', 'to_status' => 'ready', 'reason' => 'released_by_contract_end']);
+        $this->assertDatabaseHas('contract_status_histories', ['contract_id' => $lease->id, 'to_status' => 'ended', 'action' => 'ended']);
+
+        // An ended lease cannot be ended again.
+        $this->expectException(ValidationException::class);
+        app(ContractWorkflowService::class)->endContract($user, $lease->fresh(), '2026-06-02', 'Again');
+    }
+
+    public function test_a_sale_contract_cannot_be_ended_and_a_sold_unit_has_no_manual_status_change(): void
+    {
+        Storage::fake(config('filesystems.default'));
+        [$company, $user, $unit] = $this->companyUserAndUnit('Sale final');
+        $this->grant($user, ['create_contract', 'submit_contract_version', 'approve_contract_version', 'record_contract_signature', 'activate_contract', 'end_contract', 'change_unit_status', 'reactivate_unit']);
+        $buyer = Party::create(['company_id' => $company->id, 'type' => 'person', 'name' => 'Buyer', 'is_active' => true]);
+        $sale = $this->draft($user, $unit, $buyer, 5000);
+        $this->signAndActivate($user, $sale, 'sale-final.pdf');
+
+        try {
+            app(ContractWorkflowService::class)->endContract($user, $sale->fresh(), '2026-06-01', 'Try');
+            $this->fail('A sale contract must not end.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('contract', $exception->errors());
+        }
+
+        foreach (['ready', 'rented'] as $target) {
+            try {
+                app(\App\Services\UnitSetupService::class)->transitionStatus($user, $unit->fresh(), $target, 'manual');
+                $this->fail("Manual move of a sold unit to {$target} must be refused.");
+            } catch (ValidationException|\Illuminate\Auth\Access\AuthorizationException) {
+            }
+        }
+        $this->assertSame('sold', $unit->fresh()->status);
+    }
+
+    public function test_overdue_active_leases_notify_the_creator_once_and_are_never_ended_automatically(): void
+    {
+        Storage::fake(config('filesystems.default'));
+        [$company, $user, $unit] = $this->companyUserAndUnit('Overdue lease');
+        $this->grant($user, ['create_contract', 'submit_contract_version', 'approve_contract_version', 'record_contract_signature', 'activate_contract']);
+        $tenant = Party::create(['company_id' => $company->id, 'type' => 'person', 'name' => 'Tenant', 'is_active' => true]);
+        $lease = $this->leaseDraft($user, $unit, $tenant, '2025-01-01', now()->subDays(3)->toDateString());
+        $this->signAndActivate($user, $lease, 'overdue.pdf');
+
+        $this->assertSame(1, app(\App\Services\LeaseExpiryAlertService::class)->notifyOverdue());
+        $this->assertSame(0, app(\App\Services\LeaseExpiryAlertService::class)->notifyOverdue(), 'The same person is told only once.');
+        $this->assertSame(1, $user->notifications()->where('type', \App\Notifications\ContractLeaseOverdueNotification::class)->count());
+        $this->assertSame(ContractStatus::Active, $lease->fresh()->status);
+        $this->assertSame('rented', $unit->fresh()->status);
+    }
+
+    public function test_end_contract_action_is_only_visible_to_permitted_users_on_active_leases_and_ends_the_lease(): void
+    {
+        Storage::fake(config('filesystems.default'));
+        [$company, $user, $unit] = $this->companyUserAndUnit('End action UI');
+        $this->grant($user, ['create_contract', 'view_contract', 'view_any_contract', 'submit_contract_version', 'approve_contract_version', 'record_contract_signature', 'activate_contract']);
+        $tenant = Party::create(['company_id' => $company->id, 'type' => 'person', 'name' => 'Tenant', 'is_active' => true]);
+        $lease = $this->leaseDraft($user, $unit, $tenant, '2026-01-01', '2026-12-31');
+        $this->signAndActivate($user, $lease, 'ui-end.pdf');
+        $this->actingAs($user);
+
+        // Without the permission the button is not offered at all.
+        \Livewire\Livewire::test(\App\Filament\Resources\ContractResource\Pages\ViewContract::class, ['record' => $lease->getRouteKey()])
+            ->assertActionHidden('endContract');
+
+        $this->grant($user, ['end_contract']);
+        $user->forgetCachedPermissions();
+
+        \Livewire\Livewire::test(\App\Filament\Resources\ContractResource\Pages\ViewContract::class, ['record' => $lease->getRouteKey()])
+            ->assertActionVisible('endContract')
+            ->callAction('endContract', ['ended_at' => '2026-06-01', 'reason' => 'Tenant left'])
+            ->assertHasNoActionErrors()
+            ->assertActionHidden('endContract');
+
+        $this->assertSame(ContractStatus::Ended, $lease->fresh()->status);
+        $this->assertSame('ready', $unit->fresh()->status);
+    }
+
     private function companyUserAndUnit(string $prefix = 'Contract Test'): array
     {
         $company = Company::create(['name' => $prefix.' Co', 'email' => str($prefix)->slug().'@example.test']);
         $user = User::factory()->create(['company_id' => $company->id]);
         $location = Location::create(['company_id' => $company->id, 'name' => $prefix.' City', 'type' => 'city']);
         $property = Property::create(['company_id' => $company->id, 'location_id' => $location->id, 'name' => $prefix.' Property', 'address' => 'Test address']);
-        $unit = Unit::create(['company_id' => $company->id, 'property_id' => $property->id, 'unit_number' => 'A-101', 'rent_price' => 0, 'status' => 'draft', 'type' => 'apartment']);
+        $unit = Unit::create(['company_id' => $company->id, 'property_id' => $property->id, 'unit_number' => 'A-101', 'rent_price' => 0, 'status' => 'ready', 'type' => 'apartment']);
 
         return [$company, $user, $unit];
     }

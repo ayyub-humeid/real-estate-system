@@ -11,7 +11,7 @@ use Illuminate\Validation\ValidationException;
 
 class ReservationWorkflowService
 {
-    public function __construct(private readonly ReservationAvailabilityService $availability, private readonly ReservationSnapshotFactory $snapshots) {}
+    public function __construct(private readonly ReservationAvailabilityService $availability, private readonly ReservationSnapshotFactory $snapshots, private readonly UnitStatusService $unitStatuses) {}
 
     public function createDraft(User $actor, array $data): UnitReservation
     {
@@ -106,6 +106,20 @@ class ReservationWorkflowService
         });
     }
 
+    /**
+     * Closes an active reservation because its contract was activated. The unit
+     * is NOT released: the contract moves it to Sold or Rented. Without this
+     * step the scheduler would later expire the reservation and show a
+     * fulfilled deal as "expired". Call inside the contract's transaction.
+     */
+    public function markConverted(User $actor, UnitReservation $reservation): void
+    {
+        $locked = $this->locked($reservation);
+        if ($locked->status !== ReservationStatus::Active) return;
+        $locked->forceFill(['status' => ReservationStatus::Converted->value])->save();
+        $this->history($locked, ReservationStatus::Active, ReservationStatus::Converted, 'converted_to_contract', $actor);
+    }
+
     /** Expire due reservations from the scheduler; no user is impersonated. */
     public function expireDueReservations(): int
     {
@@ -142,10 +156,7 @@ class ReservationWorkflowService
 
     private function setUnitStatus(int $unitId, UnitStatus $status, string $reason, ?int $changedBy = null): void
     {
-        $unit = Unit::withoutGlobalScopes()->lockForUpdate()->findOrFail($unitId);
-        $previous = $unit->status instanceof UnitStatus ? $unit->status->value : (string) $unit->status;
-        $unit->update(['status' => $status->value]);
-        $unit->statusHistories()->create(['company_id' => $unit->company_id, 'unit_id' => $unitId, 'from_status' => $previous, 'to_status' => $status->value, 'reason' => $reason, 'changed_by' => $changedBy, 'changed_at' => now(), 'created_at' => now()]);
+        $this->unitStatuses->change($unitId, $status, $reason, $changedBy);
     }
 
     private function releaseUnit(?int $unitId): void

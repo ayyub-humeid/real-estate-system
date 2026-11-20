@@ -2,8 +2,8 @@
 
 namespace App\Filament\Widgets;
 
-use App\Enums\{ContractStatus, LeaseStatus, MaintenanceStatus, ProjectStatus};
-use App\Models\{Contract, Lease, MaintenanceRequest, Opportunity, Project, Property};
+use App\Enums\{ContractStatus, ContractType, MaintenanceStatus, ProjectStatus};
+use App\Models\{Contract, MaintenanceRequest, Opportunity, Project, Property};
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Facades\Cache;
@@ -40,7 +40,7 @@ class OperationalOverviewWidget extends BaseWidget
         $user = auth()->user();
         $isSuperAdmin = $user->isSuperAdmin();
         $companyId = $user->company_id;
-        $cacheKey = 'ops_overview_v1_' . ($isSuperAdmin ? 'all' : ($companyId ?? '0'));
+        $cacheKey = 'ops_overview_v2_' . ($isSuperAdmin ? 'all' : ($companyId ?? '0'));
 
         return Cache::remember($cacheKey, 300, function () use ($isSuperAdmin, $companyId) {
             $scope = fn ($query) => (! $isSuperAdmin && $companyId)
@@ -57,8 +57,10 @@ class OperationalOverviewWidget extends BaseWidget
                 ->where('status', ContractStatus::Active->value))
                 ->count();
 
-            $activeLeases = $scope(Lease::withoutGlobalScopes()
-                ->where('status', LeaseStatus::Active->value))
+            // Leases are disabled; a rental is an active lease-type Contract.
+            $activeLeases = $scope(Contract::withoutGlobalScopes()
+                ->where('status', ContractStatus::Active->value)
+                ->where('contract_type', ContractType::Lease->value))
                 ->count();
 
             $pendingMaintenance = $scope(MaintenanceRequest::withoutGlobalScopes()

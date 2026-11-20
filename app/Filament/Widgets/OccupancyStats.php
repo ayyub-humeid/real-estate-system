@@ -43,10 +43,17 @@ class OccupancyStats extends BaseWidget
             $query->where('property_id', $propertyId);
         }
 
-        $totalUnits = (clone $query)->count();
-        $occupiedUnits = (clone $query)->whereHas('currentLease')->count();
-        $vacantUnits = (clone $query)->where('status', UnitStatus::Ready->value)->whereDoesntHave('currentLease')->count();
-        $maintenanceUnits = (clone $query)->where('status', UnitStatus::Maintenance->value)->count();
+        // Leases are disabled: lease contracts set a unit to Rented, sale contracts to Sold.
+        // Sold units can no longer be occupied by a tenant, so they leave the occupancy base.
+        $counts = (clone $query)->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status');
+        $count = fn (UnitStatus $status): int => (int) ($counts[$status->value] ?? 0);
+
+        $occupiedUnits = $count(UnitStatus::Rented);
+        $soldUnits = $count(UnitStatus::Sold);
+        $reservedUnits = $count(UnitStatus::Reserved);
+        $vacantUnits = $count(UnitStatus::Ready);
+        $maintenanceUnits = $count(UnitStatus::Maintenance);
+        $totalUnits = (int) $counts->sum() - $soldUnits;
 
         $occupancyRate = $totalUnits > 0 ? ($occupiedUnits / $totalUnits) * 100 : 0;
 
@@ -65,6 +72,11 @@ class OccupancyStats extends BaseWidget
                 ->description(__('dashboard.descriptions.ready_for_rent'))
                 ->descriptionIcon('heroicon-m-plus-circle')
                 ->color('info'),
+
+            Stat::make(__('dashboard.kpis.sold_units'), $soldUnits)
+                ->description(__('dashboard.descriptions.sales_inventory', ['reserved' => $reservedUnits, 'ready' => $vacantUnits]))
+                ->descriptionIcon('heroicon-m-banknotes')
+                ->color('primary'),
 
             Stat::make(__('maintenance.widgets.maintenance_units'), $maintenanceUnits)
                 ->description(__('maintenance.widgets.under_repair'))

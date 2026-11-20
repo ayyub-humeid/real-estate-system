@@ -17,11 +17,15 @@ class Contract extends Model
         'project_id',
         'unit_id',
         'planned_unit_id',
+        'ended_at',
+        'end_reason',
+        'ended_by',
         'created_by'
     ];
     protected $casts = [
         'contract_type' => ContractType::class,
         'status' => ContractStatus::class,
+        'ended_at' => 'date',
     ];
     public function versions(): HasMany
     {

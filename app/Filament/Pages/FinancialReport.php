@@ -102,10 +102,14 @@ class FinancialReport extends Page implements HasForms
         $endDate = $this->data['end_date'] ?? null;
 
         // Fetch data for PDF (Scoped by company via trait)
-        $revenue = Payment::when($propertyId, fn($q) => $q->whereHas('lease.unit', fn($uq) => $uq->where('property_id', $propertyId)))
+        // Revenue = completed incoming contract payments (Leases are disabled).
+        $revenue = Payment::where('direction', 'incoming')
+            ->where('status', \App\Enums\PaymentStatus::Completed->value)
+            ->whereNotNull('contract_id')
+            ->when($propertyId, fn($q) => $q->whereHas('contract.unit', fn($uq) => $uq->where('property_id', $propertyId)))
             ->when($startDate, fn($q) => $q->where('payment_date', '>=', $startDate))
             ->when($endDate, fn($q) => $q->where('payment_date', '<=', $endDate))
-            ->sum('paid_amount');
+            ->sum('amount');
 
         $expenses = Expense::where('status', 'paid')
             ->when($propertyId, fn($q) => $q->where('property_id', $propertyId))
@@ -114,8 +118,8 @@ class FinancialReport extends Page implements HasForms
             ->sum('amount');
 
         $unitsQuery = Unit::when($propertyId, fn($q) => $q->where('property_id', $propertyId));
-        $totalUnits = (clone $unitsQuery)->count();
-        $occupiedUnits = (clone $unitsQuery)->whereHas('currentLease')->count();
+        $totalUnits = (clone $unitsQuery)->where('status', '!=', \App\Enums\UnitStatus::Sold->value)->count();
+        $occupiedUnits = (clone $unitsQuery)->where('status', \App\Enums\UnitStatus::Rented->value)->count();
         $occupancy = $totalUnits > 0 ? ($occupiedUnits / $totalUnits) * 100 : 0;
 
         $property = $propertyId ? Property::find($propertyId) : null;

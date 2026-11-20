@@ -124,7 +124,12 @@ class ProjectUnitsRelationManager extends RelationManager
             return [];
         }
 
+        if ($current->isSetByContract()) {
+            return [];
+        }
+
         return collect(UnitStatus::cases())
+            ->reject(fn (UnitStatus $status): bool => $status->isSetByContract())
             ->filter(fn (UnitStatus $status): bool => $current->canTransitionTo($status))
             ->filter(fn (UnitStatus $status): bool => auth()->user()->can($status === UnitStatus::Draft ? 'reactivate' : 'changeStatus', $unit))
             ->mapWithKeys(fn (UnitStatus $status): array => [$status->value => UnitStatus::options()[$status->value]])

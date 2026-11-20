@@ -11,6 +11,8 @@ enum ContractStatus: string implements HasLabel
     case RevisionRequired = 'revision_required';
     case Approved = 'approved';
     case Active = 'active';
+    /** A lease whose term was closed by a person. Sale contracts never end. */
+    case Ended = 'ended';
 
     public function getLabel(): ?string
     {
@@ -25,6 +27,7 @@ enum ContractStatus: string implements HasLabel
             self::RevisionRequired => 'danger',
             self::Approved => 'info',
             self::Active => 'success',
+            self::Ended => 'gray',
         };
     }
 }

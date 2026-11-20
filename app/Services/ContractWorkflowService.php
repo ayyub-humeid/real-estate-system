@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\{
     ContractAmendmentStatus,
+    UnitStatus,
     ContractDocumentType,
     ContractApprovalStatus,
     ContractStatus,
@@ -36,6 +37,11 @@ use Illuminate\Validation\ValidationException;
 
 class ContractWorkflowService
 {
+    public function __construct(
+        private readonly UnitStatusService $unitStatuses,
+        private readonly ReservationWorkflowService $reservations,
+    ) {}
+
     public function submit(User $actor, ContractVersion $version): ContractVersion
     {
         $this->can($actor, 'submit_contract_version');
@@ -350,9 +356,104 @@ class ContractWorkflowService
                 ->where('status', ContractAmendmentStatus::Draft->value)
                 ->update(['status' => ContractAmendmentStatus::Effective->value]);
             $this->history($lockedContract, $lockedVersion, $actor, $from, ContractStatus::Active->value, 'activated');
+            $this->applyActivationOutcome($lockedContract, $actor);
 
             return $lockedContract->refresh();
         });
+    }
+
+    /**
+     * Ends an active lease. The unit goes back to Ready (so it can be offered
+     * again) unless another active lease still uses it. Sale contracts never end.
+     */
+    public function endContract(User $actor, Contract $contract, string $endedOn, string $reason): Contract
+    {
+        $this->can($actor, 'end_contract');
+
+        return DB::transaction(function () use ($actor, $contract, $endedOn, $reason): Contract {
+            $locked = Contract::withoutGlobalScopes()->lockForUpdate()->findOrFail($contract->id);
+            $this->sameCompany($actor, $locked->company_id);
+            if ($locked->status !== ContractStatus::Active || $locked->contract_type !== ContractType::Lease) {
+                $this->invalid('contract', __('contract_domain.end.only_active_lease'));
+            }
+            if (blank($reason)) {
+                $this->invalid('reason', __('contract_domain.end.reason_help'));
+            }
+            try {
+                $date = \Illuminate\Support\Carbon::parse($endedOn)->startOfDay();
+            } catch (\Throwable) {
+                $this->invalid('ended_at', __('contract_domain.end.ended_on'));
+            }
+            $version = $locked->versions()->withoutGlobalScopes()
+                ->where('status', ContractVersionStatus::Signed->value)
+                ->orderByDesc('version_number')
+                ->first() ?? $locked->versions()->withoutGlobalScopes()->orderByDesc('version_number')->firstOrFail();
+            if ($version->start_date && $date->lt($version->start_date->copy()->startOfDay())) {
+                $this->invalid('ended_at', __('contract_domain.end.date_before_start'));
+            }
+            if ($date->gt(now()->endOfDay())) {
+                $this->invalid('ended_at', __('contract_domain.end.date_in_future'));
+            }
+
+            $from = $locked->status->value;
+            $locked->update([
+                'status' => ContractStatus::Ended,
+                'ended_at' => $date->toDateString(),
+                'end_reason' => $reason,
+                'ended_by' => $actor->id,
+            ]);
+            $this->history($locked, $version, $actor, $from, ContractStatus::Ended->value, 'ended', $reason);
+
+            if ($locked->unit_id) {
+                $stillLeased = Contract::withoutGlobalScopes()
+                    ->where('unit_id', $locked->unit_id)
+                    ->where('contract_type', ContractType::Lease->value)
+                    ->where('status', ContractStatus::Active->value)
+                    ->whereKeyNot($locked->id)
+                    ->exists();
+                $unit = Unit::withoutGlobalScopes()->lockForUpdate()->find($locked->unit_id);
+                if (! $stillLeased && $unit && $unit->status === UnitStatus::Rented->value) {
+                    $this->unitStatuses->change($unit, UnitStatus::Ready, 'released_by_contract_end', $actor->id);
+                }
+            }
+
+            return $locked->refresh();
+        });
+    }
+
+    /**
+     * Activation makes the deal real: the reservation (if any) is closed as
+     * converted and the unit becomes Sold or Rented. Runs inside the activation
+     * transaction after assertAvailable() has locked the unit.
+     */
+    private function applyActivationOutcome(Contract $contract, User $actor): void
+    {
+        if ($contract->reservation_id) {
+            $reservation = UnitReservation::withoutGlobalScopes()->find($contract->reservation_id);
+            if ($reservation) {
+                $this->reservations->markConverted($actor, $reservation);
+            }
+        }
+
+        if (! $contract->unit_id) {
+            return; // Off-plan sale on a planned unit: there is no physical unit yet.
+        }
+
+        $unit = Unit::withoutGlobalScopes()->lockForUpdate()->findOrFail($contract->unit_id);
+        $current = UnitStatus::tryFrom((string) $unit->status);
+        $isSale = $contract->contract_type->isSale();
+        $target = $isSale ? UnitStatus::Sold : UnitStatus::Rented;
+
+        // A second, non-overlapping lease on an already rented unit is allowed
+        // (assertAvailable checked the dates); the unit simply stays Rented.
+        if (! $isSale && $current === UnitStatus::Rented) {
+            return;
+        }
+        if (! in_array($current, [UnitStatus::Ready, UnitStatus::Reserved], true)) {
+            $this->invalid('unit_id', __('contract_domain.activation.unit_not_available', ['status' => mb_strtolower((string) ($current?->getLabel() ?? $unit->status))]));
+        }
+
+        $this->unitStatuses->change($unit, $target, $isSale ? 'sold_by_contract' : 'rented_by_contract', $actor->id);
     }
 
     public function createAmendment(

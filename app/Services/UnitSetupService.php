@@ -87,6 +87,8 @@ class UnitSetupService
             if (!$target)
                 $this->invalid('status', 'Select a valid physical Unit status.');
             $current = UnitStatus::tryFrom($unit->status);
+            if ($target->isSetByContract() || $current?->isSetByContract())
+                $this->invalid('status', __('unit.errors.sold_or_rented_by_contract'));
             if (!$current || !$current->canTransitionTo($target))
                 $this->invalid('status', "Cannot move a Unit from {$unit->status} to {$to}.");
             if ($to === 'ready' && (!$unit->property_id || !$unit->unit_number || !$unit->type || !$unit->actual_area || !$unit->area_unit))

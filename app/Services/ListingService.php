@@ -219,6 +219,9 @@ class ListingService
     {
         if ($target instanceof Unit) {
             $status = UnitStatus::tryFrom($target->status);
+            if ($status?->isSetByContract()) {
+                $this->invalid('listable_id', __('unit.errors.not_marketable', ['status' => $status->getLabel()]));
+            }
             if ($status === UnitStatus::Inactive) {
                 $this->invalid('listable_id', 'An inactive Unit cannot be marketed.');
             }

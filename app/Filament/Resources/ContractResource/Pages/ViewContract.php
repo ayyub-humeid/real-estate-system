@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\ContractResource\Pages;
 
 use App\Filament\Resources\ContractResource;
-use App\Enums\{ContractDocumentType, ContractVersionStatus};
+use App\Enums\{ContractDocumentType, ContractStatus, ContractType, ContractVersionStatus};
 use App\Models\{Company, ContractParty, ContractVersion, Document, DocumentVersion};
 use App\Services\CompanyLegalPartyService;
 use App\Services\ContractWorkflowService;
@@ -49,6 +49,8 @@ class ViewContract extends ViewRecord
         $run = function (callable $callback, string $successTitle, ?string $failureTitle = null): void {
             try {
                 $callback();
+                // Reload so buttons and badges reflect the new status without a page refresh.
+                $this->record->refresh();
                 Notification::make()->success()->title($successTitle)->send();
             } catch (ValidationException $exception) {
                 Notification::make()->danger()
@@ -292,9 +294,41 @@ class ViewContract extends ViewRecord
                 ->visible(fn (): bool => $latest()?->status === ContractVersionStatus::Approved && auth()->user()->can('activate_contract'))
                 ->requiresConfirmation()
                 ->modalHeading(__('Activate contract'))
-                ->modalDescription(__('contract_domain.activation.confirmation'))
+                ->modalDescription(function (): string {
+                    $unit = $this->record->unit?->unit_number ?? '—';
+                    $outcome = $this->record->unit_id
+                        ? __($this->record->contract_type->isSale() ? 'contract_domain.activation.outcome_sale' : 'contract_domain.activation.outcome_lease', ['unit' => $unit])
+                        : '';
+
+                    return trim(__('contract_domain.activation.confirmation').' '.$outcome);
+                })
                 ->modalSubmitActionLabel(__('Activate contract'))
                 ->action(fn (): mixed => $run(fn () => app(ContractWorkflowService::class)->activate(auth()->user(), $this->record, $latest()), __('Contract activated'))),
+            Actions\Action::make('endContract')
+                ->label(__('contract_domain.end.action'))
+                ->icon('heroicon-o-archive-box-x-mark')
+                ->color('danger')
+                ->tooltip(__('contract_domain.end.help'))
+                ->visible(fn (): bool => $this->record->status === ContractStatus::Active
+                    && $this->record->contract_type === ContractType::Lease
+                    && auth()->user()->can('end_contract'))
+                ->requiresConfirmation()
+                ->modalHeading(__('contract_domain.end.action'))
+                ->modalDescription(__('contract_domain.end.modal_description'))
+                ->modalSubmitActionLabel(__('contract_domain.end.action'))
+                ->form([
+                    Forms\Components\DatePicker::make('ended_at')
+                        ->label(__('contract_domain.end.ended_on'))
+                        ->default(now())
+                        ->maxDate(now())
+                        ->required(),
+                    Forms\Components\Textarea::make('reason')
+                        ->label(__('contract_domain.end.reason'))
+                        ->helperText(__('contract_domain.end.reason_help'))
+                        ->maxLength(500)
+                        ->required(),
+                ])
+                ->action(fn (array $data): mixed => $run(fn () => app(ContractWorkflowService::class)->endContract(auth()->user(), $this->record, $data['ended_at'], $data['reason']), __('contract_domain.end.done'))),
         ];
     }
 }
