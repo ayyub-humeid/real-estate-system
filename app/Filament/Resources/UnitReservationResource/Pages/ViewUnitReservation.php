@@ -19,6 +19,23 @@ class ViewUnitReservation extends ViewRecord
 
     public function getTitle(): string { return $this->record->reservation_number; }
 
+    public function getSubheading(): ?string
+    {
+        $status = $this->record->status;
+
+        if ($status === \App\Enums\ReservationStatus::Active && $this->record->valid_until) {
+            return __('reservations.guidance.active', ['date' => $this->record->valid_until->translatedFormat('Y-m-d')]);
+        }
+        if ($status === \App\Enums\ReservationStatus::Active) {
+            return __('reservations.guidance.active_no_date');
+        }
+        if ($status === \App\Enums\ReservationStatus::Expired && $this->record->valid_until) {
+            return __('reservations.guidance.expired', ['date' => $this->record->valid_until->translatedFormat('Y-m-d')]);
+        }
+
+        return __('reservations.guidance.' . $status->value);
+    }
+
     protected function getHeaderActions(): array
     {
         return [
@@ -39,6 +56,7 @@ class ViewUnitReservation extends ViewRecord
     {
         return Actions\Action::make($name)
             ->label($label)->modalHeading($label)->color($color)->requiresConfirmation()
+            ->modalDescription(__('reservations.action_descriptions.' . $name))
             ->form(fn (): array => UnitReservationResource::workflowForm($this->record, $reason, $extend))
             ->visible(fn (): bool => UnitReservationResource::workflowActionAllowed($name, $this->record)
                 && auth()->user()->can(UnitReservationResource::workflowAbility($name), $this->record))

@@ -17,6 +17,15 @@ class ViewLead extends ViewRecord
 {
     protected static string $resource = LeadResource::class;
 
+    public function getSubheading(): ?string
+    {
+        if ($this->record->party) {
+            return __('sales.lead_guidance.registered', ['name' => $this->record->party->name]);
+        }
+
+        return __('sales.lead_guidance.not_registered');
+    }
+
     protected function getHeaderActions(): array
     {
         return [
@@ -29,6 +38,8 @@ class ViewLead extends ViewRecord
                 ->visible(fn() => !$this->record->party)
                 ->authorize('convert', $this->record)
                 ->requiresConfirmation()
+                ->modalIcon('heroicon-o-user-plus')
+                ->modalIconColor('success')
                 ->modalHeading(__('crm.modals.convert_to_party_heading'))
                 ->modalDescription(__('sales.party.convert_description'))
                 ->modalSubmitActionLabel(__('crm.modals.convert_to_party_submit'))
