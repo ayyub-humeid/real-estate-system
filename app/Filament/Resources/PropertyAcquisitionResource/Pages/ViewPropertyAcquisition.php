@@ -62,8 +62,9 @@ class ViewPropertyAcquisition extends ViewRecord
                 ->label(__('acquisition.actions.convert_to_project'))
                 ->icon('heroicon-o-plus-circle')
                 ->color('success')
-                ->visible(fn() => $this->record->status === AcquisitionStatus::Completed->value)
-                ->authorize('create', Project::class)
+                ->visible(fn() => $this->record->status === AcquisitionStatus::Completed->value
+                    && auth()->user()->can('create', Project::class)
+                    && auth()->user()->can('convertToProject', $this->record))
                 ->requiresConfirmation()
                 ->modalHeading(__('acquisition.modals.convert_heading'))
                 ->modalDescription(__('acquisition.modals.convert_description'))

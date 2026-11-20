@@ -19,6 +19,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'approve_property_acquisition',
             'cancel_property_acquisition',
             'complete_property_acquisition',
+            'convert_acquisition_to_project',
             'view_any_acquisition_property',
             'view_acquisition_property',
             'create_acquisition_property',

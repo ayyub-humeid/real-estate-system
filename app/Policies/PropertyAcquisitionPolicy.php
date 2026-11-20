@@ -74,4 +74,8 @@ class PropertyAcquisitionPolicy
     {
         return $this->canForRecord($user, 'complete_property_acquisition', $acquisition);
     }
+    public function convertToProject(User $user, PropertyAcquisition $acquisition): bool
+    {
+        return $this->canForRecord($user, 'convert_acquisition_to_project', $acquisition);
+    }
 }

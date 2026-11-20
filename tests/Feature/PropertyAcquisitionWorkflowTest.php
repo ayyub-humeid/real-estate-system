@@ -222,7 +222,7 @@ class PropertyAcquisitionWorkflowTest extends TestCase
     public function test_converting_completed_acquisition_to_project_seeds_budget_with_version_number_and_line(): void
     {
         $company = Company::create(['name' => 'A', 'email' => 'a@test.com']);
-        $actor = $this->actor($company, ['view_property::acquisition', 'create_project']);
+        $actor = $this->actor($company, ['view_property::acquisition', 'create_project', 'convert_acquisition_to_project']);
         $property = $this->property($company);
         $acquisition = PropertyAcquisition::withoutGlobalScopes()->create([
             'company_id' => $company->id,
@@ -257,6 +257,32 @@ class PropertyAcquisitionWorkflowTest extends TestCase
         $item = \App\Models\BudgetItem::withoutGlobalScopes()->where('budget_category_id', $budget->categories()->firstOrFail()->id)->firstOrFail();
         $this->assertNotNull($item->budget_line_id);
         $this->assertSame('250000.0000', $item->planned_amount);
+    }
+
+    public function test_converting_to_project_requires_its_own_permission_even_with_create_project(): void
+    {
+        $company = Company::create(['name' => 'Missing Permission Co', 'email' => 'missing@test.com']);
+        $actor = $this->actor($company, ['view_property::acquisition', 'create_project']);
+        $property = $this->property($company);
+        $acquisition = PropertyAcquisition::withoutGlobalScopes()->create([
+            'company_id' => $company->id,
+            'reference_number' => 'ACQ-002',
+            'type' => 'cash_purchase',
+            'status' => 'completed',
+            'agreed_value' => 100000,
+            'currency' => 'USD',
+        ]);
+        \App\Models\AcquisitionProperty::withoutGlobalScopes()->create([
+            'company_id' => $company->id,
+            'property_acquisition_id' => $acquisition->id,
+            'property_id' => $property->id,
+        ]);
+
+        $this->expectException(\Illuminate\Auth\Access\AuthorizationException::class);
+        app(PropertyAcquisitionService::class)->convertToProject($actor, $acquisition, [
+            'project_name' => 'ACQ-002 - Project',
+            'project_type' => 'residential',
+        ]);
     }
 
     public function test_current_company_and_external_company_can_share_an_acquisition_as_partners(): void

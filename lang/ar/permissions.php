@@ -17,6 +17,7 @@ return [
         'activate_contract' => 'تفعيل العقد',
         'end_contract' => 'إنهاء عقد الإيجار',
         'create_contract_from_reservation' => 'إنشاء عقد من الحجز',
+        'convert_acquisition_to_project' => 'تحويل استحواذ مكتمل إلى مشروع',
         'create_contract_amendment' => 'إنشاء ملحق للعقد', 'view_contract_approval' => 'عرض موافقات العقد',
         'view_contract_signature' => 'عرض توقيعات العقد', 'view_contract_amendment' => 'عرض ملاحق العقد',
         'view_contract_status_history' => 'عرض سجل حالة العقد',

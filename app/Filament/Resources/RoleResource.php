@@ -197,7 +197,7 @@ class RoleResource extends ShieldRoleResource
      */
     private const CUSTOM_PERMISSION_GROUPS = [
         'Property Acquisition' => [
-            'Acquisition workflow' => ['exact:approve_property_acquisition', 'exact:cancel_property_acquisition', 'exact:complete_property_acquisition'],
+            'Acquisition workflow' => ['exact:approve_property_acquisition', 'exact:cancel_property_acquisition', 'exact:complete_property_acquisition', 'exact:convert_acquisition_to_project'],
             'Acquisition properties' => ['acquisition_property'],
             'Acquisition parties' => ['acquisition_party'],
             'Property ownership' => ['property_ownership', 'exact:change_property_ownership'],

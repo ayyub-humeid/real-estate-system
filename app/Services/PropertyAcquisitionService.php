@@ -307,6 +307,7 @@ class PropertyAcquisitionService
     public function convertToProject(User $actor, PropertyAcquisition $acquisition, array $data): \App\Models\Project
     {
         $this->authorize($actor, 'create', new \App\Models\Project(['company_id' => $acquisition->company_id]));
+        $this->authorize($actor, 'convertToProject', $acquisition);
         if ($acquisition->status !== 'completed') {
             throw ValidationException::withMessages(['status' => __('Only completed acquisitions can be converted to a project.')]);
         }
