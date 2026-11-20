@@ -336,9 +336,10 @@ class PropertyAcquisitionService
             }
 
             if (! empty($data['seed_budget']) && $acquisition->agreed_value) {
+                // PostgreSQL rejects FOR UPDATE with aggregates, so serialize on the parent row instead.
+                \App\Models\Project::withoutGlobalScopes()->lockForUpdate()->findOrFail($project->id);
                 $nextVersion = ((int) \App\Models\ProjectBudget::withoutGlobalScopes()
                     ->where('project_id', $project->id)
-                    ->lockForUpdate()
                     ->max('version_number')) + 1;
 
                 $budget = \App\Models\ProjectBudget::create([

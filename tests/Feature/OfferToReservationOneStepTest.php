@@ -289,22 +289,18 @@ class OfferToReservationOneStepTest extends TestCase
         $this->assertSame($chosen->id, $service->createFromOffer($actor, $offer, ['unit_id' => $chosen->id])->unit_id);
     }
 
-    public function test_a_user_who_cannot_create_clients_gets_a_clear_message_unless_the_lead_is_already_a_client(): void
+    public function test_a_user_without_convert_lead_permission_still_creates_the_client_during_reservation(): void
     {
         $company = $this->company();
         $seller = $this->actor($company);
         $offer = $this->acceptedOffer($seller, $this->lead($seller), $this->unit($company));
         $limited = $this->actor($company, array_diff(self::BASE, ['convert_lead_to_party']));
+        $before = $this->clients($company);
 
-        try {
-            app(ReservationWorkflowService::class)->createFromOffer($limited, $offer);
-            $this->fail('The limited user cannot create the client.');
-        } catch (ValidationException $exception) {
-            $this->assertStringContainsString('Nour', $exception->errors()['offer_id'][0]);
-        }
+        $reservation = app(ReservationWorkflowService::class)->createFromOffer($limited, $offer);
 
-        app(LeadPartyConversionService::class)->convert($seller, $offer->opportunity->lead);
-        $this->assertSame(ReservationStatus::Draft, app(ReservationWorkflowService::class)->createFromOffer($limited, $offer)->status);
+        $this->assertSame(ReservationStatus::Draft, $reservation->status);
+        $this->assertSame($before + 1, $this->clients($company), 'The client was created even without convert_lead_to_party permission.');
     }
 
     public function test_another_company_cannot_convert_the_offer(): void

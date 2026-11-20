@@ -60,6 +60,42 @@ class LeadPartyConversionService
         return $lead->party ?? $this->convert($actor, $lead);
     }
 
+    /** Like partyFor() but skips the "convert" permission check — the caller has already authorized the broader action (e.g. convertToReservation). */
+    public function partyForAuthorized(User $actor, Lead $lead): Party
+    {
+        return $lead->party ?? $this->convertWithoutAuthCheck($actor, $lead);
+    }
+
+    private function convertWithoutAuthCheck(User $actor, Lead $lead): Party
+    {
+        return DB::transaction(function () use ($actor, $lead): Party {
+            $locked = Lead::withoutGlobalScopes()->lockForUpdate()->findOrFail($lead->id);
+
+            if ($locked->party()->exists())
+                throw ValidationException::withMessages(['lead' => __('crm.errors.already_converted', ['lead' => $locked->name])]);
+
+            $company = Company::withoutGlobalScopes()->findOrFail($locked->company_id);
+            if ((int) $actor->company_id !== (int) $company->id && !$actor->isSuperAdmin())
+                throw new AuthorizationException;
+
+            if ($existing = $this->existingClient($locked)) {
+                $existing->update(['lead_id' => $locked->id]);
+                return $existing->refresh();
+            }
+
+            return Party::withoutGlobalScopes()->create([
+                'company_id' => $company->id,
+                'type' => 'individual',
+                'lead_id' => $locked->id,
+                'name' => $locked->name,
+                'phone' => $locked->phone,
+                'email' => $locked->email,
+                'notes' => __('crm.notes.converted_from_lead', ['lead_id' => $locked->id]),
+                'is_active' => true,
+            ])->refresh();
+        });
+    }
+
     private function existingClient(Lead $lead): ?Party
     {
         $phone = $lead->normalized_phone;

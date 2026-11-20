@@ -55,10 +55,7 @@ class ReservationWorkflowService
             if (! $lead) {
                 throw ValidationException::withMessages(['offer_id' => __('sales.reservation_from_offer.no_lead')]);
             }
-            if (! $lead->party()->exists() && ! $actor->can('convert', $lead)) {
-                throw ValidationException::withMessages(['offer_id' => __('sales.reservation_from_offer.cannot_create_client', ['lead' => $lead->name])]);
-            }
-            $party = app(LeadPartyConversionService::class)->partyFor($actor, $lead);
+            $party = app(LeadPartyConversionService::class)->partyForAuthorized($actor, $lead);
 
             $reservation = $this->createDraft($actor, [
                 'company_id' => $locked->company_id,
