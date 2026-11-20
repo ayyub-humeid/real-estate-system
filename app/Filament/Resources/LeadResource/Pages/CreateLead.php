@@ -7,6 +7,7 @@ use App\Models\Lead;
 use App\Services\LeadIntakeService;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Validation\ValidationException;
 
 class CreateLead extends CreateRecord
@@ -35,6 +36,25 @@ class CreateLead extends CreateRecord
                     ])
                     ->all(),
             );
+        } catch (AuthorizationException) {
+            Notification::make()
+                ->danger()
+                ->title(__('crm.errors.unauthorized'))
+                ->body(__('crm.errors.unauthorized_body_generic'))
+                ->persistent()
+                ->send();
+
+            $this->halt();
+        } catch (\Throwable $exception) {
+            report($exception);
+            Notification::make()
+                ->danger()
+                ->title(__('crm.errors.action_failed'))
+                ->body($exception->getMessage())
+                ->persistent()
+                ->send();
+
+            $this->halt();
         }
     }
 }

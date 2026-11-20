@@ -5,8 +5,9 @@ namespace App\Filament\Resources;
 use App\Enums\Currency;
 use App\Filament\Resources\ContractResource\Pages;
 use App\Filament\Resources\ContractResource\RelationManagers;
+use App\Filament\Resources\PartyResource;
 use App\Enums\{ContractStatus, ContractType};
-use App\Models\{Company, Contract, ContractTemplateVersion, Party, ProjectPlannedUnit, Property, Unit, UnitReservation};
+use App\Models\{Company, Contract, ContractParty, ContractTemplateVersion, Party, ProjectPlannedUnit, Property, Unit, UnitReservation};
 use App\Services\CompanyLegalPartyService;
 use Filament\Forms;
 use Filament\Forms\Get;
@@ -278,6 +279,15 @@ class ContractResource extends Resource
                                         ->label(__('Contract type'))
                                         ->formatStateUsing(fn ($state): string => $state instanceof ContractType ? $state->getLabel() : ContractType::tryFrom((string) $state)?->getLabel() ?? (string) $state)
                                         ->badge(),
+                                    Infolists\Components\TextEntry::make('customer_party')
+                                        ->label(__('sales.party.client'))
+                                        ->state(fn (Contract $record): string => self::customerParty($record)?->party?->name
+                                            ?? self::customerParty($record)?->snapshot['name']
+                                            ?? '—')
+                                        ->url(fn (Contract $record): ?string => self::customerParty($record)?->party
+                                            && auth()->user()->can('view', self::customerParty($record)->party)
+                                                ? PartyResource::getUrl('view', ['record' => self::customerParty($record)->party])
+                                                : null),
                                     Infolists\Components\TextEntry::make('status')
                                         ->label(__('Status'))
                                         ->formatStateUsing(fn ($state): string => $state instanceof ContractStatus ? $state->getLabel() : ContractStatus::tryFrom((string) $state)?->getLabel() ?? (string) $state)
@@ -328,6 +338,14 @@ class ContractResource extends Resource
             RelationManagers\StatusHistoriesRelationManager::class,
             RelationManagers\AmendmentsRelationManager::class,
         ];
+    }
+
+    /** The customer side of the deal (buyer or tenant) on the contract's latest version, so the overview never shows a bare model name. */
+    private static function customerParty(Contract $record): ?ContractParty
+    {
+        $version = $record->versions()->latest('version_number')->first();
+
+        return $version?->parties()->whereIn('role', ['buyer', 'tenant'])->with('party')->first();
     }
 
     public static function partyOptions(?int $companyId): array

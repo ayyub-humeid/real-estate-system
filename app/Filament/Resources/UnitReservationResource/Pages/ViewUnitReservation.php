@@ -6,19 +6,19 @@ use App\Enums\{ContractType, ReservationStatus};
 use App\Filament\Resources\ContractResource;
 use App\Filament\Resources\UnitReservationResource;
 use App\Filament\Resources\UnitReservationResource\RelationManagers\ReservationStatusHistoriesRelationManager;
+use App\Filament\Support\RunsWorkflowAction;
 use App\Models\{Company, Contract, ContractTemplateVersion, Party};
-use App\Services\{CompanyLegalPartyService, ContractDraftService, ReservationWorkflowService};
+use App\Services\{ContractDraftService, ReservationWorkflowService};
 use Filament\Actions;
 use Filament\Forms;
 use Filament\Infolists\Infolist;
-use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
-use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\HtmlString;
-use Illuminate\Validation\ValidationException;
 
 class ViewUnitReservation extends ViewRecord
 {
+    use RunsWorkflowAction;
+
     protected static string $resource = UnitReservationResource::class;
 
     public function getTitle(): string { return $this->record->reservation_number; }
@@ -66,21 +66,25 @@ class ViewUnitReservation extends ViewRecord
             ->visible(fn (): bool => UnitReservationResource::workflowActionAllowed($name, $this->record)
                 && auth()->user()->can(UnitReservationResource::workflowAbility($name), $this->record))
             ->action(function (array $data) use ($name, $label): void {
-                try {
-                    $service = app(ReservationWorkflowService::class);
-                    match ($name) {
-                        'send' => $service->sendForApproval(auth()->user(), $this->record), 'approve' => $service->approveAndActivate(auth()->user(), $this->record),
-                        'reject' => $service->rejectRequest(auth()->user(), $this->record, $data['reason'] ?? null), 'cancel' => $service->cancelReservation(auth()->user(), $this->record, $data['reason'] ?? null),
-                        'extend' => $service->extendReservation(auth()->user(), $this->record, $data['valid_until']), 'expire' => $service->expireReservation(auth()->user(), $this->record),
-                    };
-                    $this->record = $this->record->fresh(['snapshot']);
-                    Notification::make()->success()->title($label)->send();
-                } catch (ValidationException $exception) {
-                    Notification::make()->danger()->title($label)->body(collect($exception->errors())->flatten()->first())->send();
-                    throw $exception;
-                } catch (AuthorizationException) {
-                    Notification::make()->danger()->title(__('crm.errors.unauthorized'))->send();
-                }
+                $this->runWorkflowAction(
+                    operation: function () use ($name, $data) {
+                        $service = app(ReservationWorkflowService::class);
+
+                        return match ($name) {
+                            'send' => $service->sendForApproval(auth()->user(), $this->record),
+                            'approve' => $service->approveAndActivate(auth()->user(), $this->record),
+                            'reject' => $service->rejectRequest(auth()->user(), $this->record, $data['reason'] ?? null),
+                            'cancel' => $service->cancelReservation(auth()->user(), $this->record, $data['reason'] ?? null),
+                            'extend' => $service->extendReservation(auth()->user(), $this->record, $data['valid_until']),
+                            'expire' => $service->expireReservation(auth()->user(), $this->record),
+                        };
+                    },
+                    successTitle: $label,
+                    onSuccess: function (): void {
+                        $this->record = $this->record->fresh(['snapshot']);
+                    },
+                    rethrowValidation: true,
+                );
             });
     }
 
@@ -130,24 +134,12 @@ class ViewUnitReservation extends ViewRecord
                     ->helperText(__('contract_domain.from_reservation.end_date_help')),
             ])
             ->action(function (array $data): void {
-                $contract = null;
-                try {
-                    $contract = app(ContractDraftService::class)->createFromReservation(auth()->user(), $this->record, $data);
-                    Notification::make()->success()->title(__('contract_domain.from_reservation.done'))->send();
-                } catch (ValidationException $exception) {
-                    Notification::make()->danger()->title(__('contract_domain.from_reservation.action'))
-                        ->body(collect($exception->errors())->flatten()->first())->persistent()->send();
-                    throw $exception;
-                } catch (AuthorizationException) {
-                    Notification::make()->danger()->title(__('crm.errors.unauthorized'))->persistent()->send();
-                } catch (\Throwable $exception) {
-                    report($exception);
-                    Notification::make()->danger()->title(__('contract_domain.from_reservation.action'))
-                        ->body($exception->getMessage())->persistent()->send();
-                }
-                if ($contract) {
-                    $this->redirect(ContractResource::getUrl('view', ['record' => $contract]));
-                }
+                $this->runWorkflowAction(
+                    operation: fn () => app(ContractDraftService::class)->createFromReservation(auth()->user(), $this->record, $data),
+                    successTitle: __('contract_domain.from_reservation.done'),
+                    onSuccess: fn (Contract $contract) => $this->redirect(ContractResource::getUrl('view', ['record' => $contract])),
+                    rethrowValidation: true,
+                );
             });
     }
 

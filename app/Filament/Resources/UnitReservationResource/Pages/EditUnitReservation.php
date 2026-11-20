@@ -23,12 +23,17 @@ class EditUnitReservation extends EditRecord
             return app(ReservationWorkflowService::class)->updateDraft(auth()->user(), $record, $data);
         } catch (ValidationException $exception) {
             Notification::make()->danger()->title(__('reservations.notifications.update_failed'))
-                ->body(collect($exception->errors())->flatten()->first())->send();
+                ->body(collect($exception->errors())->flatten()->first())->persistent()->send();
             throw $exception;
-        } catch (AuthorizationException $exception) {
+        } catch (AuthorizationException) {
             Notification::make()->danger()->title(__('crm.errors.unauthorized'))
-                ->body(__('reservations.notifications.update_unauthorized'))->send();
-            throw $exception;
+                ->body(__('reservations.notifications.update_unauthorized'))->persistent()->send();
+            $this->halt();
+        } catch (\Throwable $exception) {
+            report($exception);
+            Notification::make()->danger()->title(__('crm.errors.action_failed'))
+                ->body($exception->getMessage())->persistent()->send();
+            $this->halt();
         }
     }
 

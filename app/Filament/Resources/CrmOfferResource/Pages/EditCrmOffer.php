@@ -36,7 +36,17 @@ class EditCrmOffer extends EditRecord
             Notification::make()
                 ->danger()
                 ->title(__('crm.errors.unauthorized'))
-                ->body(__('crm.errors.unauthorized'))
+                ->body(__('crm.errors.unauthorized_body_generic'))
+                ->persistent()
+                ->send();
+
+            $this->halt();
+        } catch (\Throwable $exception) {
+            report($exception);
+            Notification::make()
+                ->danger()
+                ->title(__('crm.errors.action_failed'))
+                ->body($exception->getMessage())
                 ->persistent()
                 ->send();
 
