@@ -88,7 +88,7 @@ class UnitSetupService
                 $this->invalid('status', 'Select a valid physical Unit status.');
             $current = UnitStatus::tryFrom($unit->status);
             if ($target->isSetByContract() || $current?->isSetByContract())
-                $this->invalid('status', __('unit.errors.sold_or_rented_by_contract'));
+                $this->assertManualSoldRentedChange($unit, $target, $reason);
             if (!$current || !$current->canTransitionTo($target))
                 $this->invalid('status', "Cannot move a Unit from {$unit->status} to {$to}.");
             if ($to === 'ready' && (!$unit->property_id || !$unit->unit_number || !$unit->type || !$unit->actual_area || !$unit->area_unit))
@@ -171,6 +171,22 @@ class UnitSetupService
         if ((int) $left->company_id !== (int) $right->company_id)
             $this->invalid('company_id', 'Records from different companies cannot be associated.');
     }
+    /**
+     * Sold/Rented normally come from an activated contract. An admin may still set or
+     * clear them by hand (sale made outside the system, wrong data), but only with a
+     * reason, and never while a contract or an active reservation owns the unit's status.
+     */
+    private function assertManualSoldRentedChange(Unit $unit, UnitStatus $target, ?string $reason): void
+    {
+        if (blank($reason))
+            $this->invalid('reason', __('unit.errors.manual_reason_required'));
+        if (\App\Models\Contract::withoutGlobalScopes()->where('unit_id', $unit->id)->where('status', \App\Enums\ContractStatus::Active->value)->exists())
+            $this->invalid('status', __('unit.errors.has_active_contract'));
+        if ($target->isSetByContract()
+            && \App\Models\UnitReservation::withoutGlobalScopes()->where('unit_id', $unit->id)->where('status', \App\Enums\ReservationStatus::Active->value)->exists())
+            $this->invalid('status', __('unit.errors.has_active_reservation'));
+    }
+
     private function invalid(string $field, string $message): never
     {
         throw ValidationException::withMessages([$field => $message]);

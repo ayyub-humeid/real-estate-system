@@ -17,5 +17,6 @@ return [
         'sold' => 'Sold through an activated sale contract. This is final.',
         'rented' => 'Rented through an activated lease contract. It becomes Ready again when the contract is ended.',
     ],
-    'errors' => ['not_marketable' => 'A :status unit cannot be marketed.', 'cannot_change_status' => 'The unit cannot change from :from to :to.', 'sold_or_rented_by_contract' => 'Sold and Rented are set automatically when a contract is activated or ended. They cannot be chosen by hand.'],
+    'help' => ['manual_status' => 'Use Sold or Rented by hand only for deals made outside the system. A reason is required, and it is refused while an active contract or reservation holds the unit.'],
+    'errors' => ['not_marketable' => 'A :status unit cannot be marketed.', 'cannot_change_status' => 'The unit cannot change from :from to :to.', 'manual_reason_required' => 'Enter the reason. Sold and Rented are normally set by a contract, so a manual change must be explained.', 'has_active_contract' => 'This unit has an active contract, which controls its status. End the contract (or amend it) instead of changing the status by hand.', 'has_active_reservation' => 'This unit has an active reservation. Cancel the reservation first, or create the contract from it.'],
 ];

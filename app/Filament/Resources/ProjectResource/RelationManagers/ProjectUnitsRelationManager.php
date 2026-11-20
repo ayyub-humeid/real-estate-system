@@ -97,10 +97,13 @@ class ProjectUnitsRelationManager extends RelationManager
                     Forms\Components\Select::make('status')
                         ->label(__('Physical status'))
                         ->options($this->transitionOptions($record))
+                        ->helperText(__('unit.help.manual_status'))
+                        ->live()
                         ->required(),
                     Forms\Components\Textarea::make('reason')
                         ->label(__('Reason'))
-                        ->required(fn (Forms\Get $get): bool => in_array($get('status'), [UnitStatus::Inactive->value, UnitStatus::Draft->value], true)),
+                        ->required(fn (Forms\Get $get): bool => in_array($get('status'), [UnitStatus::Inactive->value, UnitStatus::Draft->value, UnitStatus::Sold->value, UnitStatus::Rented->value], true)
+                            || in_array($record->status, [UnitStatus::Sold->value, UnitStatus::Rented->value], true)),
                 ])
                 ->action(function (Unit $record, array $data): void {
                     try {
@@ -124,12 +127,7 @@ class ProjectUnitsRelationManager extends RelationManager
             return [];
         }
 
-        if ($current->isSetByContract()) {
-            return [];
-        }
-
         return collect(UnitStatus::cases())
-            ->reject(fn (UnitStatus $status): bool => $status->isSetByContract())
             ->filter(fn (UnitStatus $status): bool => $current->canTransitionTo($status))
             ->filter(fn (UnitStatus $status): bool => auth()->user()->can($status === UnitStatus::Draft ? 'reactivate' : 'changeStatus', $unit))
             ->mapWithKeys(fn (UnitStatus $status): array => [$status->value => UnitStatus::options()[$status->value]])

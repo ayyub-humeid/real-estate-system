@@ -11,23 +11,14 @@ enum UnitStatus: string implements HasLabel
     case Reserved = 'reserved';
     case Maintenance = 'maintenance';
     case Inactive = 'inactive';
-    /** Set only by an activated sale contract. Final: a sold unit is not resold in this system. */
+    /** Set by an activated sale contract, or by hand for a sale made outside the system (guarded). */
     case Sold = 'sold';
-    /** Set only by an activated lease contract; released when the contract is ended. */
+    /** Set by an activated lease contract (released when it is ended), or by hand for a rental made outside the system (guarded). */
     case Rented = 'rented';
 
     public static function options(): array
     {
         return collect(self::cases())->mapWithKeys(fn (self $case): array => [$case->value => $case->getLabel()])->all();
-    }
-
-    /** Statuses a person may pick by hand. Sold/Rented belong to contracts and are never offered in manual status forms. */
-    public static function manualOptions(): array
-    {
-        return collect(self::cases())
-            ->reject(fn (self $case): bool => $case->isSetByContract())
-            ->mapWithKeys(fn (self $case): array => [$case->value => $case->getLabel()])
-            ->all();
     }
 
     public function isSetByContract(): bool
@@ -67,7 +58,7 @@ enum UnitStatus: string implements HasLabel
             self::Maintenance => in_array($to, [self::Ready, self::Maintenance, self::Inactive], true) && $to !== $this,
             self::Inactive => $to === self::Draft,
             self::Rented => $to === self::Ready,
-            self::Sold => false,
+            self::Sold => $to === self::Ready, // manual correction only; the service refuses it while a contract holds the unit
         };
     }
 }

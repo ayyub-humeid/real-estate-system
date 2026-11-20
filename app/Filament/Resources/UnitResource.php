@@ -330,7 +330,7 @@ class UnitResource extends Resource
                 Tables\Actions\EditAction::make(),
                 Action::make('changeStatus')->label(__('Change status'))->icon('heroicon-o-arrow-path')->tooltip(__('Change physical operational status'))
                     ->visible(fn (Unit $record) => ! empty(static::statusTransitionOptions($record)) && (auth()->user()->can('changeStatus', $record) || auth()->user()->can('reactivate', $record)))
-                    ->form(fn (Unit $record) => [Forms\Components\Select::make('status')->label(__('Status'))->options(static::statusTransitionOptions($record))->required(), Forms\Components\Textarea::make('reason')->label(__('Reason'))->required(fn (Forms\Get $get) => in_array($get('status'), ['inactive', 'draft'], true))])
+                    ->form(fn (Unit $record) => [Forms\Components\Select::make('status')->label(__('Status'))->options(static::statusTransitionOptions($record))->helperText(__('unit.help.manual_status'))->live()->required(), Forms\Components\Textarea::make('reason')->label(__('Reason'))->required(fn (Forms\Get $get) => in_array($get('status'), ['inactive', 'draft', 'sold', 'rented'], true) || in_array($record->status, ['sold', 'rented'], true))])
                     ->action(function (Unit $record, array $data): void { try { app(UnitSetupService::class)->transitionStatus(auth()->user(), $record, $data['status'], $data['reason'] ?? null); Notification::make()->success()->title(__('Unit status updated'))->send(); } catch (\Illuminate\Validation\ValidationException $e) { Notification::make()->danger()->title(__('Cannot change status'))->body(collect($e->errors())->flatten()->first())->send(); } }),
 
                 // ── AI Description Generator ─────────────────────────────
@@ -425,12 +425,7 @@ class UnitResource extends Resource
             return [];
         }
 
-        if ($current->isSetByContract()) {
-            return [];
-        }
-
         return collect(UnitStatus::cases())
-            ->reject(fn (UnitStatus $status): bool => $status->isSetByContract())
             ->filter(fn (UnitStatus $status): bool => $current->canTransitionTo($status))
             ->filter(fn (UnitStatus $status): bool => auth()->user()->can($status === UnitStatus::Draft ? 'reactivate' : 'changeStatus', $unit))
             ->mapWithKeys(fn (UnitStatus $status): array => [$status->value => UnitStatus::options()[$status->value]])
