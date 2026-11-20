@@ -285,8 +285,8 @@ class ContractResource extends Resource
                                             ?? self::customerParty($record)?->snapshot['name']
                                             ?? '—')
                                         ->url(fn (Contract $record): ?string => self::customerParty($record)?->party
-                                            && auth()->user()->can('view', self::customerParty($record)->party)
-                                                ? PartyResource::getUrl('view', ['record' => self::customerParty($record)->party])
+                                            && auth()->user()->can('update', self::customerParty($record)->party)
+                                                ? PartyResource::getUrl('edit', ['record' => self::customerParty($record)->party])
                                                 : null),
                                     Infolists\Components\TextEntry::make('status')
                                         ->label(__('Status'))

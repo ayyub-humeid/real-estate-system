@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\{ContractStatus, ContractType, OpportunityType, ReservationSource, ReservationStatus};
-use App\Filament\Resources\ContractResource\Pages\CreateContract;
+use App\Filament\Resources\ContractResource\Pages\{CreateContract, ViewContract};
 use App\Filament\Resources\UnitReservationResource\Pages\ViewUnitReservation;
 use App\Models\{Company, Contract, ContractTemplate, ContractTemplateVersion, Location, Party, Property, Unit, UnitReservation, User};
 use App\Services\ContractDraftService;
@@ -172,6 +172,22 @@ class ContractFromReservationTest extends TestCase
 
         $contract = Contract::withoutGlobalScopes()->where('reservation_id', $reservation->id)->firstOrFail();
         $this->assertSame(ContractStatus::Draft, $contract->status);
+    }
+
+    public function test_the_contract_overview_shows_the_client_linked_to_their_party_page(): void
+    {
+        [$company, $user, $unit] = $this->companyUserAndUnit('Contract overview client');
+        $this->grant($user, ['create_contract', 'create_contract_from_reservation', 'view_contract', 'view_any_contract', 'update_party']);
+        $buyer = Party::create(['company_id' => $company->id, 'type' => 'person', 'name' => 'Overview Buyer', 'is_active' => true]);
+        $reservation = $this->reservation($company, $unit, $buyer, OpportunityType::Sale);
+        $contract = app(ContractDraftService::class)->createFromReservation($user, $reservation);
+        $this->actingAs($user);
+
+        // Renders the real infolist end to end (not just the service), so a
+        // route/URL mistake in the client link surfaces as a test failure.
+        Livewire::test(ViewContract::class, ['record' => $contract->getRouteKey()])
+            ->assertSuccessful()
+            ->assertSee('Overview Buyer');
     }
 
     public function test_choosing_a_reservation_on_the_contract_create_form_fills_the_type_and_both_parties(): void
