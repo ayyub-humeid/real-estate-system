@@ -45,24 +45,38 @@ Livewire::test(ViewSomeResource::class, ['record' => $record->getRouteKey()])
 - Table actions use `callTableAction('name', $record)`.
 - `Livewire::test()` has no `->route()`; HTTP GET to Filament pages returns 403 in tests — always drive pages through Livewire.
 
-## Infolists and links need a rendering test too
+## Every page/view you touch must actually be rendered by a test
 
-A service-level test only proves the data is correct — it never evaluates `->url()`,
-`->state()`, or other closures on an infolist/table entry, since those only run when
-Filament actually renders the page. A mistake there (wrong route name, wrong resource)
-passes every service test and only surfaces live, in front of the user.
+A service-level test only proves the data is correct — it never evaluates anything
+that only runs at render time: a `->url()`, `->state()`, `->formatStateUsing()`, or
+other closure on an infolist/table entry, a Blade view, a computed property, a
+relation accessed without `loadMissing`, and so on. A mistake there (wrong route name,
+null property access, undefined array key, a missing Blade include) passes every
+service test and only surfaces live, in front of the user — exactly what already
+happened with `PartyResource::getUrl('view', ...)` (no `view` page existed; it 404'd
+for any user who could actually follow the link, and silently returned null for
+everyone else, so no test caught it until it shipped).
 
-- Whenever you add or change an infolist entry, table column, or any `->url()` /
-  `->state()` closure, add a test that mounts the real page via `Livewire::test()` and
-  asserts `->assertSuccessful()` (plus `->assertSee('expected text')` when useful) —
-  not just a service call.
-- Before writing `SomeResource::getUrl('view'|'edit'|'index', ...)`, open that
-  resource's `getPages()` and confirm the page key actually exists. Several resources
-  in this app (e.g. `PartyResource`) have no `view` page, only `edit` — `getUrl('view', ...)`
-  throws `RouteNotFoundException` for any user who can actually follow the link, while
-  silently returning no URL (and no error) for a user who can't. Grant the real
-  permission the `url()` closure checks (not a lesser one) in at least one test, or the
-  buggy branch never executes and the mistake ships anyway.
+**The rule: whenever you add or change a page, resource, infolist, table, widget, or
+custom Blade view — anything that gets rendered — add or extend a test that actually
+renders it**, not just a test of the service/model behind it:
+
+- A full Filament page: `Livewire::test(SomePage::class, [...])->assertSuccessful()`.
+- A specific infolist/table entry or action: mount the real page and also
+  `->assertSee('expected text')` for the value you just added, so the closure that
+  produces it actually runs.
+- A custom Blade view (e.g. a guide/explainer page): render it the same way, not just
+  read the `.blade.php` file and assume it compiles.
+- Grant the real permission whatever closure/policy check you're exercising actually
+  checks — not a lesser one — in at least one of these tests, or the buggy branch
+  never executes and the mistake ships anyway (as it did here: the test's actor lacked
+  the permission needed to reach the broken `getUrl()` call).
+- Before calling `SomeResource::getUrl('view'|'edit'|'index', ...)`, open that
+  resource's `getPages()` and confirm the key actually exists — several resources in
+  this app (e.g. `PartyResource`) have no `view` page, only `edit`.
+
+If rendering genuinely can't be done in a test (rare), say so explicitly rather than
+silently settling for a service-level test and calling the UI covered.
 
 ## Service-level tests (when UI testing is impractical)
 
