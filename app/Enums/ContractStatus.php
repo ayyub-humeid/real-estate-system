@@ -19,6 +19,11 @@ enum ContractStatus: string implements HasLabel
         return __('contract_domain.statuses.' . $this->value);
     }
 
+    public function description(): string
+    {
+        return __('contract_domain.status_descriptions.' . $this->value);
+    }
+
     public function color(): string
     {
         return match ($this) {

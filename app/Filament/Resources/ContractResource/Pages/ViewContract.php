@@ -25,6 +25,23 @@ class ViewContract extends ViewRecord
         return $this->record->contract_number;
     }
 
+    public function getSubheading(): ?string
+    {
+        $record = $this->record;
+        $unit = $record->unit?->unit_number ?? __('—');
+
+        return match ($record->status) {
+            ContractStatus::Draft => __('contract_domain.guidance.draft'),
+            ContractStatus::UnderReview => __('contract_domain.guidance.under_review'),
+            ContractStatus::RevisionRequired => __('contract_domain.guidance.revision_required'),
+            ContractStatus::Approved => __('contract_domain.guidance.approved'),
+            ContractStatus::Active => $record->contract_type === ContractType::Lease
+                ? __('contract_domain.guidance.active_lease', ['unit' => $unit])
+                : __('contract_domain.guidance.active_sale', ['unit' => $unit]),
+            ContractStatus::Ended => __('contract_domain.guidance.ended'),
+        };
+    }
+
     public function getContentTabLabel(): ?string
     {
         return __('Overview');

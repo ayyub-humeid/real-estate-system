@@ -285,13 +285,9 @@ class UnitResource extends Resource
                 Tables\Columns\TextColumn::make('status')
                     ->label(__('Status'))
                     ->badge()
-                    ->colors([
-                        'gray' => 'draft',
-                        'success' => 'ready',
-                        'warning' => 'maintenance',
-                        'danger' => 'inactive',
-                    ])
-                    ->formatStateUsing(fn(string $state): string => UnitStatus::tryFrom($state)?->getLabel() ?? $state),
+                    ->color(fn (string $state): string => UnitStatus::tryFrom($state)?->color() ?? 'gray')
+                    ->formatStateUsing(fn(string $state): string => UnitStatus::tryFrom($state)?->getLabel() ?? $state)
+                    ->tooltip(fn (string $state): ?string => UnitStatus::tryFrom($state)?->description()),
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label(__('Created at'))

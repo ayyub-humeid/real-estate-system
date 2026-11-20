@@ -9,6 +9,14 @@ return [
         'active' => 'Active',
         'ended' => 'Ended',
     ],
+    'status_descriptions' => [
+        'draft' => 'Being prepared. Not yet submitted for review.',
+        'under_review' => 'Submitted and waiting for a reviewer\'s decision.',
+        'revision_required' => 'A reviewer asked for changes. Edit the draft and submit it again.',
+        'approved' => 'Reviewed and approved. Needs every party\'s signature before it can be activated.',
+        'active' => 'In force. The unit is sold or rented under this contract.',
+        'ended' => 'A lease that was closed by a person. The unit is available again.',
+    ],
     'version_statuses' => [
         'draft' => 'Draft',
         'submitted' => 'Submitted for review',
@@ -56,6 +64,13 @@ return [
         'reservation_source' => 'Selecting an active reservation automatically copies its actual unit, agreed amount, and currency into this draft contract.',
         'actual_unit_availability' => 'Only units for this property without another active reservation or active contract are shown. Select the source reservation first to include its unit.',
         'planned_unit_availability' => 'Only planned units that are not linked to an active contract are shown.',
+        'draft' => 'Add parties, terms and a template, then submit this draft for review.',
+        'under_review' => 'Submitted and waiting for a reviewer\'s decision.',
+        'revision_required' => 'A reviewer asked for changes. Edit the draft and submit it again.',
+        'approved' => 'Approved. Generate the official PDF and record every party\'s signature, then activate the contract.',
+        'active_sale' => 'This sale is in force. Unit :unit is Sold under this contract.',
+        'active_lease' => 'This lease is in force. Unit :unit is Rented under this contract. End it when the tenant leaves or the term finishes.',
+        'ended' => 'This lease was closed. The unit is available again.',
     ],
     'action_help' => [
         'preview_pdf' => 'Opens a review-only draft PDF. It creates no legal document and does not change the contract.',

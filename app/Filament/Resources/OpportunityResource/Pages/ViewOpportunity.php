@@ -4,6 +4,7 @@ namespace App\Filament\Resources\OpportunityResource\Pages;
 
 use App\Filament\Resources\OpportunityResource;
 use App\Filament\Resources\OpportunityResource\RelationManagers\{ActivitiesRelationManager, FollowUpTasksRelationManager, OffersRelationManager, RequirementCompletionsRelationManager, StageHistoriesRelationManager};
+use App\Enums\CrmStageType;
 use App\Models\Opportunity;
 use App\Services\OpportunityWorkflowService;
 use Filament\Actions;
@@ -14,6 +15,25 @@ use Filament\Resources\Pages\ViewRecord;
 class ViewOpportunity extends ViewRecord
 {
     protected static string $resource = OpportunityResource::class;
+
+    public function getSubheading(): ?string
+    {
+        $record = $this->record;
+        $stageType = $record->stage?->stage_type;
+
+        if ($stageType === CrmStageType::Won) {
+            return __('crm.opportunity_guidance.won');
+        }
+        if ($stageType === CrmStageType::Lost) {
+            return __('crm.opportunity_guidance.lost', ['reason' => $record->lost_reason?->getLabel() ?? __('—')]);
+        }
+
+        $pending = collect($this->requirementRows($record, $record->stage))->where('status', 'pending')->count();
+
+        return $pending > 0
+            ? __('crm.opportunity_guidance.requirements_pending', ['count' => $pending])
+            : __('crm.opportunity_guidance.ready_to_advance');
+    }
 
     protected function getHeaderActions(): array
     {

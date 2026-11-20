@@ -117,7 +117,7 @@ class CrmOfferResource extends Resource
             Tables\Columns\TextColumn::make('unit.unit_number')->label(__('sales.fields.unit'))->placeholder(__('—')),
             Tables\Columns\TextColumn::make('transaction_type')->label(__('crm.offers.fields.transaction_type'))->badge()->formatStateUsing(fn($state) => $state instanceof OpportunityType ? $state->getLabel() : __('crm.opportunity_types.' . $state)),
             Tables\Columns\TextColumn::make('latestRevision.amount')->label(__('crm.offers.fields.latest_amount'))->money(fn(CrmOffer $record) => $record->latestRevision?->currency ?? 'USD')->placeholder(__('—')),
-            Tables\Columns\TextColumn::make('status')->label(__('crm.fields.status'))->badge()->formatStateUsing(fn($state) => $state instanceof OfferStatus ? $state->getLabel() : __('crm.offers.statuses.' . $state))->color(fn($state) => $state instanceof OfferStatus ? $state->color() : OfferStatus::tryFrom((string) $state)?->color()),
+            Tables\Columns\TextColumn::make('status')->label(__('crm.fields.status'))->badge()->formatStateUsing(fn($state) => $state instanceof OfferStatus ? $state->getLabel() : __('crm.offers.statuses.' . $state))->color(fn($state) => $state instanceof OfferStatus ? $state->color() : OfferStatus::tryFrom((string) $state)?->color())->tooltip(fn($state) => $state instanceof OfferStatus ? $state->description() : OfferStatus::tryFrom((string) $state)?->description()),
             Tables\Columns\TextColumn::make('assignedTo.name')->label(__('crm.offers.fields.negotiator'))->placeholder(__('—')),
         ])
             ->emptyStateHeading(__('crm.offer_empty.offers_heading'))
@@ -152,7 +152,7 @@ class CrmOfferResource extends Resource
                 Components\TextEntry::make('listing.title')->label(__('crm.fields.listing'))->placeholder(__('—'))->visible(fn (): bool => (bool) config('features.advertisements')),
                 Components\TextEntry::make('unit.unit_number')->label(__('sales.fields.unit'))->placeholder(__('—')),
                 Components\TextEntry::make('transaction_type')->label(__('crm.offers.fields.transaction_type'))->badge()->formatStateUsing(fn($state) => $state instanceof OpportunityType ? $state->getLabel() : __('crm.opportunity_types.' . $state)),
-                Components\TextEntry::make('status')->label(__('crm.fields.status'))->badge()->formatStateUsing(fn($state) => $state instanceof OfferStatus ? $state->getLabel() : __('crm.offers.statuses.' . $state))->color(fn($state) => $state instanceof OfferStatus ? $state->color() : OfferStatus::tryFrom((string) $state)?->color()),
+                Components\TextEntry::make('status')->label(__('crm.fields.status'))->badge()->formatStateUsing(fn($state) => $state instanceof OfferStatus ? $state->getLabel() : __('crm.offers.statuses.' . $state))->color(fn($state) => $state instanceof OfferStatus ? $state->color() : OfferStatus::tryFrom((string) $state)?->color())->tooltip(fn($state) => $state instanceof OfferStatus ? $state->description() : OfferStatus::tryFrom((string) $state)?->description()),
                 Components\TextEntry::make('assignedTo.name')->label(__('crm.offers.fields.negotiator'))->placeholder(__('—')),
                 Components\TextEntry::make('createdBy.name')->label(__('crm.offers.fields.created_by'))->placeholder(__('—')),
             ])->columns(3),

@@ -17,6 +17,10 @@ enum OfferStatus: string implements HasLabel
     {
         return __('crm.offers.statuses.' . $this->value);
     }
+    public function description(): string
+    {
+        return __('crm.offers.status_descriptions.' . $this->value);
+    }
     public function color(): string
     {
         return match ($this) {

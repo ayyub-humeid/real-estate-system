@@ -252,7 +252,7 @@ class ContractResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('contract_number')->label(__('Contract number'))->searchable(),
                 Tables\Columns\TextColumn::make('contract_type')->label(__('Contract type'))->formatStateUsing(fn ($state): string => $state instanceof ContractType ? $state->getLabel() : ContractType::tryFrom((string) $state)?->getLabel() ?? (string) $state)->badge(),
-                Tables\Columns\TextColumn::make('status')->label(__('Status'))->formatStateUsing(fn ($state): string => $state instanceof ContractStatus ? $state->getLabel() : ContractStatus::tryFrom((string) $state)?->getLabel() ?? (string) $state)->color(fn ($state): ?string => $state instanceof ContractStatus ? $state->color() : ContractStatus::tryFrom((string) $state)?->color())->badge(),
+                Tables\Columns\TextColumn::make('status')->label(__('Status'))->formatStateUsing(fn ($state): string => $state instanceof ContractStatus ? $state->getLabel() : ContractStatus::tryFrom((string) $state)?->getLabel() ?? (string) $state)->color(fn ($state): ?string => $state instanceof ContractStatus ? $state->color() : ContractStatus::tryFrom((string) $state)?->color())->tooltip(fn ($state): ?string => $state instanceof ContractStatus ? $state->description() : ContractStatus::tryFrom((string) $state)?->description())->badge(),
                 Tables\Columns\TextColumn::make('created_at')->label(__('Created at'))->dateTime(),
             ])
             ->actions([Tables\Actions\ViewAction::make()]);
@@ -282,6 +282,7 @@ class ContractResource extends Resource
                                         ->label(__('Status'))
                                         ->formatStateUsing(fn ($state): string => $state instanceof ContractStatus ? $state->getLabel() : ContractStatus::tryFrom((string) $state)?->getLabel() ?? (string) $state)
                                         ->color(fn ($state): ?string => $state instanceof ContractStatus ? $state->color() : ContractStatus::tryFrom((string) $state)?->color())
+                                        ->tooltip(fn ($state): ?string => $state instanceof ContractStatus ? $state->description() : ContractStatus::tryFrom((string) $state)?->description())
                                         ->badge(),
                                     Infolists\Components\TextEntry::make('createdBy.name')->label(__('Created by'))->placeholder('—'),
                                     Infolists\Components\TextEntry::make('created_at')->label(__('Created at'))->dateTime(),
