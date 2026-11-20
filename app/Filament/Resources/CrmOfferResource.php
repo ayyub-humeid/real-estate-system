@@ -159,6 +159,7 @@ class CrmOfferResource extends Resource
             Components\Section::make(__('crm.offers.sections.agreement'))->columnSpanFull()->schema([
                 Components\TextEntry::make('agreedRevision.revision_number')->label(__('crm.offers.fields.agreed_revision'))->formatStateUsing(fn($state) => $state ? __('crm.offers.revision_number', ['number' => $state]) : '—'),
                 Components\TextEntry::make('agreedRevision.amount')->label(__('crm.offers.fields.agreed_amount'))->money(fn(CrmOffer $record) => $record->agreedRevision?->currency ?? 'USD')->placeholder(__('—')),
+                Components\TextEntry::make('reservations.reservation_number')->label(__('sales.reservation_from_offer.field'))->badge()->color('success')->placeholder(__('—')),
                 Components\TextEntry::make('agreedRevision.confirmedBy.name')->label(__('crm.offers.fields.confirmed_by'))->placeholder(__('—')),
                 Components\TextEntry::make('agreedRevision.confirmed_at')->label(__('crm.offers.fields.confirmed_at'))->dateTime()->placeholder(__('—')),
             ])->columns(4),

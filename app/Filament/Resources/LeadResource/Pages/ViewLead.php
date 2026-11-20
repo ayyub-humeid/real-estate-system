@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\LeadResource\Pages;
 
-use App\Filament\Resources\LeadResource;
+use App\Filament\Resources\{LeadResource, PartyResource};
 use App\Filament\Resources\LeadResource\RelationManagers\{ActivitiesRelationManager, FollowUpTasksRelationManager, InquiriesRelationManager, OpportunitiesRelationManager};
 use App\Services\LeadPartyConversionService;
 use Filament\Actions;
@@ -25,15 +25,14 @@ class ViewLead extends ViewRecord
                 ->label(__('crm.actions.convert_to_party'))
                 ->icon('heroicon-o-user-plus')
                 ->color('success')
+                ->tooltip(__('sales.party.convert_help'))
                 ->visible(fn() => !$this->record->party)
                 ->authorize('convert', $this->record)
                 ->requiresConfirmation()
                 ->modalHeading(__('crm.modals.convert_to_party_heading'))
-                ->modalDescription(__('crm.modals.convert_to_party_description'))
+                ->modalDescription(__('sales.party.convert_description'))
                 ->modalSubmitActionLabel(__('crm.modals.convert_to_party_submit'))
-                ->action(function () {
-                    return $this->convertToParty();
-                }),
+                ->action(fn () => $this->convertToParty()),
         ];
     }
 
@@ -42,36 +41,39 @@ class ViewLead extends ViewRecord
         return [InquiriesRelationManager::class, OpportunitiesRelationManager::class, FollowUpTasksRelationManager::class, ActivitiesRelationManager::class];
     }
 
-    private function convertToParty(): ?\Illuminate\Http\RedirectResponse
+    /**
+     * Links the lead to an existing client with the same phone/email, or creates one.
+     * The user stays on the lead (the deal continues here) and is told which of the two happened.
+     */
+    private function convertToParty(): void
     {
         try {
             $party = app(LeadPartyConversionService::class)->convert(auth()->user(), $this->record);
+            $this->record->refresh()->unsetRelation('party');
 
             Notification::make()
                 ->success()
-                ->title(__('crm.notifications.party_created'))
-                ->body(__('crm.notifications.party_created_body', ['name' => $party->name]))
+                ->title($party->wasRecentlyCreated ? __('crm.notifications.party_created') : __('sales.party.linked_title'))
+                ->body($party->wasRecentlyCreated
+                    ? __('crm.notifications.party_created_body', ['name' => $party->name])
+                    : __('sales.party.linked_body', ['name' => $party->name]))
                 ->send();
-
-            return redirect()->route('filament.admin.resources.parties.edit', ['record' => $party->id]);
         } catch (ValidationException $exception) {
-            Notification::make()
-                ->danger()
+            Notification::make()->danger()
                 ->title(__('crm.errors.conversion_failed'))
                 ->body(collect($exception->errors())->flatten()->first())
-                ->send();
+                ->persistent()->send();
         } catch (AuthorizationException) {
-            Notification::make()
-                ->danger()
-                ->title(__('Unauthorized'))
-                ->body(__('You do not have permission to convert this Lead.'))
-                ->send();
-        } catch (\Exception $e) {
-            Notification::make()
-                ->danger()
-                ->title(__('Conversion failed'))
-                ->body($e->getMessage())
-                ->send();
+            Notification::make()->danger()
+                ->title(__('crm.errors.unauthorized'))
+                ->body(__('sales.party.unauthorized_body'))
+                ->persistent()->send();
+        } catch (\Throwable $exception) {
+            report($exception);
+            Notification::make()->danger()
+                ->title(__('crm.errors.conversion_failed'))
+                ->body($exception->getMessage())
+                ->persistent()->send();
         }
     }
 
@@ -87,6 +89,10 @@ class ViewLead extends ViewRecord
                     ->formatStateUsing(fn ($state) => $state instanceof \App\Enums\CrmInquirySource ? $state->getLabel() : __('crm.sources.' . $state)),
                 Infolists\Components\TextEntry::make('status')->label(__('crm.fields.status'))->badge()
                     ->formatStateUsing(fn ($state) => $state instanceof \App\Enums\LeadStatus ? $state->getLabel() : __('crm.lead_status.' . $state)),
+                Infolists\Components\TextEntry::make('party.name')->label(__('sales.party.client'))
+                    ->helperText(__('sales.party.client_help'))
+                    ->placeholder(__('sales.party.not_a_client_yet'))
+                    ->url(fn ($record): ?string => $record->party && auth()->user()->can('update', $record->party) ? PartyResource::getUrl('edit', ['record' => $record->party]) : null),
             ])->columns(3),
         ]);
     }

@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Enums\{CrmInquirySource, OfferProposedBySide, OfferRevisionStatus, OfferStatus, OpportunityType, ReservationSource, ReservationStatus, UnitStatus};
-use App\Filament\Resources\UnitReservationResource\Pages\CreateUnitReservation;
 use App\Models\{Company, CrmOffer, Lead, Listing, Party, Unit, User};
 use App\Services\{LeadIntakeService, OfferNegotiationService, OpportunityService};
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -78,42 +77,8 @@ class OfferToReservationTest extends TestCase
         app(OfferNegotiationService::class)->confirmAgreement($foreignActor, $data['revision']);
     }
 
-    public function test_accepted_offer_converts_to_reservation_with_prefilled_form(): void
-    {
-        $company = $this->company('A');
-        $actor = $this->user($company, $this->permissions());
-        $location = \App\Models\Location::withoutGlobalScopes()->create(['company_id' => $company->id, 'name' => 'City', 'type' => 'city']);
-        $property = \App\Models\Property::withoutGlobalScopes()->create(['company_id' => $company->id, 'location_id' => $location->id, 'name' => 'Property', 'address' => 'Address']);
-        $unit = Unit::withoutGlobalScopes()->create(['company_id' => $company->id, 'property_id' => $property->id, 'unit_number' => 'U-101', 'type' => 'apartment', 'status' => UnitStatus::Ready->value]);
-        $lead = app(LeadIntakeService::class)->createLead($actor, ['name' => 'Nour', 'phone' => '0591234567']);
-        $party = Party::withoutGlobalScopes()->create(['company_id' => $company->id, 'type' => 'individual', 'name' => 'Nour', 'lead_id' => $lead->id, 'is_active' => true]);
-        $opportunity = app(OpportunityService::class)->create($actor, ['lead_id' => $lead->id, 'type' => OpportunityType::Sale->value]);
-        $listing = Listing::withoutGlobalScopes()->create(['company_id' => $company->id, 'listable_type' => 'unit', 'listable_id' => $unit->id, 'listing_type' => 'sale', 'asking_price' => 110000, 'currency' => 'USD', 'title' => 'Unit U-101']);
-        $offer = app(OfferNegotiationService::class)->createOffer($actor, ['opportunity_id' => $opportunity->id, 'transaction_type' => OpportunityType::Sale->value, 'listing_id' => $listing->id]);
-        $revision = app(OfferNegotiationService::class)->createDraftRevision($actor, $offer, ['proposed_by_side' => OfferProposedBySide::Customer->value, 'amount' => 110000, 'currency' => 'USD']);
-        $submitted = app(OfferNegotiationService::class)->submitRevision($actor, $revision);
-        app(OfferNegotiationService::class)->confirmAgreement($actor, $submitted);
-
-        $this->actingAs($actor);
-
-        $_GET = [
-            'source' => ReservationSource::AcceptedOffer->value,
-            'offer_id' => $offer->id,
-            'party_id' => $party->id,
-        ];
-        $_SERVER['QUERY_STRING'] = http_build_query($_GET);
-        app()->instance('request', \Illuminate\Http\Request::createFromGlobals());
-
-        $component = new CreateUnitReservation();
-        $component->mount();
-
-        $data = $component->data ?? [];
-
-        $this->assertSame(ReservationSource::AcceptedOffer->value, $data['source']);
-        $this->assertSame($offer->id, $data['offer_id']);
-        $this->assertSame($party->id, $data['customer_party_id']);
-        $this->assertSame($unit->id, $data['unit_id']);
-    }
+    // The old URL-prefilled reservation form was replaced by the offer's one-step
+    // conversion; see OfferToReservationOneStepTest.
 
     public function test_convert_offer_to_reservation_requires_permission(): void
     {

@@ -25,6 +25,59 @@ class ReservationWorkflowService
         });
     }
 
+    /** How long a reservation made from an accepted offer holds the unit when the user does not choose a date. */
+    public const DEFAULT_HOLD_DAYS = 7;
+
+    /**
+     * Accepted offer -> reservation in ONE transaction: makes sure the client
+     * exists (links or creates it from the lead), creates the reservation from the
+     * agreed price, and optionally sends it for approval and activates it right
+     * away. Any failure rolls back everything, including a client created on the way.
+     *
+     * @param array{unit_id?: int|string|null, valid_until?: mixed, activate_now?: mixed} $data
+     */
+    public function createFromOffer(User $actor, CrmOffer $offer, array $data = []): UnitReservation
+    {
+        $this->authorize($actor, 'convertToReservation', $offer);
+        $activate = filter_var($data['activate_now'] ?? false, FILTER_VALIDATE_BOOLEAN);
+
+        return DB::transaction(function () use ($actor, $offer, $data, $activate): UnitReservation {
+            $locked = CrmOffer::withoutGlobalScopes()->lockForUpdate()->findOrFail($offer->id);
+            if ($locked->status !== OfferStatus::Accepted) $this->invalid('offer_id', 'accepted_offer_required');
+
+            $existing = UnitReservation::withoutGlobalScopes()->where('offer_id', $locked->id)
+                ->whereIn('status', [ReservationStatus::Draft->value, ReservationStatus::Pending->value, ReservationStatus::Active->value, ReservationStatus::Converted->value])->first();
+            if ($existing) {
+                throw ValidationException::withMessages(['offer_id' => __('sales.reservation_from_offer.already_exists', ['number' => $existing->reservation_number])]);
+            }
+
+            $lead = Lead::withoutGlobalScopes()->find(Opportunity::withoutGlobalScopes()->whereKey($locked->opportunity_id)->value('lead_id'));
+            if (! $lead) {
+                throw ValidationException::withMessages(['offer_id' => __('sales.reservation_from_offer.no_lead')]);
+            }
+            if (! $lead->party()->exists() && ! $actor->can('convert', $lead)) {
+                throw ValidationException::withMessages(['offer_id' => __('sales.reservation_from_offer.cannot_create_client', ['lead' => $lead->name])]);
+            }
+            $party = app(LeadPartyConversionService::class)->partyFor($actor, $lead);
+
+            $reservation = $this->createDraft($actor, [
+                'company_id' => $locked->company_id,
+                'source' => ReservationSource::AcceptedOffer->value,
+                'offer_id' => $locked->id,
+                'customer_party_id' => $party->id,
+                'unit_id' => $data['unit_id'] ?? null,
+                'valid_until' => filled($data['valid_until'] ?? null) ? $data['valid_until'] : now()->addDays(self::DEFAULT_HOLD_DAYS),
+            ]);
+
+            if ($activate) {
+                $this->sendForApproval($actor, $reservation);
+                $reservation = $this->approveAndActivate($actor, $reservation->fresh());
+            }
+
+            return $reservation->fresh(['unit', 'customer']);
+        });
+    }
+
     public function updateDraft(User $actor, UnitReservation $reservation, array $data): UnitReservation
     {
         $this->authorize($actor, 'update', $reservation);
@@ -64,7 +117,6 @@ class ReservationWorkflowService
             $locked->snapshot()->create(['company_id' => $locked->company_id, ...$payload, 'created_by' => $actor->id, 'created_at' => now()]);
             $locked->forceFill(['status' => ReservationStatus::Active->value, 'approved_by' => $actor->id, 'activated_at' => now()])->save();
             $this->history($locked, ReservationStatus::Pending, ReservationStatus::Active, 'approve_and_activate', $actor);
-            $this->autoConvertLeadToParty($locked, $actor);
             return $locked->fresh(['snapshot', 'unit', 'customer']);
         });
     }
@@ -223,22 +275,6 @@ class ReservationWorkflowService
     private function locked(UnitReservation $reservation): UnitReservation { return UnitReservation::withoutGlobalScopes()->lockForUpdate()->findOrFail($reservation->id); }
     private function nextNumber(int $companyId): string { $year = (int) now()->format('Y'); $sequence = UnitReservationNumberSequence::query()->where(['company_id' => $companyId, 'year' => $year])->lockForUpdate()->first(); if (! $sequence) { UnitReservationNumberSequence::create(['company_id' => $companyId, 'year' => $year, 'next_number' => 2]); $number = 1; } else { $number = $sequence->next_number; $sequence->increment('next_number'); } return sprintf('RES-%d-%06d', $year, $number); }
     private function history(UnitReservation $reservation, ?ReservationStatus $from, ReservationStatus $to, string $action, ?User $actor, ?string $reason = null, ?array $metadata = null): void { $reservation->statusHistories()->create(['company_id' => $reservation->company_id, 'from_status' => $from?->value, 'to_status' => $to->value, 'action' => $action, 'reason' => $reason, 'metadata' => $metadata, 'changed_by' => $actor?->id, 'created_at' => now()]); }
-    private function autoConvertLeadToParty(UnitReservation $reservation, User $actor): void
-    {
-        $party = Party::withoutGlobalScopes()->find($reservation->customer_party_id);
-        if (! $party || blank($party->phone) || $party->lead_id) return;
-        $lead = Lead::withoutGlobalScopes()->where('company_id', $reservation->company_id)
-            ->where('phone', $party->phone)
-            ->whereDoesntHave('party')
-            ->first();
-        if (! $lead) return;
-        try {
-            $party->update(['lead_id' => $lead->id]);
-        } catch (\Throwable) {
-            // Auto-conversion is best-effort; never block reservation activation.
-        }
-    }
-
     private function authorize(User $user, string $ability, object $record): void { if (! $user->can($ability, $record)) throw new AuthorizationException; }
     private function invalid(string $field, string $key): never { throw ValidationException::withMessages([$field => __('reservations.errors.'.$key)]); }
 }

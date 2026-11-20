@@ -22,6 +22,18 @@ class Party extends Model
     }
     protected $fillable = ['company_id', 'type', 'lead_id', 'name', 'legal_name', 'national_id', 'registration_number', 'tax_number', 'phone', 'email', 'address', 'notes', 'is_active'];
     protected $casts = ['is_active' => 'boolean'];
+
+    protected static function booted(): void
+    {
+        static::saving(function (Party $party): void {
+            if (! $party->exists || $party->isDirty('phone')) {
+                $party->normalized_phone = \App\Support\ContactNormalizer::phone($party->phone);
+            }
+            if (! $party->exists || $party->isDirty('email')) {
+                $party->normalized_email = \App\Support\ContactNormalizer::email($party->email);
+            }
+        });
+    }
     public function lead(): BelongsTo
     {
         return $this->belongsTo(Lead::class);

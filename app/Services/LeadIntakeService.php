@@ -81,14 +81,7 @@ class LeadIntakeService
     }
     private function phone(?string $phone): ?string
     {
-        if (blank($phone))
-            return null;
-        $digits = preg_replace('/\D/', '', $phone);
-        if (str_starts_with($digits, '00'))
-            return '+' . substr($digits, 2);
-        if (str_starts_with($digits, '0') && strlen($digits) === 10)
-            return '+970' . substr($digits, 1);
-        return '+' . $digits;
+        return \App\Support\ContactNormalizer::phone($phone);
     }
     private function matches(int $companyId, ?string $phone, ?string $email, ?int $exceptId = null)
     {

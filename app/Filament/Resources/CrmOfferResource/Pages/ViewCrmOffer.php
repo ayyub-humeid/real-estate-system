@@ -2,12 +2,14 @@
 
 namespace App\Filament\Resources\CrmOfferResource\Pages;
 
-use App\Enums\{OfferApprovalStatus, OfferProposedBySide, OfferRevisionStatus, OfferStatus, ReservationSource};
+use App\Enums\{OfferApprovalStatus, OfferProposedBySide, OfferRevisionStatus, OfferStatus, ReservationStatus};
 use App\Filament\Resources\CrmOfferResource;
 use App\Filament\Resources\CrmOfferResource\RelationManagers\{OfferApprovalsRelationManager, OfferRevisionsRelationManager};
-use App\Filament\Support\OfferPriceFields;
-use App\Models\CrmOfferRevision;
-use App\Services\OfferNegotiationService;
+use App\Filament\Resources\UnitReservationResource;
+use App\Filament\Support\{OfferPriceFields, OpportunityUnitFields};
+use App\Models\{CrmOfferRevision, UnitReservation};
+use App\Services\{OfferNegotiationService, ReservationWorkflowService};
+use Filament\Forms;
 use Filament\Actions;
 use Filament\Actions\Action;
 use Filament\Infolists\Infolist;
@@ -15,6 +17,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Support\HtmlString;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -40,6 +43,7 @@ class ViewCrmOffer extends ViewRecord
         $amount = $latest ? number_format((float) $latest->amount).' '.$latest->currency : null;
 
         return match (true) {
+            $this->record->status === OfferStatus::Accepted && ($reservation = $this->reservation()) !== null => __('sales.offer_next.reserved', ['number' => $reservation->reservation_number]),
             $this->record->status === OfferStatus::Accepted => __('sales.offer_next.accepted', ['amount' => $amount]),
             $this->record->status === OfferStatus::Rejected => __('sales.offer_next.rejected'),
             $this->record->status === OfferStatus::Withdrawn => __('sales.offer_next.withdrawn'),
@@ -63,6 +67,7 @@ class ViewCrmOffer extends ViewRecord
             $this->sendNewPriceAction(),
             $this->customerCounterAction(),
             $this->convertToReservationAction(),
+            $this->openReservationAction(),
             Actions\ActionGroup::make([$this->declinedAction(), $this->withdrawAction()])
                 ->label(__('sales.offer_actions.more'))->icon('heroicon-m-ellipsis-vertical')->color('gray')->button(),
         ];
@@ -236,24 +241,96 @@ class ViewCrmOffer extends ViewRecord
             ->action(fn () => $this->run(__('sales.offer_actions.withdraw_done'), fn () => app(OfferNegotiationService::class)->withdrawOffer(auth()->user(), $this->record)));
     }
 
+    /** The reservation already made from this offer, if any. A cancelled, rejected or expired one does not count. */
+    private function reservation(): ?UnitReservation
+    {
+        return $this->record->reservations()
+            ->whereIn('status', [ReservationStatus::Draft->value, ReservationStatus::Pending->value, ReservationStatus::Active->value, ReservationStatus::Converted->value])
+            ->latest('id')->first();
+    }
+
+    /** A unit must be picked only when neither the offer nor its listing already knows it. */
+    private function needsUnit(): bool
+    {
+        return ! $this->record->unit_id && ! $this->record->listing;
+    }
+
+    private function canActivateNow(): bool
+    {
+        $user = auth()->user();
+
+        return (bool) ($user?->can('send_reservation_for_approval') && $user?->can('approve_and_activate_reservation'));
+    }
+
+    /** What the conversion will do, in plain words, so the admin knows before confirming. */
+    private function reservationSummary(): HtmlString
+    {
+        $lead = $this->record->opportunity?->lead;
+        $party = $lead?->party;
+        $revision = $this->record->agreedRevision;
+        $unit = $this->record->unit;
+
+        $lines = [
+            __('sales.reservation_from_offer.intro'),
+            $party
+                ? __('sales.reservation_from_offer.client_existing', ['name' => $party->name])
+                : __('sales.reservation_from_offer.client_new', ['name' => $lead?->name ?? '—']),
+            __('sales.reservation_from_offer.terms', [
+                'unit' => $unit ? $unit->unit_number : __('sales.reservation_from_offer.unit_to_choose'),
+                'amount' => $revision ? number_format((float) $revision->amount).' '.$revision->currency : '—',
+            ]),
+        ];
+
+        return new HtmlString(collect($lines)->map(fn (string $line): string => '<p>'.e($line).'</p>')->implode(''));
+    }
+
     private function convertToReservationAction(): Action
     {
         return Action::make('convert_to_reservation')
             ->label(__('crm.offers.actions.convert_to_reservation'))
+            ->icon('heroicon-o-key')->color('primary')
             ->modalHeading(__('crm.offers.actions.convert_to_reservation'))
-            ->modalDescription(__('crm.offers.actions.convert_to_reservation_description'))
-            ->color('primary')
-            ->requiresConfirmation()
-            ->modalSubmitActionLabel(__('crm.offers.actions.convert_to_reservation_submit'))
-            ->visible(fn (): bool => $this->record->status === OfferStatus::Accepted && auth()->user()->can('convert_offer_to_reservation', $this->record))
-            ->action(function (): void {
-                $partyId = optional($this->record->opportunity?->lead?->party)->id ?? null;
-                $url = \App\Filament\Resources\UnitReservationResource::getUrl('create') . '?' . http_build_query([
-                    'source' => ReservationSource::AcceptedOffer->value,
-                    'offer_id' => $this->record->id,
-                    'party_id' => $partyId,
-                ]);
-                $this->redirect($url);
+            ->modalDescription(fn (): HtmlString => $this->reservationSummary())
+            ->modalSubmitActionLabel(__('sales.reservation_from_offer.submit'))
+            ->visible(fn (): bool => $this->record->status === OfferStatus::Accepted && $this->reservation() === null
+                && auth()->user()->can('convertToReservation', $this->record))
+            ->form(fn (): array => [
+                Forms\Components\Select::make('unit_id')
+                    ->label(__('sales.fields.unit'))
+                    ->helperText(__('sales.reservation_from_offer.unit_help'))
+                    ->options(fn (): array => OpportunityUnitFields::unitOptions((int) $this->record->company_id, null, $this->record->transaction_type))
+                    ->searchable()
+                    ->visible(fn (): bool => $this->needsUnit())
+                    ->required(fn (): bool => $this->needsUnit()),
+                Forms\Components\DateTimePicker::make('valid_until')
+                    ->label(__('reservations.fields.valid_until'))
+                    ->helperText(__('sales.reservation_from_offer.valid_until_help'))
+                    ->default(now()->addDays(ReservationWorkflowService::DEFAULT_HOLD_DAYS))
+                    ->minDate(now())
+                    ->required(),
+                Forms\Components\Toggle::make('activate_now')
+                    ->label(__('sales.reservation_from_offer.activate_now'))
+                    ->helperText(__('sales.reservation_from_offer.activate_now_help'))
+                    ->default(false)
+                    ->visible(fn (): bool => $this->canActivateNow()),
+            ])
+            ->action(function (array $data): void {
+                $reservation = null;
+                $this->run(__('sales.reservation_from_offer.done'), function () use (&$reservation, $data): void {
+                    $reservation = app(ReservationWorkflowService::class)->createFromOffer(auth()->user(), $this->record, $data);
+                });
+                if ($reservation) {
+                    $this->redirect(UnitReservationResource::getUrl('view', ['record' => $reservation]));
+                }
             });
+    }
+
+    private function openReservationAction(): Action
+    {
+        return Action::make('open_reservation')
+            ->label(__('sales.reservation_from_offer.open'))
+            ->icon('heroicon-o-arrow-top-right-on-square')->color('success')
+            ->visible(fn (): bool => ($reservation = $this->reservation()) !== null && auth()->user()->can('view', $reservation))
+            ->url(fn (): ?string => ($reservation = $this->reservation()) ? UnitReservationResource::getUrl('view', ['record' => $reservation]) : null);
     }
 }
