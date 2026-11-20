@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Enums\{OfferApprovalStatus, OfferPaymentMethod, OfferProposedBySide, OfferRevisionStatus, OfferStatus, OpportunityType, RentFrequency};
-use App\Models\{Company, CrmOffer, CrmOfferApproval, CrmOfferNumberSequence, CrmOfferRevision, Listing, Opportunity, User};
+use App\Models\{Company, CrmOffer, CrmOfferApproval, CrmOfferNumberSequence, CrmOfferRevision, Listing, Opportunity, User, Unit};
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -23,6 +23,7 @@ class OfferNegotiationService
             $opportunity = $this->owned(Opportunity::class, $data['opportunity_id'] ?? null, $company->id, 'opportunity_id');
             $listing = $this->listing($data['listing_id'] ?? $opportunity->listing_id, $company->id, $opportunity);
             $type = $this->type($data['transaction_type'] ?? $opportunity->type?->value, $opportunity, $listing);
+            $unit = $this->offerUnit($data['unit_id'] ?? $opportunity->unit_id, $company->id);
             $assignee = $this->user($data['assigned_to'] ?? null, $company->id, 'assigned_to');
 
             $offer = new CrmOffer;
@@ -30,6 +31,7 @@ class OfferNegotiationService
                 'company_id' => $company->id,
                 'opportunity_id' => $opportunity->id,
                 'listing_id' => $listing?->id,
+                'unit_id' => $unit?->id,
                 'reference_number' => $this->nextReference($company),
                 'transaction_type' => $type->value,
                 'status' => OfferStatus::Draft->value,
@@ -50,7 +52,11 @@ class OfferNegotiationService
             $assignee = $this->user($data['assigned_to'] ?? null, $locked->company_id, 'assigned_to');
             if ((int) ($locked->assigned_to ?? 0) !== (int) ($assignee?->id ?? 0))
                 $this->authorize($actor, 'assign', $locked);
-            $locked->update(['assigned_to' => $assignee?->id]);
+            $changes = ['assigned_to' => $assignee?->id];
+            if (array_key_exists('unit_id', $data)) {
+                $changes['unit_id'] = $this->offerUnit($data['unit_id'], $locked->company_id)?->id;
+            }
+            $locked->update($changes);
             return $locked->refresh();
         });
     }
@@ -279,6 +285,10 @@ class OfferNegotiationService
         if ($type !== $opportunity->type || ($listing && $listing->listing_type->value !== $type->value))
             $this->invalid('transaction_type', __('crm.offers.errors.type_mismatch'));
         return $type;
+    }
+    private function offerUnit(mixed $id, int $companyId): ?Unit
+    {
+        return filled($id) ? $this->owned(Unit::class, $id, $companyId, 'unit_id') : null;
     }
     private function listing(mixed $id, int $companyId, Opportunity $opportunity): ?Listing
     {

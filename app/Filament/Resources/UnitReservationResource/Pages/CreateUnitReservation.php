@@ -49,7 +49,7 @@ class CreateUnitReservation extends CreateRecord
                 if ($offer->listing?->listable_type === 'unit') {
                     $data['unit_id'] = $offer->listing->listable_id;
                 } else {
-                    $data['unit_id'] = null;
+                    $data['unit_id'] = $offer->unit_id;
                 }
             }
         }

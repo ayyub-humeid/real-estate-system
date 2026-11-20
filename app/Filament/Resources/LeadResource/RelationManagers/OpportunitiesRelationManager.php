@@ -45,8 +45,13 @@ class OpportunitiesRelationManager extends RelationManager
                 ->options(fn () => \App\Models\Listing::withoutGlobalScopes()
                     ->where('company_id', $this->getOwnerRecord()->company_id)
                     ->orderBy('title')->pluck('title', 'id'))
-                ->searchable(),
-            Forms\Components\Select::make('type')->label(__('crm.fields.type'))->options(OpportunityType::options())->required(),
+                ->searchable()
+                ->visible(fn (): bool => (bool) config('features.advertisements')),
+            Forms\Components\Select::make('type')->label(__('crm.fields.type'))->options(OpportunityType::options())->live()->required(),
+            ...\App\Filament\Support\OpportunityUnitFields::schema(
+                fn (): ?int => (int) $this->getOwnerRecord()->company_id,
+                fn (Forms\Get $get) => $get('type'),
+            ),
             Forms\Components\Select::make('assigned_to')
                 ->label(__('crm.fields.owner'))
                 // CRM ownership is assigned to the Employee's linked User
@@ -88,7 +93,8 @@ class OpportunitiesRelationManager extends RelationManager
             ->emptyStateDescription(__('crm.empty.opportunities.description'))
             ->emptyStateIcon('heroicon-o-briefcase')
             ->columns([
-                Tables\Columns\TextColumn::make('listing.title')->label(__('crm.fields.listing'))->placeholder(__('—')),
+                Tables\Columns\TextColumn::make('listing.title')->label(__('crm.fields.listing'))->placeholder(__('—'))->visible(fn (): bool => (bool) config('features.advertisements')),
+                Tables\Columns\TextColumn::make('unit.unit_number')->label(__('sales.fields.unit'))->placeholder(__('—')),
                 Tables\Columns\TextColumn::make('type')->label(__('crm.fields.type'))->badge()
                     ->formatStateUsing(fn ($state) => $state instanceof OpportunityType ? $state->getLabel() : __('crm.opportunity_types.' . $state)),
                 Tables\Columns\TextColumn::make('stage.label')->label(__('crm.fields.stage'))->badge()

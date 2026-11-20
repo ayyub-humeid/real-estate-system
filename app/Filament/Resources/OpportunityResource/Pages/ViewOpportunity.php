@@ -33,7 +33,10 @@ class ViewOpportunity extends ViewRecord
                     ->label(__('crm.fields.lead'))
                     ->weight('bold')
                     ->url(fn ($record) => \App\Filament\Resources\LeadResource::getUrl('view', ['record' => $record->lead])),
-                Infolists\Components\TextEntry::make('listing.title')->label(__('crm.fields.listing'))->placeholder(__('—')),
+                Infolists\Components\TextEntry::make('listing.title')->label(__('crm.fields.listing'))->placeholder(__('—'))->visible(fn (): bool => (bool) config('features.advertisements')),
+                Infolists\Components\TextEntry::make('project.name')->label(__('sales.fields.project'))->placeholder(__('—')),
+                Infolists\Components\TextEntry::make('unit.unit_number')->label(__('sales.fields.unit'))->placeholder(__('—'))
+                    ->url(fn ($record) => $record->unit ? \App\Filament\Resources\UnitResource::getUrl('view', ['record' => $record->unit]) : null),
                 Infolists\Components\TextEntry::make('type')->label(__('crm.fields.type'))->badge()
                     ->formatStateUsing(fn ($state) => $state instanceof \App\Enums\OpportunityType ? $state->getLabel() : __('crm.opportunity_types.' . $state)),
                 Infolists\Components\TextEntry::make('source')->label(__('crm.fields.source'))->badge()

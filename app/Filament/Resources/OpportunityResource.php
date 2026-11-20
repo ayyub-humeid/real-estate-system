@@ -60,7 +60,12 @@ class OpportunityResource extends Resource
                 Forms\Components\Select::make('type')
                     ->label(__('crm.fields.type'))
                     ->options(OpportunityType::options())
+                    ->live()
                     ->required(),
+                ...\App\Filament\Support\OpportunityUnitFields::schema(
+                    fn (Forms\Get $get): ?int => static::companyId($get),
+                    fn (Forms\Get $get) => $get('type'),
+                ),
                 Forms\Components\Select::make('assigned_to')
                     ->label(__('crm.fields.owner'))
                     ->options(fn (Forms\Get $get) => User::withoutGlobalScopes()
@@ -117,6 +122,7 @@ class OpportunityResource extends Resource
                     ->color(fn ($state, Opportunity $record) => match ($record->stage?->stage_type?->value ?? $record->stage?->stage_type) {
                         'won' => 'success', 'lost' => 'danger', default => 'warning',
                     }),
+                Tables\Columns\TextColumn::make('unit.unit_number')->label(__('sales.fields.unit'))->placeholder(__('—')),
                 Tables\Columns\TextColumn::make('assignedTo.name')->label(__('crm.fields.owner'))->placeholder(__('—')),
                 Tables\Columns\TextColumn::make('source')->label(__('crm.fields.source'))->badge()
                     ->formatStateUsing(fn ($state) => $state instanceof CrmInquirySource ? $state->getLabel() : __('crm.sources.' . $state))
@@ -130,6 +136,11 @@ class OpportunityResource extends Resource
                 Tables\Actions\EditAction::make()->label(__('crm.actions.edit')),
                 Tables\Actions\DeleteAction::make()->label(__('crm.actions.delete')),
             ]);
+    }
+
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return parent::getEloquentQuery()->with(['lead', 'stage', 'assignedTo', 'unit']);
     }
 
     public static function companyId(Forms\Get $get): ?int

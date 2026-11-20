@@ -10,7 +10,7 @@ class CrmOffer extends Model
 {
     use \App\Traits\HasCompany;
 
-    protected $fillable = ['company_id', 'opportunity_id', 'listing_id', 'reference_number', 'transaction_type', 'assigned_to', 'created_by'];
+    protected $fillable = ['company_id', 'opportunity_id', 'listing_id', 'unit_id', 'reference_number', 'transaction_type', 'assigned_to', 'created_by'];
     protected $casts = [
         'status' => OfferStatus::class,
         'transaction_type' => OpportunityType::class,
@@ -20,6 +20,10 @@ class CrmOffer extends Model
     public function opportunity(): BelongsTo
     {
         return $this->belongsTo(Opportunity::class);
+    }
+    public function unit(): BelongsTo
+    {
+        return $this->belongsTo(Unit::class);
     }
     public function listing(): BelongsTo
     {

@@ -788,6 +788,77 @@ class ContractFoundationTest extends TestCase
         $this->assertSame('ready', $unit->fresh()->status);
     }
 
+    public function test_admin_can_set_and_clear_sold_or_rented_by_hand_when_nothing_holds_the_unit(): void
+    {
+        [$company, $user, $unit] = $this->companyUserAndUnit('Manual status');
+        $this->grant($user, ['change_unit_status']);
+        $unit->update(['actual_area' => 90, 'area_unit' => 'm2']);
+        $service = app(\App\Services\UnitSetupService::class);
+
+        // A reason is mandatory for these two statuses.
+        try {
+            $service->transitionStatus($user, $unit, 'sold', null);
+            $this->fail('A manual Sold change needs a reason.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('reason', $exception->errors());
+        }
+        $this->assertSame('ready', $unit->fresh()->status);
+
+        $service->transitionStatus($user, $unit, 'sold', 'Sold off-system, deed 123');
+        $this->assertSame('sold', $unit->fresh()->status);
+        $this->assertDatabaseHas('unit_status_histories', ['unit_id' => $unit->id, 'from_status' => 'ready', 'to_status' => 'sold', 'reason' => 'Sold off-system, deed 123', 'changed_by' => $user->id]);
+
+        // Correcting a mistake: back to Ready, again with a reason.
+        try {
+            $service->transitionStatus($user, $unit, 'ready', '');
+            $this->fail('Clearing Sold needs a reason too.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('reason', $exception->errors());
+        }
+        $service->transitionStatus($user, $unit, 'ready', 'Entered by mistake');
+        $service->transitionStatus($user, $unit, 'rented', 'Verbal lease from before go-live');
+        $this->assertSame('rented', $unit->fresh()->status);
+    }
+
+    public function test_manual_sold_or_rented_change_is_refused_while_a_contract_or_reservation_holds_the_unit(): void
+    {
+        Storage::fake(config('filesystems.default'));
+        [$company, $user, $unit] = $this->companyUserAndUnit('Manual guard');
+        $this->grant($user, ['create_contract', 'submit_contract_version', 'approve_contract_version', 'record_contract_signature', 'activate_contract', 'change_unit_status']);
+        $service = app(\App\Services\UnitSetupService::class);
+        $buyer = Party::create(['company_id' => $company->id, 'type' => 'person', 'name' => 'Buyer', 'is_active' => true]);
+
+        // 1) An active reservation owns the unit: it cannot be marked sold/rented by hand.
+        $unit->update(['status' => 'reserved']);
+        $reservation = UnitReservation::create([
+            'company_id' => $company->id, 'reservation_number' => 'RES-MAN-0001', 'source' => ReservationSource::Direct,
+            'transaction_type' => OpportunityType::Sale, 'unit_id' => $unit->id, 'customer_party_id' => $buyer->id,
+            'agreed_amount' => 1000, 'currency' => 'USD', 'valid_until' => now()->addWeek(),
+        ]);
+        $reservation->forceFill(['status' => ReservationStatus::Active])->save();
+        try {
+            $service->transitionStatus($user, $unit, 'sold', 'Try');
+            $this->fail('An active reservation must block a manual Sold change.');
+        } catch (ValidationException $exception) {
+            $this->assertSame(__('unit.errors.has_active_reservation'), $exception->errors()['status'][0]);
+        }
+        $this->assertSame('reserved', $unit->fresh()->status);
+
+        // 2) An active contract owns the unit: neither setting nor clearing is allowed by hand.
+        $reservation->forceFill(['status' => ReservationStatus::Cancelled])->save();
+        $unit->update(['status' => 'ready']);
+        $sale = $this->draft($user, $unit, $buyer, 5000);
+        $this->signAndActivate($user, $sale, 'manual-guard.pdf');
+        $this->assertSame('sold', $unit->fresh()->status);
+        try {
+            $service->transitionStatus($user, $unit, 'ready', 'Wrong click');
+            $this->fail('An active contract must block clearing Sold by hand.');
+        } catch (ValidationException $exception) {
+            $this->assertSame(__('unit.errors.has_active_contract'), $exception->errors()['status'][0]);
+        }
+        $this->assertSame('sold', $unit->fresh()->status);
+    }
+
     private function companyUserAndUnit(string $prefix = 'Contract Test'): array
     {
         $company = Company::create(['name' => $prefix.' Co', 'email' => str($prefix)->slug().'@example.test']);

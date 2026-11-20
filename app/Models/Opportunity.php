@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Relations\{BelongsTo, HasMany};
 class Opportunity extends Model
 {
     use \App\Traits\HasCompany;
-    protected $fillable = ['company_id', 'lead_id', 'listing_id', 'pipeline_id', 'pipeline_stage_id', 'type', 'assigned_to', 'budget_min', 'budget_max', 'currency', 'preferred_property_type', 'preferred_location', 'preferred_bedrooms', 'expected_close_date', 'notes', 'source', 'source_reference', 'lost_reason', 'closure_notes', 'closed_at', 'created_by', 'updated_by'];
+    protected $fillable = ['company_id', 'lead_id', 'listing_id', 'project_id', 'unit_id', 'pipeline_id', 'pipeline_stage_id', 'type', 'assigned_to', 'budget_min', 'budget_max', 'currency', 'preferred_property_type', 'preferred_location', 'preferred_bedrooms', 'expected_close_date', 'notes', 'source', 'source_reference', 'lost_reason', 'closure_notes', 'closed_at', 'created_by', 'updated_by'];
     protected $casts = ['type' => OpportunityType::class, 'source' => CrmInquirySource::class, 'lost_reason' => OpportunityLostReason::class, 'budget_min' => 'decimal:2', 'budget_max' => 'decimal:2', 'expected_close_date' => 'date', 'closed_at' => 'datetime'];
     public function lead(): BelongsTo
     {
@@ -15,6 +15,14 @@ class Opportunity extends Model
     public function listing(): BelongsTo
     {
         return $this->belongsTo(Listing::class);
+    }
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class);
+    }
+    public function unit(): BelongsTo
+    {
+        return $this->belongsTo(Unit::class);
     }
     public function pipeline(): BelongsTo
     {

@@ -189,7 +189,7 @@ class ReservationWorkflowService
         // that case, the employee must explicitly select the ready physical Unit.
         // A Listing-backed Offer remains authoritative about its own target.
         $unitId = ! $offer->listing
-            ? ($data['unit_id'] ?? null)
+            ? (filled($data['unit_id'] ?? null) ? $data['unit_id'] : $offer->unit_id)
             : match ($offer->listing->listable_type) {
                 'unit' => $offer->listing->listable_id,
                 'planned_unit' => Unit::withoutGlobalScopes()

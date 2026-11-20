@@ -22,7 +22,13 @@ class OffersRelationManager extends RelationManager
     {
         $opportunity = $this->getOwnerRecord();
         return [
-            Forms\Components\Select::make('listing_id')->label(__('crm.fields.listing'))->options(Listing::withoutGlobalScopes()->where('company_id', $opportunity->company_id)->orderBy('title')->pluck('title', 'id'))->default($opportunity->listing_id)->searchable(),
+            Forms\Components\Select::make('listing_id')->label(__('crm.fields.listing'))->options(Listing::withoutGlobalScopes()->where('company_id', $opportunity->company_id)->orderBy('title')->pluck('title', 'id'))->default($opportunity->listing_id)->searchable()->visible(fn (): bool => (bool) config('features.advertisements')),
+            ...\App\Filament\Support\OpportunityUnitFields::schema(
+                fn (): ?int => (int) $opportunity->company_id,
+                fn () => $opportunity->type,
+                withProject: false,
+                unitHelp: __('sales.help.offer_unit'),
+            ),
             Forms\Components\Select::make('transaction_type')->label(__('crm.offers.fields.transaction_type'))->options(OpportunityType::options())->default($opportunity->type->value)->required(),
             Forms\Components\Select::make('assigned_to')->label(__('crm.offers.fields.negotiator'))->options(User::withoutGlobalScopes()->where('company_id', $opportunity->company_id)->orderBy('name')->pluck('name', 'id'))->searchable(),
         ];
