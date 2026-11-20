@@ -2,15 +2,19 @@
 
 namespace App\Filament\Resources\UnitReservationResource\Pages;
 
+use App\Enums\{ContractType, ReservationStatus};
+use App\Filament\Resources\ContractResource;
 use App\Filament\Resources\UnitReservationResource;
 use App\Filament\Resources\UnitReservationResource\RelationManagers\ReservationStatusHistoriesRelationManager;
-use App\Services\ReservationWorkflowService;
+use App\Models\{Company, Contract, ContractTemplateVersion, Party};
+use App\Services\{CompanyLegalPartyService, ContractDraftService, ReservationWorkflowService};
 use Filament\Actions;
 use Filament\Forms;
 use Filament\Infolists\Infolist;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\HtmlString;
 use Illuminate\Validation\ValidationException;
 
 class ViewUnitReservation extends ViewRecord
@@ -23,13 +27,13 @@ class ViewUnitReservation extends ViewRecord
     {
         $status = $this->record->status;
 
-        if ($status === \App\Enums\ReservationStatus::Active && $this->record->valid_until) {
+        if ($status === ReservationStatus::Active && $this->record->valid_until) {
             return __('reservations.guidance.active', ['date' => $this->record->valid_until->translatedFormat('Y-m-d')]);
         }
-        if ($status === \App\Enums\ReservationStatus::Active) {
+        if ($status === ReservationStatus::Active) {
             return __('reservations.guidance.active_no_date');
         }
-        if ($status === \App\Enums\ReservationStatus::Expired && $this->record->valid_until) {
+        if ($status === ReservationStatus::Expired && $this->record->valid_until) {
             return __('reservations.guidance.expired', ['date' => $this->record->valid_until->translatedFormat('Y-m-d')]);
         }
 
@@ -46,6 +50,7 @@ class ViewUnitReservation extends ViewRecord
             $this->workflowAction('cancel', __('reservations.actions.cancel'), 'danger', true),
             $this->workflowAction('extend', __('reservations.actions.extend'), 'warning', false, true),
             $this->workflowAction('expire', __('reservations.actions.expire'), 'warning'),
+            $this->createContractAction(),
         ];
     }
 
@@ -77,5 +82,112 @@ class ViewUnitReservation extends ViewRecord
                     Notification::make()->danger()->title(__('crm.errors.unauthorized'))->send();
                 }
             });
+    }
+
+    private function createContractAction(): Actions\Action
+    {
+        return Actions\Action::make('create_contract')
+            ->label(__('contract_domain.from_reservation.action'))
+            ->icon('heroicon-o-document-plus')->color('primary')
+            ->tooltip(__('contract_domain.from_reservation.tooltip'))
+            ->modalHeading(__('contract_domain.from_reservation.heading'))
+            ->modalDescription(fn (): HtmlString => $this->contractSummary())
+            ->modalSubmitActionLabel(__('contract_domain.from_reservation.submit'))
+            ->visible(fn (): bool => $this->record->status === ReservationStatus::Active
+                && ! Contract::withoutGlobalScopes()->where('reservation_id', $this->record->id)->exists()
+                && auth()->user()->can('create', Contract::class)
+                && auth()->user()->can('create_contract_from_reservation'))
+            ->form(fn (): array => [
+                Forms\Components\Select::make('template_version_id')
+                    ->label(__('Template version'))
+                    ->options(fn (): array => ContractTemplateVersion::withoutGlobalScopes()
+                        ->with('template:id,name')
+                        ->where('company_id', $this->record->company_id)
+                        ->whereHas('template', fn ($query) => $query
+                            ->where('is_active', true)
+                            ->where('contract_type', $this->derivedContractType()->value))
+                        ->orderByDesc('id')
+                        ->get()
+                        ->mapWithKeys(fn (ContractTemplateVersion $version): array => [
+                            $version->id => ($version->template?->name ?? __('Template')).' — V'.$version->version_number,
+                        ])->all())
+                    ->searchable()
+                    ->preload()
+                    ->required()
+                    ->helperText(__('contract_domain.from_reservation.template_help')),
+                Forms\Components\DatePicker::make('start_date')
+                    ->label(__('Start date'))
+                    ->default(now())
+                    ->required()
+                    ->live()
+                    ->helperText(__('contract_domain.from_reservation.start_date_help'))
+                    ->afterStateUpdated(fn ($state, Forms\Set $set) => $set('end_date', $this->suggestedEndDate($state))),
+                Forms\Components\DatePicker::make('end_date')
+                    ->label(__('End date'))
+                    ->default(fn (): ?string => $this->suggestedEndDate(now()->toDateString()))
+                    ->visible(fn (): bool => $this->derivedContractType() === ContractType::Lease)
+                    ->required(fn (): bool => $this->derivedContractType() === ContractType::Lease)
+                    ->helperText(__('contract_domain.from_reservation.end_date_help')),
+            ])
+            ->action(function (array $data): void {
+                $contract = null;
+                try {
+                    $contract = app(ContractDraftService::class)->createFromReservation(auth()->user(), $this->record, $data);
+                    Notification::make()->success()->title(__('contract_domain.from_reservation.done'))->send();
+                } catch (ValidationException $exception) {
+                    Notification::make()->danger()->title(__('contract_domain.from_reservation.action'))
+                        ->body(collect($exception->errors())->flatten()->first())->persistent()->send();
+                    throw $exception;
+                } catch (AuthorizationException) {
+                    Notification::make()->danger()->title(__('crm.errors.unauthorized'))->persistent()->send();
+                } catch (\Throwable $exception) {
+                    report($exception);
+                    Notification::make()->danger()->title(__('contract_domain.from_reservation.action'))
+                        ->body($exception->getMessage())->persistent()->send();
+                }
+                if ($contract) {
+                    $this->redirect(ContractResource::getUrl('view', ['record' => $contract]));
+                }
+            });
+    }
+
+    private function derivedContractType(): ContractType
+    {
+        return ContractType::fromOpportunityType($this->record->transaction_type);
+    }
+
+    private function suggestedEndDate(?string $start): ?string
+    {
+        if (! $start || ! $this->record->lease_term_value || ! $this->record->lease_term_unit) {
+            return null;
+        }
+        $date = \Illuminate\Support\Carbon::parse($start);
+
+        return ($this->record->lease_term_unit === 'year'
+            ? $date->addYears($this->record->lease_term_value)
+            : $date->addMonths($this->record->lease_term_value))->toDateString();
+    }
+
+    /** What will be created, in plain words, so the admin knows before confirming. */
+    private function contractSummary(): HtmlString
+    {
+        $type = $this->derivedContractType();
+        $company = Company::withoutGlobalScopes()->find($this->record->company_id);
+        $customerParty = Party::withoutGlobalScopes()->find($this->record->customer_party_id);
+        [$customerRole, $companyRole] = $type === ContractType::Lease
+            ? [__('contract_domain.from_reservation.role_tenant'), __('contract_domain.from_reservation.role_landlord')]
+            : [__('contract_domain.from_reservation.role_buyer'), __('contract_domain.from_reservation.role_seller')];
+
+        $lines = [
+            __('contract_domain.from_reservation.intro', ['type' => $type->getLabel()]),
+            __('contract_domain.from_reservation.parties_line', [
+                'customer' => $customerParty?->name ?? '—',
+                'customer_role' => $customerRole,
+                'company' => $company?->name ?? '—',
+                'company_role' => $companyRole,
+            ]),
+        ];
+
+        return new HtmlString(collect($lines)->map(fn (string $line): string => '<p>'.e($line).'</p>')->implode(''));
     }
 }

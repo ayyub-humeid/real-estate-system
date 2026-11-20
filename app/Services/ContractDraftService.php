@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Enums\{ContractStatus, ContractType, ContractVersionStatus, ReservationStatus};
+use App\Enums\{ContractStatus, ContractType, ContractVersionStatus, OpportunityType, ReservationStatus};
 use App\Models\{
     Company,
     Contract,
@@ -76,6 +76,52 @@ class ContractDraftService
             $this->appendTerms($version, $data['terms'] ?? [], $companyId);
 
             return $contract->load('versions.parties');
+        });
+    }
+
+    /**
+     * Creates the contract draft directly from an active reservation: the
+     * contract type, unit, amount, currency and both parties (the customer
+     * and the company's own legal party) are derived, so nothing is re-typed.
+     *
+     * @param array{template_version_id?: mixed, start_date?: mixed, end_date?: mixed} $data
+     */
+    public function createFromReservation(User $actor, UnitReservation $reservation, array $data = []): Contract
+    {
+        if (! $actor->can('create_contract_from_reservation')) {
+            throw new AuthorizationException;
+        }
+
+        return DB::transaction(function () use ($actor, $reservation, $data): Contract {
+            $locked = UnitReservation::withoutGlobalScopes()->lockForUpdate()->findOrFail($reservation->id);
+            $this->sameCompany($actor, $locked->company_id);
+
+            if ($locked->status !== ReservationStatus::Active) {
+                $this->invalid('reservation_id', __('contract_domain.from_reservation.reservation_not_active'));
+            }
+            if ($existing = Contract::withoutGlobalScopes()->where('reservation_id', $locked->id)->first()) {
+                $this->invalid('reservation_id', __('contract_domain.from_reservation.already_has_contract', ['number' => $existing->contract_number]));
+            }
+
+            $contractType = ContractType::fromOpportunityType($locked->transaction_type);
+            [$customerRole, $companyRole] = $contractType === ContractType::Lease ? ['tenant', 'landlord'] : ['buyer', 'seller'];
+
+            $company = Company::withoutGlobalScopes()->findOrFail($locked->company_id);
+            $companyParty = app(CompanyLegalPartyService::class)->resolve($company);
+            $customerParty = Party::withoutGlobalScopes()->findOrFail($locked->customer_party_id);
+
+            return $this->create($actor, [
+                'company_id' => $locked->company_id,
+                'reservation_id' => $locked->id,
+                'contract_type' => $contractType->value,
+                'template_version_id' => $data['template_version_id'] ?? null,
+                'start_date' => $data['start_date'] ?? null,
+                'end_date' => $data['end_date'] ?? null,
+                'parties' => [
+                    ['party_id' => $customerParty->id, 'role' => $customerRole],
+                    ['party_id' => $companyParty->id, 'role' => $companyRole],
+                ],
+            ]);
         });
     }
 

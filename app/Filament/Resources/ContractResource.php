@@ -7,6 +7,7 @@ use App\Filament\Resources\ContractResource\Pages;
 use App\Filament\Resources\ContractResource\RelationManagers;
 use App\Enums\{ContractStatus, ContractType};
 use App\Models\{Company, Contract, ContractTemplateVersion, Party, ProjectPlannedUnit, Property, Unit, UnitReservation};
+use App\Services\CompanyLegalPartyService;
 use Filament\Forms;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
@@ -92,6 +93,23 @@ class ContractResource extends Resource
                         $set('planned_unit_id', $reservation->unit->planned_unit_id);
                         $set('total_amount', $reservation->agreed_amount);
                         $set('currency', $reservation->currency);
+                    }
+                    if ($reservation) {
+                        // The reservation already settled the deal's type and
+                        // both parties; re-typing them here would only invite
+                        // a mismatch with what the customer agreed to.
+                        $type = ContractType::fromOpportunityType($reservation->transaction_type);
+                        $set('contract_type', $type->value);
+                        $set('template_version_id', null);
+
+                        $company = Company::withoutGlobalScopes()->find($reservation->company_id);
+                        $companyPartyId = $company ? app(CompanyLegalPartyService::class)->resolve($company)->id : null;
+                        [$customerRole, $companyRole] = $type === ContractType::Lease ? ['tenant', 'landlord'] : ['buyer', 'seller'];
+
+                        $set('parties', array_values(array_filter([
+                            $reservation->customer_party_id ? ['party_id' => $reservation->customer_party_id, 'role' => $customerRole] : null,
+                            $companyPartyId ? ['party_id' => $companyPartyId, 'role' => $companyRole] : null,
+                        ])));
                     }
                 })
                 ->helperText(__('contract_domain.guidance.reservation_source')),

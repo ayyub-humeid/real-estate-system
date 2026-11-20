@@ -10,6 +10,12 @@ enum ContractType: string implements HasLabel
     case OffPlanSale = 'off_plan_sale';
     case Lease = 'lease';
 
+    /** A reservation always targets an actual Ready unit, so it never becomes an off-plan sale. */
+    public static function fromOpportunityType(OpportunityType $type): self
+    {
+        return $type === OpportunityType::Rent ? self::Lease : self::Sale;
+    }
+
     public function getLabel(): ?string
     {
         return match ($this) {

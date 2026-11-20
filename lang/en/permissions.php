@@ -16,6 +16,7 @@ return [
         'record_contract_signature' => 'Record contract signature', 'generate_contract_pdf' => 'Generate contract PDF',
         'activate_contract' => 'Activate contract',
         'end_contract' => 'End lease contract',
+        'create_contract_from_reservation' => 'Create contract from reservation',
         'create_contract_amendment' => 'Create contract amendment', 'view_contract_approval' => 'View contract approvals',
         'view_contract_signature' => 'View contract signatures', 'view_contract_amendment' => 'View contract amendments',
         'view_contract_status_history' => 'View contract status history',
