@@ -29,8 +29,9 @@ class OffersRelationManager extends RelationManager
                 withProject: false,
                 unitHelp: __('sales.help.offer_unit'),
             ),
-            Forms\Components\Select::make('transaction_type')->label(__('crm.offers.fields.transaction_type'))->options(OpportunityType::options())->default($opportunity->type->value)->required(),
             Forms\Components\Select::make('assigned_to')->label(__('crm.offers.fields.negotiator'))->options(User::withoutGlobalScopes()->where('company_id', $opportunity->company_id)->orderBy('name')->pluck('name', 'id'))->searchable(),
+            // The deal type always equals the opportunity's, so it is not asked again.
+            ...\App\Filament\Support\OfferPriceFields::schema(fn () => $opportunity->type, \App\Filament\Support\OfferPriceFields::defaultsFor($opportunity)),
         ];
     }
     public function table(Tables\Table $table): Tables\Table
@@ -47,8 +48,8 @@ class OffersRelationManager extends RelationManager
             ->headerActions([
             Tables\Actions\CreateAction::make()->label(__('crm.offers.actions.create_offer'))
                 ->modalHeading(__('crm.offer_modals.create_offer'))
-                ->mutateFormDataUsing(function (array $data): array { $data['company_id'] = $this->getOwnerRecord()->company_id; $data['opportunity_id'] = $this->getOwnerRecord()->id; return $data; })
-                ->using(fn (array $data) => app(OfferNegotiationService::class)->createOffer(auth()->user(), $data)),
+                ->mutateFormDataUsing(function (array $data): array { $data['company_id'] = $this->getOwnerRecord()->company_id; $data['opportunity_id'] = $this->getOwnerRecord()->id; $data['transaction_type'] = $this->getOwnerRecord()->type->value; return $data; })
+                ->using(fn (array $data) => app(OfferNegotiationService::class)->createQuickOffer(auth()->user(), $data)),
         ])->actions([
             Tables\Actions\ViewAction::make()->label(__('crm.actions.details'))->url(fn (CrmOffer $record) => CrmOfferResource::getUrl('view', ['record' => $record])),
         ])->defaultSort('created_at', 'desc');

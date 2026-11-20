@@ -22,7 +22,7 @@ class CreateCrmOffer extends CreateRecord
     protected function handleRecordCreation(array $data): CrmOffer
     {
         try {
-            return app(OfferNegotiationService::class)->createOffer(auth()->user(), $data);
+            return app(OfferNegotiationService::class)->createQuickOffer(auth()->user(), $data);
         } catch (ValidationException $exception) {
             Notification::make()
                 ->danger()
@@ -36,9 +36,10 @@ class CreateCrmOffer extends CreateRecord
                 ->danger()
                 ->title(__('crm.errors.unauthorized'))
                 ->body(__('crm.errors.unauthorized'))
+                ->persistent()
                 ->send();
 
-            throw $exception;
+            $this->halt();
         }
     }
 }

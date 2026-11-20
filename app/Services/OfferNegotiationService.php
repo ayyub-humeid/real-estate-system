@@ -43,6 +43,28 @@ class OfferNegotiationService
         });
     }
 
+    /**
+     * Creates the offer and, when an amount is given, records our first price
+     * (and sends it to the customer when `send_now` is true) in ONE transaction,
+     * so an admin does not have to open the Price history tab to add it.
+     * Without an amount it behaves exactly like createOffer().
+     */
+    public function createQuickOffer(User $actor, array $data): CrmOffer
+    {
+        return DB::transaction(function () use ($actor, $data): CrmOffer {
+            $offer = $this->createOffer($actor, $data);
+            if (! filled($data['amount'] ?? null)) {
+                return $offer;
+            }
+            $revision = $this->createDraftRevision($actor, $offer, [...$data, 'proposed_by_side' => OfferProposedBySide::Company->value]);
+            if (filter_var($data['send_now'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+                $this->submitRevision($actor, $revision);
+            }
+
+            return $offer->fresh();
+        });
+    }
+
     public function updateOffer(User $actor, CrmOffer $offer, array $data): CrmOffer
     {
         $this->authorize($actor, 'update', $offer);

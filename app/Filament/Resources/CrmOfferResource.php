@@ -75,6 +75,15 @@ class CrmOfferResource extends Resource
                 ->options(fn(Forms\Get $get) => Opportunity::withoutGlobalScopes()->where('company_id', static::companyId($get) ?: 0)->with('lead')->orderByDesc('updated_at')->get()->mapWithKeys(fn(Opportunity $opportunity) => [$opportunity->id => static::opportunityLabel($opportunity)]))
                 ->searchable()
                 ->required()
+                ->live()
+                ->afterStateUpdated(function ($state, Forms\Set $set): void {
+                    $opportunity = $state ? Opportunity::withoutGlobalScopes()->with('unit')->find($state) : null;
+                    $defaults = \App\Filament\Support\OfferPriceFields::defaultsFor($opportunity);
+                    $set('transaction_type', $opportunity?->type?->value);
+                    $set('unit_id', $opportunity?->unit_id);
+                    $set('amount', $defaults['amount'] ?? null);
+                    $set('currency', $defaults['currency'] ?? 'USD');
+                })
                 ->disabled(fn(?CrmOffer $record) => $record !== null),
             Forms\Components\Select::make('listing_id')
                 ->label(__('crm.fields.listing'))
@@ -94,6 +103,7 @@ class CrmOfferResource extends Resource
                 ->required()
                 ->disabled(fn(?CrmOffer $record) => $record !== null),
             Forms\Components\Select::make('assigned_to')->label(__('crm.offers.fields.negotiator'))->options(fn(Forms\Get $get) => User::withoutGlobalScopes()->where('company_id', static::companyId($get) ?: 0)->orderBy('name')->pluck('name', 'id'))->searchable(),
+            ...\App\Filament\Support\OfferPriceFields::schema(fn (Forms\Get $get) => $get('transaction_type'), onlyOnCreate: true),
             Forms\Components\Placeholder::make('reference_number')->label(__('crm.offers.fields.reference_number'))->content(fn(?CrmOffer $record) => $record?->reference_number ?? __('crm.offers.help.reference_generated'))->visible(fn(?CrmOffer $record) => $record !== null),
             Forms\Components\Placeholder::make('status_display')->label(__('crm.fields.status'))->content(fn(?CrmOffer $record) => $record?->status?->getLabel() ?? OfferStatus::Draft->getLabel())->visible(fn(?CrmOffer $record) => $record !== null),
         ];
@@ -172,7 +182,7 @@ class CrmOfferResource extends Resource
     {
         return collect([$opportunity->lead?->name, $opportunity->listing?->title])->filter()->implode(' — ') ?: __('crm.models.opportunity') . ' #' . $opportunity->id;
     }
-    private static function workflowAction(string $action, string $label, string $color): Tables\Actions\Action
+    public static function workflowAction(string $action, string $label, string $color): Tables\Actions\Action
     {
         return Tables\Actions\Action::make($action)->label($label)->modalHeading($label)->color($color)->tooltip($label)->requiresConfirmation()
             ->visible(fn(CrmOffer $record) => static::workflowActionAllowed($action, $record)

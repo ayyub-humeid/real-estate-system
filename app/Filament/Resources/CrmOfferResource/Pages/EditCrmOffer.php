@@ -37,9 +37,10 @@ class EditCrmOffer extends EditRecord
                 ->danger()
                 ->title(__('crm.errors.unauthorized'))
                 ->body(__('crm.errors.unauthorized'))
+                ->persistent()
                 ->send();
 
-            throw $exception;
+            $this->halt();
         }
     }
 
