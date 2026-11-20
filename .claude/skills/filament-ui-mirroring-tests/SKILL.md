@@ -45,6 +45,25 @@ Livewire::test(ViewSomeResource::class, ['record' => $record->getRouteKey()])
 - Table actions use `callTableAction('name', $record)`.
 - `Livewire::test()` has no `->route()`; HTTP GET to Filament pages returns 403 in tests — always drive pages through Livewire.
 
+## Infolists and links need a rendering test too
+
+A service-level test only proves the data is correct — it never evaluates `->url()`,
+`->state()`, or other closures on an infolist/table entry, since those only run when
+Filament actually renders the page. A mistake there (wrong route name, wrong resource)
+passes every service test and only surfaces live, in front of the user.
+
+- Whenever you add or change an infolist entry, table column, or any `->url()` /
+  `->state()` closure, add a test that mounts the real page via `Livewire::test()` and
+  asserts `->assertSuccessful()` (plus `->assertSee('expected text')` when useful) —
+  not just a service call.
+- Before writing `SomeResource::getUrl('view'|'edit'|'index', ...)`, open that
+  resource's `getPages()` and confirm the page key actually exists. Several resources
+  in this app (e.g. `PartyResource`) have no `view` page, only `edit` — `getUrl('view', ...)`
+  throws `RouteNotFoundException` for any user who can actually follow the link, while
+  silently returning no URL (and no error) for a user who can't. Grant the real
+  permission the `url()` closure checks (not a lesser one) in at least one test, or the
+  buggy branch never executes and the mistake ships anyway.
+
 ## Service-level tests (when UI testing is impractical)
 
 Put creation/transition logic in a Service (e.g. `PropertyAcquisitionService`), have the page delegate to it, and test the service directly:
