@@ -19,7 +19,7 @@ class OfferPriceFields
      * @param array{amount?: mixed, currency?: mixed} $defaults
      * @return array<int, Forms\Components\Component>
      */
-    public static function schema(Closure $type, array $defaults = [], bool $onlyOnCreate = false): array
+    public static function schema(Closure $type, array $defaults = [], bool $onlyOnCreate = false, bool $amountRequired = false, bool $withSendNow = true): array
     {
         $isSale = fn (Forms\Get $get): bool => self::type($type($get)) === OpportunityType::Sale;
         $isRent = fn (Forms\Get $get): bool => self::type($type($get)) === OpportunityType::Rent;
@@ -36,6 +36,7 @@ class OfferPriceFields
                         ->label(__('crm.offers.fields.amount'))
                         ->helperText(__('sales.offer.amount_help'))
                         ->numeric()->minValue(0.01)->live(onBlur: true)
+                        ->required($amountRequired)
                         ->default($defaults['amount'] ?? null),
                     Forms\Components\Select::make('currency')
                         ->label(__('crm.fields.currency'))
@@ -46,37 +47,39 @@ class OfferPriceFields
                     Forms\Components\TextInput::make('down_payment_amount')
                         ->label(__('crm.offers.fields.down_payment_amount'))
                         ->helperText(__('sales.offer.down_payment_help'))
-                        ->numeric()->minValue(0)->visible($isSale),
+                        ->numeric()->minValue(0)->visible($isSale)->default($defaults['down_payment_amount'] ?? null),
                     Forms\Components\Select::make('payment_method')
                         ->label(__('crm.offers.fields.payment_method'))
-                        ->options(OfferPaymentMethod::options())->native(false)->visible($isSale),
+                        ->options(OfferPaymentMethod::options())->native(false)->visible($isSale)->default($defaults['payment_method'] ?? null),
                     Forms\Components\Select::make('rent_frequency')
                         ->label(__('crm.offers.fields.rent_frequency'))
                         ->helperText(__('sales.offer.rent_frequency_help'))
-                        ->options(RentFrequency::options())->native(false)
+                        ->options(RentFrequency::options())->native(false)->default($defaults['rent_frequency'] ?? null)
                         ->visible($isRent)->required(fn (Forms\Get $get): bool => $isRent($get) && $hasAmount($get)),
                     Forms\Components\TextInput::make('lease_term_value')
                         ->label(__('crm.offers.fields.lease_term_value'))
-                        ->numeric()->integer()->minValue(1)
+                        ->numeric()->integer()->minValue(1)->default($defaults['lease_term_value'] ?? null)
                         ->visible($isRent)->required(fn (Forms\Get $get): bool => $isRent($get) && $hasAmount($get)),
                     Forms\Components\Select::make('lease_term_unit')
                         ->label(__('crm.offers.fields.lease_term_unit'))
-                        ->options(['month' => __('crm.offers.lease_units.month'), 'year' => __('crm.offers.lease_units.year')])->native(false)
+                        ->options(['month' => __('crm.offers.lease_units.month'), 'year' => __('crm.offers.lease_units.year')])->native(false)->default($defaults['lease_term_unit'] ?? null)
                         ->visible($isRent)->required(fn (Forms\Get $get): bool => $isRent($get) && $hasAmount($get)),
                     Forms\Components\TextInput::make('deposit_amount')
                         ->label(__('crm.offers.fields.deposit_amount'))
-                        ->numeric()->minValue(0)->visible($isRent),
+                        ->numeric()->minValue(0)->visible($isRent)->default($defaults['deposit_amount'] ?? null),
                     Forms\Components\Textarea::make('payment_terms')
-                        ->label(__('crm.offers.fields.payment_terms'))->columnSpanFull()->visible($isSale),
+                        ->label(__('crm.offers.fields.payment_terms'))->columnSpanFull()->visible($isSale)->default($defaults['payment_terms'] ?? null),
                     Forms\Components\DateTimePicker::make('expires_at')
                         ->label(__('crm.offers.fields.expires_at'))
                         ->helperText(__('sales.offer.expires_help'))
                         ->minDate(now()),
+                    Forms\Components\Textarea::make('notes')
+                        ->label(__('crm.fields.notes'))->columnSpanFull(),
                     Forms\Components\Toggle::make('send_now')
                         ->label(__('sales.offer.send_now'))
                         ->helperText(__('sales.offer.send_now_help'))
                         ->default(true)
-                        ->visible(fn (): bool => self::canSend()),
+                        ->visible(fn (): bool => $withSendNow && self::canSend()),
                 ]),
         ];
     }
@@ -97,6 +100,27 @@ class OfferPriceFields
         return [
             'amount' => filled($amount) && (float) $amount > 0 ? (float) $amount : null,
             'currency' => $unitCurrency ?: $currency,
+        ];
+    }
+
+    /** Every field of an earlier price, ready to be the starting point of the next one. */
+    public static function defaultsFromRevision(?\App\Models\CrmOfferRevision $revision): array
+    {
+        if (! $revision) {
+            return [];
+        }
+        $plain = fn (mixed $value): mixed => $value instanceof \BackedEnum ? $value->value : $value;
+
+        return [
+            'amount' => (float) $revision->amount,
+            'currency' => $revision->currency,
+            'down_payment_amount' => $revision->down_payment_amount !== null ? (float) $revision->down_payment_amount : null,
+            'payment_method' => $plain($revision->payment_method),
+            'payment_terms' => $revision->payment_terms,
+            'rent_frequency' => $plain($revision->rent_frequency),
+            'lease_term_value' => $revision->lease_term_value,
+            'lease_term_unit' => $revision->lease_term_unit,
+            'deposit_amount' => $revision->deposit_amount !== null ? (float) $revision->deposit_amount : null,
         ];
     }
 

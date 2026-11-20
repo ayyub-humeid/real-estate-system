@@ -16,11 +16,17 @@ class OfferApprovalsRelationManager extends RelationManager
 {
     protected static string $relationship = 'approvals';
     public static function getModelLabel(): string { return __('crm.resource_models.offer_approval'); }
-    public static function getPluralModelLabel(): string { return __('crm.offers.navigation_approvals'); }
+    public static function getPluralModelLabel(): string { return __('sales.approvals.title'); }
     public static function getTitle(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): string
     {
-        return __('crm.offers.navigation_approvals');
+        return __('sales.approvals.title');
     }
+    /** Lets the offer page refresh this tab right after one of its buttons changes something. */
+    #[\Livewire\Attributes\On('offer-changed')]
+    public function refreshAfterOfferChange(): void
+    {
+    }
+
     public function isReadOnly(): bool
     {
         return false;
@@ -54,15 +60,15 @@ class OfferApprovalsRelationManager extends RelationManager
             ->emptyStateDescription(__('crm.offer_empty.approvals_description'))
             ->emptyStateIcon('heroicon-o-check-badge')
             ->actions([
-                    Tables\Actions\Action::make('approve')->label(__('crm.offers.actions.approve'))->modalHeading(__('crm.offer_modals.approve'))->color('success')->requiresConfirmation()->visible(fn(CrmOfferApproval $record) => $record->status === OfferApprovalStatus::Pending && auth()->user()->can('approveRevision', $record->revision))->action(fn(CrmOfferApproval $record) => $this->decide($record, true, [])),
-                    Tables\Actions\Action::make('reject')->label(__('crm.offers.actions.reject'))->modalHeading(__('crm.offer_modals.reject'))->color('danger')->form([Forms\Components\Textarea::make('decision_notes')->label(__('crm.offers.fields.decision_notes'))])->visible(fn(CrmOfferApproval $record) => $record->status === OfferApprovalStatus::Pending && auth()->user()->can('rejectRevision', $record->revision))->action(fn(CrmOfferApproval $record, array $data) => $this->decide($record, false, $data)),
+                    Tables\Actions\Action::make('approve')->label(__('sales.approvals.approve'))->modalHeading(__('sales.approvals.approve'))->modalDescription(__('sales.approvals.approve_description'))->color('success')->requiresConfirmation()->visible(fn(CrmOfferApproval $record) => $record->status === OfferApprovalStatus::Pending && auth()->user()->can('approveRevision', $record->revision))->action(fn(CrmOfferApproval $record) => $this->decide($record, true, [])),
+                    Tables\Actions\Action::make('reject')->label(__('sales.approvals.refuse'))->modalHeading(__('sales.approvals.refuse'))->modalDescription(__('sales.approvals.refuse_description'))->color('danger')->form([Forms\Components\Textarea::make('decision_notes')->label(__('crm.offers.fields.decision_notes'))])->visible(fn(CrmOfferApproval $record) => $record->status === OfferApprovalStatus::Pending && auth()->user()->can('rejectRevision', $record->revision))->action(fn(CrmOfferApproval $record, array $data) => $this->decide($record, false, $data)),
                 ]);
     }
     private function decide(CrmOfferApproval $record, bool $approved, array $data): void
     {
         try {
             app(OfferNegotiationService::class)->decideApproval(auth()->user(), $record, $approved, $data['decision_notes'] ?? null);
-            Notification::make()->success()->title($approved ? __('crm.offers.actions.approve') : __('crm.offers.actions.reject'))->send();
+            Notification::make()->success()->title($approved ? __('sales.approvals.approve') : __('sales.approvals.refuse'))->send();
         } catch (ValidationException $exception) {
             Notification::make()->danger()->title(__('crm.offers.errors.action_failed'))
                 ->body(collect($exception->errors())->flatten()->first())->send();

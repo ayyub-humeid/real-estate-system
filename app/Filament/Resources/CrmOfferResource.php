@@ -126,6 +126,13 @@ class CrmOfferResource extends Resource
             ->filters([
                     Tables\Filters\SelectFilter::make('status')->label(__('crm.fields.status'))->options(OfferStatus::options()),
                     Tables\Filters\SelectFilter::make('transaction_type')->label(__('crm.offers.fields.transaction_type'))->options(OpportunityType::options()),
+                    Tables\Filters\Filter::make('awaiting_my_approval')
+                        ->label(__('sales.approvals.awaiting_me'))
+                        ->toggle()
+                        ->visible(fn (): bool => (bool) auth()->user()?->can('approve_offer_revision'))
+                        ->query(fn (\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder => $query->whereHas('approvals', fn ($approvals) => $approvals
+                            ->where('crm_offer_approvals.status', \App\Enums\OfferApprovalStatus::Pending->value)
+                            ->where(fn ($who) => $who->whereNull('crm_offer_approvals.assigned_approver_id')->orWhere('crm_offer_approvals.assigned_approver_id', auth()->id())))),
                 ])->actions([
                     Tables\Actions\ViewAction::make()->label(__('crm.actions.details')),
                     Tables\Actions\EditAction::make()->label(__('crm.actions.edit'))->modalHeading(__('crm.offer_modals.edit_offer'))->visible(fn(CrmOffer $record) => in_array($record->status, [OfferStatus::Draft, OfferStatus::Negotiating], true)),
