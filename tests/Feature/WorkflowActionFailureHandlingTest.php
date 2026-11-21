@@ -95,15 +95,29 @@ class WorkflowActionFailureHandlingTest extends TestCase
         $editable = Lead::withoutGlobalScopes()->create(['company_id' => $company->id, 'name' => 'Editable', 'phone' => '0590000004', 'normalized_phone' => \App\Support\ContactNormalizer::phone('0590000004'), 'status' => 'active', 'first_source' => 'manual']);
         $this->actingAs($actor);
 
-        // The "source" field is a known pre-existing gap: it is never pre-filled
-        // from the record (it maps to a plain `source` attribute the Lead model
-        // does not have, only `first_source`), so it must be supplied here or
-        // Filament's own required-field validation blocks the save first.
         Livewire::test(EditLead::class, ['record' => $editable->getRouteKey()])
-            ->fillForm(['phone' => '0590000003', 'source' => CrmInquirySource::Manual->value])
+            ->fillForm(['phone' => '0590000003'])
             ->call('save')
             ->assertHasFormErrors(['phone']);
 
         $this->assertSame('0590000004', $editable->fresh()->phone);
+    }
+
+    public function test_editing_a_lead_shows_its_existing_source_and_saves_without_asking_again(): void
+    {
+        $company = Company::create(['name' => 'Source Co', 'email' => 'source@example.test']);
+        $actor = $this->actor($company, ['update_lead', 'view_any_lead', 'view_lead']);
+        $lead = Lead::withoutGlobalScopes()->create(['company_id' => $company->id, 'name' => 'Facebook Lead', 'phone' => '0590000005', 'normalized_phone' => \App\Support\ContactNormalizer::phone('0590000005'), 'status' => 'active', 'first_source' => CrmInquirySource::Facebook->value]);
+        $this->actingAs($actor);
+
+        Livewire::test(EditLead::class, ['record' => $lead->getRouteKey()])
+            ->assertFormSet(['source' => CrmInquirySource::Facebook->value])
+            ->fillForm(['name' => 'Facebook Lead Renamed'])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $fresh = $lead->fresh();
+        $this->assertSame('Facebook Lead Renamed', $fresh->name);
+        $this->assertSame(CrmInquirySource::Facebook, $fresh->first_source);
     }
 }

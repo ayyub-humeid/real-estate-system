@@ -14,6 +14,15 @@ class EditLead extends EditRecord
 {
     protected static string $resource = LeadResource::class;
 
+    /** The form's "source" field maps to the lead's `first_source` column, which Filament cannot guess. */
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        $source = $this->record->first_source;
+        $data['source'] = $source instanceof \BackedEnum ? $source->value : $source;
+
+        return $data;
+    }
+
     protected function handleRecordUpdate(Model $record, array $data): Model
     {
         try {
