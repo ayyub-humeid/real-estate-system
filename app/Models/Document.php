@@ -51,15 +51,15 @@ class Document extends Model
         parent::boot();
 
         static::deleting(function ($document) {
-            // A formal design submission pins exact document versions. Deleting
-            // their logical parent would silently destroy auditable history.
+            // Design drawing versions and contract signatures pin exact files.
+            // Deleting their logical parent would silently destroy that history.
             if (in_array($document->document_type, [ContractDocumentType::OfficialApprovedPdf, ContractDocumentType::SignedFinalPdf], true)
                 || $document->versions()->withoutGlobalScopes()
                 ->where(function ($query): void {
-                    $query->whereHas('submissionDocuments')->orWhereHas('contractSignatures');
+                    $query->whereHas('designPackageVersion')->orWhereHas('contractSignatures');
                 })->exists()) {
                 throw ValidationException::withMessages([
-                    'document' => 'A document used by a formal submission or contract signature cannot be deleted.',
+                    'document' => __('project.design.errors.file_is_history'),
                 ]);
             }
         });

@@ -6,6 +6,7 @@ use App\Enums\ContractDocumentType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class DocumentVersion extends Model
 {
@@ -16,17 +17,16 @@ class DocumentVersion extends Model
 
     public function document(): BelongsTo { return $this->belongsTo(Document::class); }
     public function uploadedBy(): BelongsTo { return $this->belongsTo(User::class, 'uploaded_by'); }
-    public function submissionDocuments(): HasMany { return $this->hasMany(DesignPackageSubmissionDocument::class); }
-    public function findings(): HasMany { return $this->hasMany(DesignReviewFinding::class); }
+    public function designPackageVersion(): HasOne { return $this->hasOne(DesignPackageVersion::class); }
     public function contractSignatures(): HasMany { return $this->hasMany(ContractSignature::class); }
 
     protected static function booted(): void
     {
         static::deleting(function (self $version): void {
             if ($version->document?->document_type !== ContractDocumentType::Supporting
-                || $version->submissionDocuments()->exists() || $version->contractSignatures()->exists()) {
+                || $version->designPackageVersion()->exists() || $version->contractSignatures()->exists()) {
                 throw \Illuminate\Validation\ValidationException::withMessages([
-                    'document_version' => 'A document version pinned to a formal submission or contract signature cannot be deleted.',
+                    'document_version' => __('project.design.errors.file_is_history'),
                 ]);
             }
         });

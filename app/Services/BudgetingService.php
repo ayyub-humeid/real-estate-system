@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\{ActualCost, BudgetCategory, BudgetItem, BudgetLine, DesignPackageAssignment, FinancialCommitment, FinancialCommitmentAmendment, Party, Payment, PaymentAllocation, Project, ProjectBudget, ProjectDesignPackage, PropertyAcquisition, User};
+use App\Models\{ActualCost, BudgetCategory, BudgetItem, BudgetLine, FinancialCommitment, FinancialCommitmentAmendment, Party, Payment, PaymentAllocation, Project, ProjectBudget, ProjectDesignPackage, PropertyAcquisition, User};
 use App\Notifications\ProjectWorkflowNotification;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Model;
@@ -527,7 +527,7 @@ class BudgetingService
     {
         if (!$type && !$id)
             return;
-        $allowed = [ProjectDesignPackage::class, DesignPackageAssignment::class, PropertyAcquisition::class];
+        $allowed = [ProjectDesignPackage::class, PropertyAcquisition::class];
         if (!$type || !$id || !in_array($type, $allowed, true))
             $this->invalid('source', 'The selected source type is not permitted.');
         $source = $type::withoutGlobalScopes()->findOrFail($id);

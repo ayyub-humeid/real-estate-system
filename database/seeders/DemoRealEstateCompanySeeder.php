@@ -501,17 +501,18 @@ class DemoRealEstateCompanySeeder extends Seeder
         );
 
         // Project Design Package
-        ProjectDesignPackage::firstOrCreate(
-            ['company_id' => $company->id, 'project_id' => $project->id, 'code' => 'DES-OFK-01'],
-            [
-                'name' => 'حزمة التصاميم المعمارية والمخططات التنفيذية الكاملة',
-                'discipline' => 'architectural',
-                'description' => 'المخططات الهندسية المعتمدة لكامل المشروع والواجهات والمرافق المشتركة',
-                'status' => 'approved',
-                'target_submission_date' => '2025-02-15',
-                'approved_at' => '2025-02-20 11:00:00',
-            ]
+        $designPackage = ProjectDesignPackage::withoutGlobalScopes()->firstOrNew(
+            ['company_id' => $company->id, 'project_id' => $project->id, 'name' => 'المخططات المعمارية – برج الأفق'],
         );
+        $designPackage->fill([
+            'discipline' => 'architectural',
+            'target_date' => '2025-02-15',
+            'notes' => 'المخططات المعمارية لكامل المشروع والواجهات والمرافق المشتركة',
+        ]);
+        if (! $designPackage->exists) {
+            $designPackage->forceFill(['status' => \App\Enums\DesignPackageStatus::NoDrawings]);
+        }
+        $designPackage->save();
 
         // Project Budget
         $budget = ProjectBudget::firstOrCreate(
