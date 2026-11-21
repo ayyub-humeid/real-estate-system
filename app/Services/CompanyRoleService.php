@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Company;
 use App\Models\Role;
 use App\Models\User;
+use App\Support\StandardRoles;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Permission;
@@ -69,6 +70,34 @@ class CompanyRoleService
         }
 
         return $added;
+    }
+
+    /**
+     * Creates the ready-made sales and project roles a company does not have yet.
+     * A role that already exists is left exactly as the company configured it, and
+     * permissions that do not exist yet (the seeder has not run) are skipped.
+     *
+     * @return array{created: string[], skipped: string[], missing_permissions: int}
+     */
+    public function installStandardRoles(Company $company): array
+    {
+        $result = ['created' => [], 'skipped' => [], 'missing_permissions' => 0];
+
+        foreach (StandardRoles::all() as $name => $permissionNames) {
+            if (Role::forCompany($company->id)->where('name', $name)->where('guard_name', 'web')->exists()) {
+                $result['skipped'][] = $name;
+                continue;
+            }
+
+            $permissions = Permission::whereIn('name', $permissionNames)->where('guard_name', 'web')->get();
+            $result['missing_permissions'] += count($permissionNames) - $permissions->count();
+
+            $role = Role::create(['name' => $name, 'guard_name' => 'web', 'company_id' => $company->id]);
+            $role->syncPermissions($permissions->reject(fn (Permission $permission): bool => $this->isPlatformPermission($permission->name)));
+            $result['created'][] = $name;
+        }
+
+        return $result;
     }
 
     public function roleForUser(User $user, string $name): Role
