@@ -262,7 +262,7 @@ class ProjectConstructionRelationManager extends RelationManager
                             Infolists\Components\TextEntry::make('reason_code')->label(__('Reason code'))->badge(),
                             Infolists\Components\TextEntry::make('baseline_end_date')->label(__('Baseline end date'))->date(),
                             Infolists\Components\TextEntry::make('revised_end_date')->label(__('Revised end date'))->date(),
-                            Infolists\Components\TextEntry::make('delay_days')->label(__('Days'))->suffix(' days'),
+                            Infolists\Components\TextEntry::make('delay_days')->label(__('Days'))->suffix(__(' days')),
                         ])->columns(4),
                     ])->columns(1),
                 ]),

@@ -49,7 +49,7 @@ public static function canViewAny(): bool
     private static function companyField(): Forms\Components\Component
     {
         return Forms\Components\Select::make('company_id')
-            ->label('Company')
+            ->label(__('Company'))
             ->relationship('company', 'name')
             ->searchable()
             ->preload()
@@ -112,7 +112,7 @@ public static function canViewAny(): bool
                                 ->afterStateUpdated(fn (Forms\Set $set) => $set('unit_id', null)),
 
                             Forms\Components\Select::make('unit_id')
-                                ->label('Unit')
+                                ->label(__('Unit'))
                                 ->relationship('unit', 'unit_number', fn (Builder $q, Forms\Get $get) =>
                                     $q->when($get('property_id'), fn ($q, $id) => $q->where('property_id', $id))
                                 )
@@ -149,12 +149,12 @@ public static function canViewAny(): bool
                                 ->visible(fn (Forms\Get $get) => $get('status') === 'paid'),
 
                             Forms\Components\DatePicker::make('paid_at')
-                                ->label('Date Paid')
+                                ->label(__('Date Paid'))
                                 ->native(false)
                                 ->visible(fn (Forms\Get $get) => $get('status') === 'paid'),
 
                             Forms\Components\FileUpload::make('receipt_path')
-                                ->label('Receipt')
+                                ->label(__('Receipt'))
                                 ->image()
                                 ->directory('expenses/receipts'),
 
@@ -203,7 +203,7 @@ public static function canViewAny(): bool
                     ]),
 
                 Tables\Columns\TextColumn::make('property.name')
-                    ->label('Property')
+                    ->label(__('Property'))
                     ->placeholder(__('—'))
                     ->toggleable(),
 
@@ -212,7 +212,7 @@ public static function canViewAny(): bool
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('creator.name')
-                    ->label('Created By')
+                    ->label(__('Created By'))
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('created_at')
@@ -237,7 +237,7 @@ public static function canViewAny(): bool
                     ->preload(),
 
                 Tables\Filters\Filter::make('this_month')
-                    ->label('This Month')
+                    ->label(__('This Month'))
                     ->query(fn (Builder $q) => $q->whereMonth('expense_date', now()->month))
                     ->toggle(),
             ])

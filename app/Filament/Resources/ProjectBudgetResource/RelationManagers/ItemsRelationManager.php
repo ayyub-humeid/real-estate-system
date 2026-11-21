@@ -25,7 +25,7 @@ class ItemsRelationManager extends RelationManager
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('category.name')->label('Category')->searchable(),
+                Tables\Columns\TextColumn::make('category.name')->label(__('Category'))->searchable(),
                 Tables\Columns\TextColumn::make('code')->placeholder(__('—')),
                 Tables\Columns\TextColumn::make('name')->searchable(),
                 Tables\Columns\TextColumn::make('planned_amount')->money(fn (): string => $this->getOwnerRecord()->project->currency)->sortable(),
@@ -34,11 +34,11 @@ class ItemsRelationManager extends RelationManager
             ])
             ->headerActions([
                 Tables\Actions\CreateAction::make()
-                    ->label('Add budget item')
+                    ->label(__('Add budget item'))
                     ->icon('heroicon-o-plus')
                     ->visible(fn (): bool => $this->getOwnerRecord()->status === 'draft')
                     ->form([
-                        Forms\Components\Select::make('budget_category_id')->label('Category')
+                        Forms\Components\Select::make('budget_category_id')->label(__('Category'))
                             ->options(fn (): array => BudgetCategory::withoutGlobalScopes()->where('project_budget_id', $this->getOwnerRecord()->id)->pluck('name', 'id')->all())
                             ->required()->searchable(),
                         Forms\Components\TextInput::make('name')->required(),

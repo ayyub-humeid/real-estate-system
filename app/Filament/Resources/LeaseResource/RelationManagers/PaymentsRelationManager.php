@@ -82,29 +82,29 @@ class PaymentsRelationManager extends RelationManager
                         'gray' => 'other',
                     ]),
                 Tables\Columns\TextColumn::make('due_date')
-                    ->label('Due Date')
+                    ->label(__('Due Date'))
                     ->date()
                     ->sortable()
                     ->color(fn($record) => $record->is_overdue ? 'danger' : null),
 
                 Tables\Columns\TextColumn::make('amount')
-                    ->label('Installment')
+                    ->label(__('Installment'))
                     ->money('USD')
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('paid_amount')
-                    ->label('Paid')
+                    ->label(__('Paid'))
                     ->money('USD')
                     ->color('success'),
 
                 Tables\Columns\TextColumn::make('remaining_amount')
-                    ->label('Balance')
+                    ->label(__('Balance'))
                     ->money('USD')
                     ->color(fn($state) => $state > 0 ? 'danger' : 'success'),
 
                 // ✅ Per-installment mini progress bar
                 Tables\Columns\TextColumn::make('payment_progress')
-                    ->label('Progress')
+                    ->label(__('Progress'))
                     ->state(
                         fn($record) => $record->amount > 0
                             ? min(100, (int) round(($record->paid_amount / $record->amount) * 100))
@@ -119,7 +119,7 @@ class PaymentsRelationManager extends RelationManager
                     }),
 
                 Tables\Columns\TextColumn::make('payment_date')
-                    ->label('Paid On')
+                    ->label(__('Paid On'))
                     ->date()
                     ->placeholder(__('—')),
 
@@ -137,13 +137,13 @@ class PaymentsRelationManager extends RelationManager
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('reference_number')
-                    ->label('Ref #')
+                    ->label(__('Ref #'))
                     ->placeholder(__('—'))
                     ->copyable()
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('recordedBy.name')
-                    ->label('Recorded By')
+                    ->label(__('Recorded By'))
                     ->toggleable(),
             ])
             ->filters([
@@ -172,7 +172,7 @@ class PaymentsRelationManager extends RelationManager
 
                 // ✅ Generate schedule from header
                 Tables\Actions\Action::make('generate_schedule')
-                    ->label('Generate Schedule')
+                    ->label(__('Generate Schedule'))
                     ->icon('heroicon-o-calendar')
                     ->color('info')
                     ->requiresConfirmation()
@@ -199,20 +199,20 @@ class PaymentsRelationManager extends RelationManager
 
                 // ✅ Quick record payment
                 Tables\Actions\Action::make('record_payment')
-                    ->label('Pay')
+                    ->label(__('Pay'))
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->visible(fn($record) => !$record->is_paid)
                     ->form([
                         Forms\Components\TextInput::make('amount')
-                            ->label('Amount to Pay')
+                            ->label(__('Amount to Pay'))
                             ->numeric()
                             ->prefix('$')
                             ->required()
                             ->default(fn($record) => $record->remaining_amount),
 
                         Forms\Components\Select::make('method')
-                            ->label('Payment Method')
+                            ->label(__('Payment Method'))
                             ->options([
                                 'cash' => 'Cash',
                                 'bank_transfer' => 'Bank Transfer',
@@ -224,7 +224,7 @@ class PaymentsRelationManager extends RelationManager
                             ->native(false),
 
                         Forms\Components\TextInput::make('reference')
-                            ->label('Reference Number'),
+                            ->label(__('Reference Number')),
                     ])
                     ->action(function ($record, array $data) {
                         $record->recordPayment(
@@ -249,7 +249,7 @@ class PaymentsRelationManager extends RelationManager
             ->emptyStateIcon('heroicon-o-banknotes')
             ->emptyStateActions([
                 Tables\Actions\Action::make('generate')
-                    ->label('Generate Payment Schedule')
+                    ->label(__('Generate Payment Schedule'))
                     ->icon('heroicon-o-calendar')
                     ->visible(fn() => $this->getOwnerRecord()->status === 'active')
                     ->action(function () {
@@ -285,14 +285,14 @@ class PaymentsRelationManager extends RelationManager
                     ->native(false),
 
                 Forms\Components\TextInput::make('amount')
-                    ->label('Installment Amount')
+                    ->label(__('Installment Amount'))
                     ->required()
                     ->numeric()
                     ->prefix('$')
                     ->default(fn() => $this->getOwnerRecord()->rent_amount),
 
                 Forms\Components\TextInput::make('paid_amount')
-                    ->label('Amount Paid')
+                    ->label(__('Amount Paid'))
                     ->numeric()
                     ->prefix('$')
                     ->default(0)
@@ -312,7 +312,7 @@ class PaymentsRelationManager extends RelationManager
                     }),
 
                 Forms\Components\TextInput::make('remaining_amount')
-                    ->label('Remaining Balance')
+                    ->label(__('Remaining Balance'))
                     ->numeric()
                     ->prefix('$')
                     ->readOnly(),

@@ -45,7 +45,7 @@ class LeaseResource extends Resource
     private static function companyField(): Forms\Components\Component
     {
         return Forms\Components\Select::make('company_id')
-            ->label('Company')
+            ->label(__('Company'))
             ->relationship('company', 'name')
             ->searchable()
             ->preload()
@@ -62,7 +62,7 @@ class LeaseResource extends Resource
                         self::companyField(),
 
                         Forms\Components\Select::make('property_id')
-                            ->label('Property (For Whole Property Lease)')
+                            ->label(__('Property (For Whole Property Lease)'))
                             ->relationship('property', 'name')
                             ->searchable()
                             ->preload()
@@ -71,7 +71,7 @@ class LeaseResource extends Resource
                             ->helperText(__('Select if renting the entire property instead of a single unit.')),
 
                         Forms\Components\Select::make('unit_id')
-                            ->label('Unit (For Specific Unit Lease)')
+                            ->label(__('Unit (For Specific Unit Lease)'))
                             ->requiredWithout('property_id')
                             ->searchable()
                             ->preload()
@@ -95,7 +95,7 @@ class LeaseResource extends Resource
                             ->helperText(__('If renting a single unit, select it here.'))
                             ->afterStateUpdated(fn(Forms\Get $get, Forms\Set $set) => self::recalculateRentAmount($get, $set)),
                         Forms\Components\Select::make('tenant_id')
-                            ->label('Tenant')
+                            ->label(__('Tenant'))
                             ->required()
                             ->searchable()
                             ->preload()
@@ -116,7 +116,7 @@ class LeaseResource extends Resource
                             ->afterStateUpdated(fn(Forms\Get $get, Forms\Set $set) => self::recalculateRentAmount($get, $set)),
 
                         Forms\Components\DatePicker::make('end_date')
-                            ->label('End Date (Optional)')
+                            ->label(__('End Date (Optional)'))
                             ->helperText(__('Leave empty for open-ended lease'))
                             ->native(false)
                             ->afterOrEqual('start_date')
@@ -152,7 +152,7 @@ class LeaseResource extends Resource
                             ->native(false),
 
                         Forms\Components\Select::make('payment_day')
-                            ->label('Payment Day of Month')
+                            ->label(__('Payment Day of Month'))
                             ->options(array_combine(range(1, 28), range(1, 28)))
                             ->default(1)
                             ->required()
@@ -204,7 +204,7 @@ class LeaseResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('lease_target')
-                    ->label('Property / Unit')
+                    ->label(__('Property / Unit'))
                     ->state(function ($record) {
                         if ($record->unit) {
                             return $record->unit->property->name . ' - Unit ' . $record->unit->unit_number;
@@ -220,7 +220,7 @@ class LeaseResource extends Resource
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('tenant.user.name')
-                    ->label('Tenant')
+                    ->label(__('Tenant'))
                     ->searchable()
                     ->sortable()
                     ->icon('heroicon-m-user'),
@@ -253,7 +253,7 @@ class LeaseResource extends Resource
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('company.name')
-                    ->label('Company')
+                    ->label(__('Company'))
                     ->searchable()
                     ->sortable()
                     ->badge()
@@ -284,19 +284,19 @@ class LeaseResource extends Resource
                     ->multiple(),
 
                 Tables\Filters\SelectFilter::make('unit.property_id')
-                    ->label('Property')
+                    ->label(__('Property'))
                     ->relationship('unit.property', 'name')
                     ->searchable()
                     ->preload()
                     ->native(false),
 
                 Tables\Filters\Filter::make('expiring_soon')
-                    ->label('Expiring Soon (30 days)')
+                    ->label(__('Expiring Soon (30 days)'))
                     ->query(fn(Builder $query) => $query->expiringSoon(30))
                     ->toggle(),
 
                 Tables\Filters\Filter::make('expired')
-                    ->label('Expired')
+                    ->label(__('Expired'))
                     ->query(fn(Builder $query) => $query->expired())
                     ->toggle(),
             ])
@@ -305,7 +305,7 @@ class LeaseResource extends Resource
                 Tables\Actions\EditAction::make(),
                 // ✅ Export PDF Action
                 Tables\Actions\Action::make('export_pdf')
-                    ->label('Export PDF')
+                    ->label(__('Export PDF'))
                     ->icon('heroicon-o-document-arrow-down')
                     ->color('success')
                     ->action(function ($record) {

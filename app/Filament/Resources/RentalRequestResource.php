@@ -53,7 +53,7 @@ public static function canViewAny(): bool
     private static function companyField(): Forms\Components\Component
     {
         return Forms\Components\Select::make('company_id')
-            ->label('Company')
+            ->label(__('Company'))
             ->relationship('company', 'name')
             ->searchable()
             ->preload()
@@ -97,7 +97,7 @@ public static function canViewAny(): bool
                                 ->native(false),
 
                             Forms\Components\TextInput::make('max_budget')
-                                ->label('Max Budget')
+                                ->label(__('Max Budget'))
                                 ->numeric()
                                 ->prefix('$'),
 
@@ -106,7 +106,7 @@ public static function canViewAny(): bool
                                 ->minDate(now()),
 
                             Forms\Components\TextInput::make('duration_months')
-                                ->label('Duration (Months)')
+                                ->label(__('Duration (Months)'))
                                 ->numeric()
                                 ->minValue(1),
                         ])->columns(2),
@@ -114,7 +114,7 @@ public static function canViewAny(): bool
                     Forms\Components\Section::make(__('Admin Response'))
                         ->schema([
                             Forms\Components\Select::make('unit_id')
-                                ->label('Assigned Unit (Optional)')
+                                ->label(__('Assigned Unit (Optional)'))
                                 ->relationship('unit', 'unit_number', function (Builder $query, Forms\Get $get) {
                                     $query->with('property');
                                     if ($get('company_id')) {
@@ -126,7 +126,7 @@ public static function canViewAny(): bool
                                 ->placeholder(__('Select a unit')),
 
                             Forms\Components\Textarea::make('admin_notes')
-                                ->label('Admin Notes / Response')
+                                ->label(__('Admin Notes / Response'))
                                 ->rows(3)
                                 ->columnSpanFull(),
                         ])->columns(1),
@@ -139,7 +139,7 @@ public static function canViewAny(): bool
                     Forms\Components\Section::make(__('Assignment'))
                         ->schema([
                             Forms\Components\Select::make('tenant_id')
-                                ->label('Tenant')
+                                ->label(__('Tenant'))
                                 ->relationship('tenant', 'id')
                                 ->getOptionLabelFromRecordUsing(fn ($record) => ($record->user->name ?? 'N/A') . ' (' . ($record->user->email ?? '') . ')')
                                 ->required()
@@ -182,7 +182,7 @@ public static function canViewAny(): bool
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('tenant.user.name')
-                    ->label('Tenant')
+                    ->label(__('Tenant'))
                     ->searchable()
                     ->sortable()
                     ->icon('heroicon-m-user'),
@@ -192,19 +192,19 @@ public static function canViewAny(): bool
                     ->wrap(),
 
                 Tables\Columns\TextColumn::make('unit.unit_number')
-                    ->label('Assigned Unit')
+                    ->label(__('Assigned Unit'))
                     ->placeholder(__('None'))
                     ->badge()
                     ->color('info'),
 
                 Tables\Columns\TextColumn::make('preferred_type')
-                    ->label('Prefers')
+                    ->label(__('Prefers'))
                     ->badge()
                     ->color('gray'),
 
                 Tables\Columns\TextColumn::make('max_budget')
                     ->money('USD')
-                    ->label('Budget'),
+                    ->label(__('Budget')),
 
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
@@ -226,7 +226,7 @@ public static function canViewAny(): bool
                 Tables\Columns\TextColumn::make('desired_move_in')
                     ->date()
                     ->sortable()
-                    ->label('Move-in'),
+                    ->label(__('Move-in')),
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->since()
@@ -248,7 +248,7 @@ public static function canViewAny(): bool
                         'high'   => 'High',
                     ]),
                 Tables\Filters\Filter::make('pending_only')
-                    ->label('Pending Only')
+                    ->label(__('Pending Only'))
                     ->query(fn (Builder $q) => $q->where('status', 'pending'))
                     ->toggle(),
             ])

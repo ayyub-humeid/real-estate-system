@@ -90,7 +90,7 @@ class CompanyResource extends Resource
                             ->columnSpanFull(),
 
                         Placeholder::make('logo_preview')
-                            ->label('Logo Preview')
+                            ->label(__('Logo Preview'))
                             ->content(function (Forms\Get $get) {
                                 $logo = $get('logo');
                                 if (!$logo) return '';
@@ -111,7 +111,7 @@ class CompanyResource extends Resource
                             ->columnSpanFull(),
 
                         Toggle::make('is_active')
-                            ->label('Active Status')
+                            ->label(__('Active Status'))
                             ->default(true)
                             ->helperText(
                                 fn($state) =>
@@ -154,7 +154,7 @@ class CompanyResource extends Resource
 
                 Tables\Columns\IconColumn::make('is_active')
                     ->boolean()
-                    ->label('Status')
+                    ->label(__('Status'))
                     ->sortable()
                     ->trueIcon('heroicon-o-check-circle')
                     ->falseIcon('heroicon-o-x-circle')
@@ -163,7 +163,7 @@ class CompanyResource extends Resource
 
                 Tables\Columns\TextColumn::make('users_count')
                     ->counts('users')
-                    ->label('Users')
+                    ->label(__('Users'))
                     ->badge()
                     ->color('info')
                     ->url(
@@ -187,7 +187,7 @@ class CompanyResource extends Resource
             ])
             ->filters([
                 Tables\Filters\TernaryFilter::make('is_active')
-                    ->label('Status')
+                    ->label(__('Status'))
                     ->placeholder(__('All companies'))
                     ->trueLabel('Active only')
                     ->falseLabel('Inactive only')

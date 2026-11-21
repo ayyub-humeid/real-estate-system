@@ -17,7 +17,7 @@ class CreateProperty extends CreateRecord
         if (!$user->isSuperAdmin() && !$user->company?->canAddProperty()) {
             Notification::make()
                 ->title(__('Limit Reached'))
-                ->body('Your plan does not allow adding more properties.')
+                ->body(__('Your plan does not allow adding more properties.'))
                 ->danger()
                 ->persistent()
                 ->send();

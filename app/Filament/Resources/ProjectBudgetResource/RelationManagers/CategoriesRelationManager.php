@@ -31,7 +31,7 @@ class CategoriesRelationManager extends RelationManager
                     fn (BudgetCategory $record): string => $record->parent?->name ? "Under: {$record->parent->name}" : 'Top-level category'
                 ),
                 Tables\Columns\TextColumn::make('code')->placeholder(__('—')),
-                Tables\Columns\TextColumn::make('items_count')->counts('items')->label('Items'),
+                Tables\Columns\TextColumn::make('items_count')->counts('items')->label(__('Items')),
                 Tables\Columns\TextColumn::make('items_sum_planned_amount')
                     ->sum('items', 'planned_amount')
                     ->money(fn (): string => $this->getOwnerRecord()->project->currency),

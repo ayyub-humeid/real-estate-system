@@ -37,7 +37,7 @@ class WelcomeNotification extends Notification implements ShouldQueue
     {
         return \Filament\Notifications\Notification::make()
             ->title(__('Welcome Aboard!'))
-            ->body("We are glad to have you in our system.")
+            ->body(__("We are glad to have you in our system."))
             ->icon('heroicon-o-sparkles')
             ->iconColor('success')
             ->getDatabaseMessage();

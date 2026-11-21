@@ -55,16 +55,16 @@ class FinancialReport extends Page implements HasForms
                 Section::make(__('Filters'))
                     ->schema([
                         Select::make('property_id')
-                            ->label('Property')
+                            ->label(__('Property'))
                             ->options(Property::pluck('name', 'id'))
                             ->placeholder(__('All Properties'))
                             ->searchable()
                             ->live(),
                         DatePicker::make('start_date')
-                            ->label('Start Date')
+                            ->label(__('Start Date'))
                             ->live(),
                         DatePicker::make('end_date')
-                            ->label('End Date')
+                            ->label(__('End Date'))
                             ->live(),
                     ])
                     ->columns(3)

@@ -51,7 +51,7 @@ class MaintenanceRequestNotification extends Notification implements ShouldQueue
     {
         return \Filament\Notifications\Notification::make()
             ->title(__('New Maintenance Request'))
-            ->body("Unit {$this->maintenanceRequest->unit->name} requires attention.")
+            ->body(__('Unit :unit requires attention.', ['unit' => $this->maintenanceRequest->unit->name]))
             ->icon('heroicon-o-wrench-screwdriver')
             ->iconColor('warning')
             ->actions([
@@ -69,7 +69,7 @@ class MaintenanceRequestNotification extends Notification implements ShouldQueue
     {
         return \Filament\Notifications\Notification::make()
             ->title(__('New Maintenance Request'))
-            ->body("Unit {$this->maintenanceRequest->unit->name} requires attention.")
+            ->body(__('Unit :unit requires attention.', ['unit' => $this->maintenanceRequest->unit->name]))
             ->icon('heroicon-o-wrench-screwdriver')
             ->iconColor('warning')
             ->actions([

@@ -60,7 +60,7 @@ class ViewCompany extends ViewRecord
                             ->placeholder(__('—')),
 
                         Infolists\Components\IconEntry::make('is_active')
-                            ->label('Status')
+                            ->label(__('Status'))
                             ->boolean()
                             ->trueIcon('heroicon-o-check-circle')
                             ->falseIcon('heroicon-o-x-circle')
@@ -73,7 +73,7 @@ class ViewCompany extends ViewRecord
             Infolists\Components\Section::make(__('Statistics'))
                 ->schema([
                     Infolists\Components\TextEntry::make('users_count')
-                        ->label('Total Users')
+                        ->label(__('Total Users'))
                         ->badge()
                         ->size(Infolists\Components\TextEntry\TextEntrySize::Large)
                         ->color('info')
@@ -81,7 +81,7 @@ class ViewCompany extends ViewRecord
                         ->state(fn($record) => $record->users_count ?? $record->users()->count()), // 🔥 Fallback
 
                     Infolists\Components\TextEntry::make('active_users_count')
-                        ->label('Active Staff')
+                        ->label(__('Active Staff'))
                         ->badge()
                         ->size(Infolists\Components\TextEntry\TextEntrySize::Large)
                         ->color('success')
@@ -89,7 +89,7 @@ class ViewCompany extends ViewRecord
                         ->state(fn($record) => $record->active_users_count ?? $record->users()->whereIn('role', ['company_admin', 'property_manager'])->count()), // 🔥 Fallback
 
                     Infolists\Components\TextEntry::make('tenants_count')
-                        ->label('Tenants')
+                        ->label(__('Tenants'))
                         ->badge()
                         ->size(Infolists\Components\TextEntry\TextEntrySize::Large)
                         ->color('gray')
@@ -97,7 +97,7 @@ class ViewCompany extends ViewRecord
                         ->state(fn($record) => $record->tenants_count ?? $record->users()->where('role', 'tenant')->count()), // 🔥 Fallback
 
                     Infolists\Components\TextEntry::make('created_at')
-                        ->label('Member Since')
+                        ->label(__('Member Since'))
                         ->since()
                         ->badge()
                         ->size(Infolists\Components\TextEntry\TextEntrySize::Medium)

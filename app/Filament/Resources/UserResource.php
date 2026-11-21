@@ -42,7 +42,7 @@ class UserResource extends Resource
     private static function companyField(): Forms\Components\Component
     {
         return Forms\Components\Select::make('company_id')
-            ->label('Company')
+            ->label(__('Company'))
             ->relationship('company', 'name')
             ->searchable()
             ->preload()
@@ -119,7 +119,7 @@ class UserResource extends Resource
                     ->copyable(),
                 
                 Tables\Columns\TextColumn::make('company.name')
-                    ->label('Company')
+                    ->label(__('Company'))
                     ->searchable()
                     ->sortable()
                     ->default('—'),
@@ -153,7 +153,7 @@ class UserResource extends Resource
                             ->map(fn ($name) => str_replace('_', ' ', ucwords($name, '_')))
                     ),
                 Tables\Filters\Filter::make('tenants_only')
-                    ->label('Tenants Only')
+                    ->label(__('Tenants Only'))
                     ->query(fn ($query) => $query->tenants())
                     ->toggle(),
             ])

@@ -37,7 +37,7 @@ class LeaseExpiringNotification extends Notification implements ShouldQueue
     {
         return \Filament\Notifications\Notification::make()
             ->title(__('Lease Expiring Soon'))
-            ->body("Lease for Unit {$this->lease->unit->name} ends in 30 days.")
+            ->body(__('Lease for Unit :unit ends in 30 days.', ['unit' => $this->lease->unit->name]))
             ->icon('heroicon-o-clock')
             ->iconColor('danger')
             ->actions([

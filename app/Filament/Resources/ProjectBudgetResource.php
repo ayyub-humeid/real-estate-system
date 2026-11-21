@@ -24,7 +24,7 @@ class ProjectBudgetResource extends Resource
     {
         return $table->columns([
             Tables\Columns\TextColumn::make('project.name'),
-            Tables\Columns\TextColumn::make('version_number')->label('Version'),
+            Tables\Columns\TextColumn::make('version_number')->label(__('Version')),
             Tables\Columns\TextColumn::make('status')->badge()
         ])->actions([
                     Tables\Actions\ViewAction::make(),

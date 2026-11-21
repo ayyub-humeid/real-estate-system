@@ -37,7 +37,7 @@ class PaymentOverdueNotification extends Notification implements ShouldQueue
     {
         return \Filament\Notifications\Notification::make()
             ->title(__('Payment Overdue'))
-            ->body("A payment of {$this->payment->amount} for Unit {$this->payment->lease->unit->name} is overdue.")
+            ->body(__('A payment of :amount for Unit :unit is overdue.', ['amount' => $this->payment->amount, 'unit' => $this->payment->lease->unit->name]))
             ->icon('heroicon-o-exclamation-circle')
             ->iconColor('danger')
             ->actions([

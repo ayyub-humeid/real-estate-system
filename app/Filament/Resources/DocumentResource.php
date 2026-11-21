@@ -50,16 +50,16 @@ class DocumentResource extends Resource
     {
         return $table->columns([
             Tables\Columns\TextColumn::make('title')->searchable()->weight('medium'),
-            Tables\Columns\TextColumn::make('documentable.project.name')->label('Project')->searchable(),
-            Tables\Columns\TextColumn::make('documentable.name')->label('Design package')->searchable(),
-            Tables\Columns\TextColumn::make('versions_count')->label('Versions')->badge()->alignCenter(),
-            Tables\Columns\TextColumn::make('latestVersion.version_number')->label('Latest')->formatStateUsing(fn($state) => $state ? "V{$state}" : '—')->badge()->color('info'),
-            Tables\Columns\TextColumn::make('latestVersion.file_name')->label('Latest file')->placeholder(__('No version')),
-            Tables\Columns\TextColumn::make('createdBy.name')->label('Created by')->toggleable(),
+            Tables\Columns\TextColumn::make('documentable.project.name')->label(__('Project'))->searchable(),
+            Tables\Columns\TextColumn::make('documentable.name')->label(__('Design package'))->searchable(),
+            Tables\Columns\TextColumn::make('versions_count')->label(__('Versions'))->badge()->alignCenter(),
+            Tables\Columns\TextColumn::make('latestVersion.version_number')->label(__('Latest'))->formatStateUsing(fn($state) => $state ? "V{$state}" : '—')->badge()->color('info'),
+            Tables\Columns\TextColumn::make('latestVersion.file_name')->label(__('Latest file'))->placeholder(__('No version')),
+            Tables\Columns\TextColumn::make('createdBy.name')->label(__('Created by'))->toggleable(),
             Tables\Columns\TextColumn::make('created_at')->dateTime()->since()->toggleable(),
         ])->actions([
                     Tables\Actions\ViewAction::make(),
-                    Tables\Actions\Action::make('openLatestVersion')->label('Open latest')->icon('heroicon-o-arrow-top-right-on-square')
+                    Tables\Actions\Action::make('openLatestVersion')->label(__('Open latest'))->icon('heroicon-o-arrow-top-right-on-square')
                         ->url(fn(Document $record) => $record->latestVersion ? storage_url($record->latestVersion->file_path) : null)
                         ->openUrlInNewTab()->visible(fn(Document $record) => $record->latestVersion !== null),
                 ])->defaultSort('created_at', 'desc');

@@ -38,7 +38,7 @@ class RentalRequestNotification extends Notification implements ShouldQueue
     {
         return \Filament\Notifications\Notification::make()
             ->title(__('New Rental Inquiry'))
-            ->body("New request from {$this->rentalRequest->name} for Unit {$this->rentalRequest->unit->name}")
+            ->body(__('New request from :name for Unit :unit', ['name' => $this->rentalRequest->name, 'unit' => $this->rentalRequest->unit->name]))
             ->icon('heroicon-o-home')
             ->iconColor('success')
             ->actions([

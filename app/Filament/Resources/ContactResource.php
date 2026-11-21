@@ -57,7 +57,7 @@ class ContactResource extends Resource
                     ->searchable()
                     ->limit(50),
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('Received At')
+                    ->label(__('Received At'))
                     ->dateTime()
                     ->sortable(),
             ])
