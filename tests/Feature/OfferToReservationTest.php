@@ -12,7 +12,7 @@ use Tests\TestCase;
 
 class OfferToReservationTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshDatabase, \Tests\Concerns\MakesReadyUnits;
 
     private function company(string $name): Company
     {
@@ -33,7 +33,7 @@ class OfferToReservationTest extends TestCase
     {
         $lead = app(LeadIntakeService::class)->createLead($actor, array_merge(['name' => 'Nour', 'phone' => '0591234567', 'source' => CrmInquirySource::Manual->value], $overrides['lead'] ?? []));
         $opportunity = app(OpportunityService::class)->create($actor, ['lead_id' => $lead->id, 'type' => OpportunityType::Sale->value, 'source' => CrmInquirySource::Manual->value]);
-        $offer = app(OfferNegotiationService::class)->createOffer($actor, ['opportunity_id' => $opportunity->id, 'transaction_type' => OpportunityType::Sale->value]);
+        $offer = app(OfferNegotiationService::class)->createOffer($actor, ['opportunity_id' => $opportunity->id, 'transaction_type' => OpportunityType::Sale->value, 'unit_id' => $this->readyUnitId($company->id)]);
         $revision = app(OfferNegotiationService::class)->createDraftRevision($actor, $offer, ['proposed_by_side' => OfferProposedBySide::Customer->value, 'amount' => 110000, 'currency' => 'USD']);
         $submitted = app(OfferNegotiationService::class)->submitRevision($actor, $revision);
         app(OfferNegotiationService::class)->confirmAgreement($actor, $submitted);
@@ -57,7 +57,7 @@ class OfferToReservationTest extends TestCase
         $actor = $this->user($company, array_diff($this->permissions(), ['accept_offer', 'confirm_offer_agreement']));
         $lead = app(LeadIntakeService::class)->createLead($actor, ['name' => 'Nour', 'phone' => '0591234567']);
         $opportunity = app(OpportunityService::class)->create($actor, ['lead_id' => $lead->id, 'type' => OpportunityType::Sale->value]);
-        $offer = app(OfferNegotiationService::class)->createOffer($actor, ['opportunity_id' => $opportunity->id, 'transaction_type' => OpportunityType::Sale->value]);
+        $offer = app(OfferNegotiationService::class)->createOffer($actor, ['opportunity_id' => $opportunity->id, 'transaction_type' => OpportunityType::Sale->value, 'unit_id' => $this->readyUnitId($company->id)]);
         $revision = app(OfferNegotiationService::class)->createDraftRevision($actor, $offer, ['proposed_by_side' => OfferProposedBySide::Customer->value, 'amount' => 110000, 'currency' => 'USD']);
         $submitted = app(OfferNegotiationService::class)->submitRevision($actor, $revision);
 
@@ -86,7 +86,7 @@ class OfferToReservationTest extends TestCase
         $actor = $this->user($company, array_diff($this->permissions(), ['convert_offer_to_reservation']));
         $lead = app(LeadIntakeService::class)->createLead($actor, ['name' => 'Nour', 'phone' => '0591234567']);
         $opportunity = app(OpportunityService::class)->create($actor, ['lead_id' => $lead->id, 'type' => OpportunityType::Sale->value]);
-        $offer = app(OfferNegotiationService::class)->createOffer($actor, ['opportunity_id' => $opportunity->id, 'transaction_type' => OpportunityType::Sale->value]);
+        $offer = app(OfferNegotiationService::class)->createOffer($actor, ['opportunity_id' => $opportunity->id, 'transaction_type' => OpportunityType::Sale->value, 'unit_id' => $this->readyUnitId($company->id)]);
 
         $this->assertFalse($actor->can('convert_offer_to_reservation', $offer));
     }

@@ -261,7 +261,7 @@ class OfferToReservationOneStepTest extends TestCase
     {
         $company = $this->company();
         $actor = $this->actor($company);
-        $opportunity = app(OpportunityService::class)->create($actor, ['lead_id' => $this->lead($actor)->id, 'type' => OpportunityType::Sale->value]);
+        $opportunity = app(OpportunityService::class)->create($actor, ['lead_id' => $this->lead($actor)->id, 'type' => OpportunityType::Sale->value, 'unit_id' => $this->unit($company, 'N-1')->id]);
         $negotiating = app(OfferNegotiationService::class)->createQuickOffer($actor, ['opportunity_id' => $opportunity->id, 'amount' => 1000, 'currency' => 'USD', 'send_now' => true]);
         $this->assertSame(OfferStatus::Negotiating, $negotiating->status);
 
@@ -269,24 +269,25 @@ class OfferToReservationOneStepTest extends TestCase
         app(ReservationWorkflowService::class)->createFromOffer($actor, $negotiating);
     }
 
-    public function test_an_offer_without_a_unit_asks_for_one_and_then_works(): void
+    public function test_an_offer_without_a_unit_is_refused_before_any_negotiation_starts(): void
     {
         $company = $this->company();
         $actor = $this->actor($company);
-        $offer = $this->acceptedOffer($actor, $this->lead($actor), null);
-        $service = app(ReservationWorkflowService::class);
-        $before = $this->clients($company);
 
+        // Refused at the start, not after pricing, approval and acceptance.
         try {
-            $service->createFromOffer($actor, $offer);
-            $this->fail('Without a unit on the offer one must be chosen.');
+            $this->acceptedOffer($actor, $this->lead($actor), null);
+            $this->fail('An offer without a unit was created.');
         } catch (ValidationException $exception) {
             $this->assertArrayHasKey('unit_id', $exception->errors());
+            $this->assertSame(__('crm.offers.errors.unit_required'), $exception->errors()['unit_id'][0]);
         }
-        $this->assertSame($before, $this->clients($company), 'The refused attempt must not leave a client behind.');
+        $this->assertSame(0, \App\Models\CrmOffer::withoutGlobalScopes()->count());
 
-        $chosen = $this->unit($company, 'B-202');
-        $this->assertSame($chosen->id, $service->createFromOffer($actor, $offer, ['unit_id' => $chosen->id])->unit_id);
+        // With a unit, the accepted offer becomes a reservation for that same unit without asking again.
+        $unit = $this->unit($company, 'B-202');
+        $offer = $this->acceptedOffer($actor, $this->lead($actor, '0597654321'), $unit);
+        $this->assertSame($unit->id, app(ReservationWorkflowService::class)->createFromOffer($actor, $offer)->unit_id);
     }
 
     public function test_a_user_without_convert_lead_permission_still_creates_the_client_during_reservation(): void

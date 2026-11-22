@@ -76,22 +76,24 @@ class ReservationWorkflowTest extends TestCase
         $this->assertStringContainsString($unit->unit_number, UnitReservationResource::acceptedOfferOptions($company->id)[$offer->id]);
     }
 
-    public function test_accepted_offer_without_a_listing_requires_and_uses_an_explicit_ready_actual_unit(): void
+    public function test_an_offer_without_a_listing_names_its_unit_up_front_and_the_reservation_uses_it(): void
     {
         $company = $this->company('A'); $actor = $this->user($company, $this->permissions()); $unit = $this->unit($company);
         $lead = app(LeadIntakeService::class)->createLead($actor, ['name' => 'Nour', 'phone' => '0591234567', 'source' => CrmInquirySource::Manual->value]);
         $opportunity = app(OpportunityService::class)->create($actor, ['lead_id' => $lead->id, 'type' => OpportunityType::Sale->value, 'source' => CrmInquirySource::Manual->value]);
-        $offers = app(OfferNegotiationService::class); $offer = $offers->createOffer($actor, ['opportunity_id' => $opportunity->id, 'transaction_type' => 'sale']);
-        $revision = $offers->createDraftRevision($actor, $offer, ['proposed_by_side' => OfferProposedBySide::Customer->value, 'amount' => 110000, 'currency' => 'USD']); $offers->confirmAgreement($actor, $offers->submitRevision($actor, $revision));
+        $offers = app(OfferNegotiationService::class);
 
         try {
-            app(ReservationWorkflowService::class)->createDraft($actor, ['source' => ReservationSource::AcceptedOffer->value, 'offer_id' => $offer->id, 'customer_party_id' => $this->customer($company)->id]);
-            $this->fail('An unlisted Offer created a reservation without an explicit Unit.');
+            $offers->createOffer($actor, ['opportunity_id' => $opportunity->id, 'transaction_type' => 'sale']);
+            $this->fail('An offer without a listing or a unit was created.');
         } catch (ValidationException $exception) {
             $this->assertArrayHasKey('unit_id', $exception->errors());
         }
 
-        $reservation = app(ReservationWorkflowService::class)->createDraft($actor, ['source' => ReservationSource::AcceptedOffer->value, 'offer_id' => $offer->id, 'unit_id' => $unit->id, 'customer_party_id' => $this->customer($company)->id]);
+        $offer = $offers->createOffer($actor, ['opportunity_id' => $opportunity->id, 'transaction_type' => 'sale', 'unit_id' => $unit->id]);
+        $revision = $offers->createDraftRevision($actor, $offer, ['proposed_by_side' => OfferProposedBySide::Customer->value, 'amount' => 110000, 'currency' => 'USD']); $offers->confirmAgreement($actor, $offers->submitRevision($actor, $revision));
+
+        $reservation = app(ReservationWorkflowService::class)->createDraft($actor, ['source' => ReservationSource::AcceptedOffer->value, 'offer_id' => $offer->id, 'customer_party_id' => $this->customer($company)->id]);
 
         $this->assertSame($unit->id, $reservation->unit_id);
         $this->assertStringContainsString(__('reservations.labels.no_listing'), UnitReservationResource::acceptedOfferOptions($company->id)[$offer->id]);

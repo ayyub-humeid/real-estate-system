@@ -15,7 +15,7 @@ use Tests\TestCase;
 /** The offer page shows sales-language buttons, only when they apply, and always explains a refusal. */
 class OfferScreenTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshDatabase, \Tests\Concerns\MakesReadyUnits;
 
     private const PERMISSIONS = ['create_lead', 'view_any_lead', 'view_lead', 'create_opportunity', 'view_any_opportunity', 'view_opportunity', 'update_opportunity',
         'create_crm::offer', 'view_any_crm::offer', 'view_crm::offer', 'update_crm::offer', 'create_offer_revision', 'update_offer_revision', 'view_any_offer_revision', 'view_offer_revision',
@@ -42,7 +42,7 @@ class OfferScreenTest extends TestCase
         $lead = app(LeadIntakeService::class)->createLead($actor, ['name' => 'Nour', 'phone' => '0591'.random_int(100000, 999999), 'source' => CrmInquirySource::Manual->value]);
         $opportunity = app(OpportunityService::class)->create($actor, ['lead_id' => $lead->id, 'type' => OpportunityType::Sale->value]);
 
-        return app(OfferNegotiationService::class)->createQuickOffer($actor, ['opportunity_id' => $opportunity->id, ...$price]);
+        return app(OfferNegotiationService::class)->createQuickOffer($actor, ['opportunity_id' => $opportunity->id, 'unit_id' => $this->readyUnitId((int) $actor->company_id), ...$price]);
     }
 
     private function page(CrmOffer $offer)
@@ -72,6 +72,26 @@ class OfferScreenTest extends TestCase
         $this->assertSame(OfferStatus::Negotiating, $offer->fresh()->status);
     }
 
+    public function test_the_offer_page_leads_with_the_price_and_shows_the_agreement_only_once_there_is_one(): void
+    {
+        $actor = $this->actor($this->company());
+        $this->actingAs($actor);
+        $offer = $this->offer($actor, ['amount' => 240000, 'currency' => 'USD', 'send_now' => true]);
+
+        // Open negotiation: the headline price, the deal and the team are shown; the empty agreement card is not.
+        $this->page($offer)
+            ->assertSee(__('crm.offers.fields.latest_amount'))->assertSee('240,000 USD')
+            ->assertSee(__('crm.offers.sections.deal'))->assertSee('Nour')
+            ->assertSee(__('crm.offers.sections.team'))
+            ->assertDontSee(__('crm.offers.sections.agreement'))
+            ->assertDontSee(__('crm.offers.fields.agreed_amount'));
+
+        $this->page($offer)->callAction('accept_offer')->assertHasNoActionErrors();
+
+        $this->page($offer->fresh())
+            ->assertSee(__('crm.offers.sections.agreement'))
+            ->assertSee(__('crm.offers.fields.agreed_amount'));
+    }
     public function test_customer_counter_then_manager_approval_then_acceptance(): void
     {
         $actor = $this->actor($this->company());

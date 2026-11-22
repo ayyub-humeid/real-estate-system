@@ -16,13 +16,13 @@ use Tests\TestCase;
 
 class OfferNegotiationWorkflowTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshDatabase, \Tests\Concerns\MakesReadyUnits;
 
     private function company(string $name): Company { return Company::create(['name' => $name, 'email' => strtolower($name) . '@test.local']); }
     private function user(Company $company, array $permissions): User { $user = User::factory()->create(['company_id' => $company->id]); foreach ($permissions as $permission) $user->givePermissionTo(Permission::findOrCreate($permission, 'web')); return $user; }
     private function permissions(): array { return ['create_lead', 'create_opportunity', 'view_opportunity', 'move_opportunity_stage', 'create_crm::offer', 'view_any_crm::offer', 'view_crm::offer', 'update_crm::offer', 'assign_offer', 'create_offer_revision', 'update_offer_revision', 'view_offer_revision', 'finalize_offer_revision', 'request_offer_approval', 'approve_offer_revision', 'reject_offer_revision', 'confirm_offer_agreement', 'withdraw_offer', 'close_offer', 'expire_offer']; }
     private function opportunity(User $actor, OpportunityType $type = OpportunityType::Sale): \App\Models\Opportunity { $lead = app(LeadIntakeService::class)->createLead($actor, ['name' => 'Nour', 'phone' => '0591234567', 'source' => CrmInquirySource::Manual->value]); return app(OpportunityService::class)->create($actor, ['lead_id' => $lead->id, 'type' => $type->value, 'source' => CrmInquirySource::Manual->value]); }
-    private function offer(User $actor, \App\Models\Opportunity $opportunity): CrmOffer { return app(OfferNegotiationService::class)->createOffer($actor, ['opportunity_id' => $opportunity->id, 'transaction_type' => $opportunity->type->value]); }
+    private function offer(User $actor, \App\Models\Opportunity $opportunity): CrmOffer { return app(OfferNegotiationService::class)->createOffer($actor, ['opportunity_id' => $opportunity->id, 'transaction_type' => $opportunity->type->value, 'unit_id' => $this->readyUnitId((int) $opportunity->company_id)]); }
     private function draft(User $actor, CrmOffer $offer, array $extra = []): \App\Models\CrmOfferRevision { return app(OfferNegotiationService::class)->createDraftRevision($actor, $offer, ['proposed_by_side' => OfferProposedBySide::Customer->value, 'amount' => 110000, 'currency' => 'USD', ...$extra]); }
 
     public function test_offer_reference_and_revision_numbers_are_generated_without_manual_input(): void
@@ -91,8 +91,8 @@ class OfferNegotiationWorkflowTest extends TestCase
         $ahmad = $this->user($company, ['view_own_crm_offer', 'manage_own_crm_offer']);
         $otherEmployee = $this->user($company, []);
         $opportunity = $this->opportunity($manager);
-        $owned = app(OfferNegotiationService::class)->createOffer($manager, ['opportunity_id' => $opportunity->id, 'transaction_type' => 'sale', 'assigned_to' => $ahmad->id]);
-        $other = app(OfferNegotiationService::class)->createOffer($manager, ['opportunity_id' => $opportunity->id, 'transaction_type' => 'sale', 'assigned_to' => $otherEmployee->id]);
+        $owned = app(OfferNegotiationService::class)->createOffer($manager, ['opportunity_id' => $opportunity->id, 'transaction_type' => 'sale', 'assigned_to' => $ahmad->id, 'unit_id' => $this->readyUnitId($company->id)]);
+        $other = app(OfferNegotiationService::class)->createOffer($manager, ['opportunity_id' => $opportunity->id, 'transaction_type' => 'sale', 'assigned_to' => $otherEmployee->id, 'unit_id' => $this->readyUnitId($company->id)]);
 
         $this->assertTrue($ahmad->can('viewAny', CrmOffer::class));
         $this->assertTrue($ahmad->can('view', $owned));
