@@ -672,7 +672,7 @@ class DemoRealEstateCompanySeeder extends Seeder
 
         // 11. Listings (العروض العقارية)
         $listing101 = Listing::firstOrCreate(
-            ['company_id' => $company->id, 'listable_type' => Unit::class, 'listable_id' => $unit101->id],
+            ['company_id' => $company->id, 'listable_type' => 'unit', 'listable_id' => $unit101->id],
             [
                 'listing_type' => ListingType::Sale,
                 'title' => 'للبيع: بنتهاوس ملكي فاخر بإطلالة بانورامية - برج الأفق الرياض',
@@ -684,7 +684,7 @@ class DemoRealEstateCompanySeeder extends Seeder
         );
 
         $listing301 = Listing::firstOrCreate(
-            ['company_id' => $company->id, 'listable_type' => Unit::class, 'listable_id' => $unit301->id],
+            ['company_id' => $company->id, 'listable_type' => 'unit', 'listable_id' => $unit301->id],
             [
                 'listing_type' => ListingType::Sale,
                 'title' => 'للبيع: شقة عائلية 3 غرف بتشطيبات راقية - واحة النرجس',
@@ -696,7 +696,7 @@ class DemoRealEstateCompanySeeder extends Seeder
         );
 
         Listing::firstOrCreate(
-            ['company_id' => $company->id, 'listable_type' => Unit::class, 'listable_id' => $unitG01->id],
+            ['company_id' => $company->id, 'listable_type' => 'unit', 'listable_id' => $unitG01->id],
             [
                 'listing_type' => ListingType::Rent,
                 'title' => 'للإيجار السنوي: معرض تجاري رئيسي على طريق الملك فهد',
