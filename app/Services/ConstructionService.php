@@ -154,7 +154,8 @@ class ConstructionService
         return DB::transaction(function () use ($actor, $package) {
             $record = ConstructionWorkPackage::withoutGlobalScopes()->lockForUpdate()->findOrFail($package->id);
             $tasks = $record->tasks()->where('status', '!=', 'cancelled')->lockForUpdate()->get();
-            if ($tasks->isEmpty() || $tasks->contains(fn($task) => $task->status !== 'completed'))
+            // Tasks are optional detail: a stage with no tasks can be completed; when tasks exist, all must be completed.
+            if ($tasks->contains(fn($task) => $task->status !== 'completed'))
                 $this->invalid('work package', __('Every active task must be completed before this work package can be completed.'));
             if ($this->hasCriticalIssues($record))
                 $this->invalid('work package', __('Resolve active critical issues before completing this work package.'));

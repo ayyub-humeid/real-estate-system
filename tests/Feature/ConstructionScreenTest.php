@@ -129,6 +129,51 @@ class ConstructionScreenTest extends TestCase
         $this->assertSame('planned', $stage->fresh()->status);
     }
 
+    public function test_a_stage_without_tasks_can_be_completed_from_the_screen(): void
+    {
+        $actor = $this->actor($company = $this->company());
+        $construction = $this->construction($actor, $company);
+        $service = app(ConstructionService::class);
+        $service->startConstruction($actor, $construction);
+        $stage = $service->createWorkPackage($actor, $construction->fresh(), ['name' => 'Site clearing']);
+        $service->startWorkPackage($actor, $stage);
+
+        // Tasks are optional detail: with none, the stage closes in one click.
+        $this->stages($construction->fresh())
+            ->callTableAction('completePackage', $stage->fresh())
+            ->assertHasNoTableActionErrors()
+            ->assertNotified(__('project.construction.done.package_completed'));
+
+        $this->assertSame('completed', $stage->fresh()->status);
+        $this->assertSame(100.0, (float) $stage->fresh()->progress_percentage);
+        $this->assertSame(0, ConstructionWorkPackageTask::withoutGlobalScopes()->count());
+    }
+
+    public function test_a_stage_with_an_unfinished_task_still_cannot_be_completed(): void
+    {
+        $actor = $this->actor($company = $this->company());
+        $construction = $this->construction($actor, $company);
+        $service = app(ConstructionService::class);
+        $service->startConstruction($actor, $construction);
+        $stage = $service->createWorkPackage($actor, $construction->fresh(), ['name' => 'Structure']);
+        $service->startWorkPackage($actor, $stage);
+        $task = $service->createTask($actor, $stage->fresh(), ['name' => 'Pour slab']);
+        $service->startTask($actor, $task);
+        $service->recordProgress($actor, $task->fresh(), ['progress_percentage' => 100, 'reported_at' => today()->toDateString()]);
+
+        // 100% progress is not the same as completed: the task itself must be completed first.
+        $this->stages($construction->fresh())
+            ->callTableAction('completePackage', $stage->fresh())
+            ->assertNotified(__('crm.errors.action_failed'));
+        $this->assertSame('in_progress', $stage->fresh()->status);
+
+        $service->completeTask($actor, $task->fresh());
+        $this->stages($construction->fresh())
+            ->callTableAction('completePackage', $stage->fresh())
+            ->assertNotified(__('project.construction.done.package_completed'));
+        $this->assertSame('completed', $stage->fresh()->status);
+    }
+
     public function test_schedule_health_flags_overdue_and_attention_stages(): void
     {
         $actor = $this->actor($company = $this->company());
