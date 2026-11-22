@@ -22,7 +22,7 @@ class CreateTenant extends CreateRecord
             return DB::transaction(function () use ($data) {
                 // ✅ Validate user data exists
                 if (!isset($data['user'])) {
-                    throw new \Exception('User data is required');
+                    throw new \Exception(__('User data is required'));
                 }
 
                 // Extract user data
@@ -51,7 +51,7 @@ class CreateTenant extends CreateRecord
 
                 // ✅ Validate required fields
                 if (empty($data['user_id']) || empty($data['company_id'])) {
-                    throw new \Exception('User ID or Company ID is missing');
+                    throw new \Exception(__('User ID or Company ID is missing'));
                 }
 
                 // ✅ Create Tenant

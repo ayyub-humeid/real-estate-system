@@ -39,7 +39,7 @@ class Employee extends Model
         if (Auth::hasUser() && !Auth::user()->isSuperAdmin()) {
             if (!Auth::user()->company->canAddEmployee()) {
                 throw \Illuminate\Validation\ValidationException::withMessages([
-                    'limit' => 'You have reached the maximum number of employees allowed by your plan.',
+                    'limit' => __('You have reached the maximum number of employees allowed by your plan.'),
                 ]);
             }
         }

@@ -50,7 +50,7 @@ class Unit extends Model
         static::saving(function (self $model): void {
             if (filled($model->type) && ! UnitType::isValid($model->type)) {
                 throw \Illuminate\Validation\ValidationException::withMessages([
-                    'type' => 'Select a valid Unit type.',
+                    'type' => __('Select a valid Unit type.'),
                 ]);
             }
         });
@@ -60,7 +60,7 @@ class Unit extends Model
             if (Auth::hasUser() && !Auth::user()->isSuperAdmin()) {
                 if (!Auth::user()->company->canAddUnit()) {
                     throw \Illuminate\Validation\ValidationException::withMessages([
-                        'limit' => 'You have reached the maximum number of units allowed by your plan.',
+                        'limit' => __('You have reached the maximum number of units allowed by your plan.'),
                     ]);
                 }
             }

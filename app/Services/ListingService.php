@@ -44,14 +44,14 @@ class ListingService
     {
         $this->authorize($actor, 'update', $listing);
         if ($listing->status === ListingStatus::Archived) {
-            $this->invalid('listing', 'Archived Listings must be restored before editing.');
+            $this->invalid('listing', __('Archived Listings must be restored before editing.'));
         }
 
         $company = $this->companyForRecord($actor, $listing);
         if ((isset($attributes['listable_type']) && $attributes['listable_type'] !== $listing->listable_type)
             || (isset($attributes['listable_id']) && (int) $attributes['listable_id'] !== (int) $listing->listable_id)
         ) {
-            $this->invalid('listable_id', 'A Listing target is immutable after creation. Create a new Listing for another Unit.');
+            $this->invalid('listable_id', __('A Listing target is immutable after creation. Create a new Listing for another Unit.'));
         }
         $type = $listing->listable_type;
         $target = $this->targetFromStoredListing($listing);
@@ -70,7 +70,7 @@ class ListingService
         return DB::transaction(function () use ($actor, $listing, $type, $target, $data, $pricingChanged, $attributes): Listing {
             $locked = Listing::withoutGlobalScopes()->lockForUpdate()->findOrFail($listing->id);
             if ($locked->status === ListingStatus::Archived) {
-                $this->invalid('listing', 'Archived Listings must be restored before editing.');
+                $this->invalid('listing', __('Archived Listings must be restored before editing.'));
             }
             $was = $locked->only(['asking_price', 'currency', 'rent_frequency']);
             $locked->update(array_merge($data, [
@@ -117,7 +117,7 @@ class ListingService
             $locked = Listing::withoutGlobalScopes()->lockForUpdate()->findOrFail($listing->id);
             $current = $locked->status;
             if (! $current->canTransitionTo($target)) {
-                $this->invalid('status', "Cannot move a Listing from {$current->value} to {$target->value}.");
+                $this->invalid('status', __('Cannot move a Listing from :from to :to.', ['from' => status_label($current->value), 'to' => status_label($target->value)]));
             }
             $subject = $this->targetFromStoredListing($locked);
             if ($target === ListingStatus::Published) {
@@ -143,25 +143,25 @@ class ListingService
     {
         $listingType = ListingType::tryFrom((string) ($attributes['listing_type'] ?? ''));
         if (! $listingType) {
-            $this->invalid('listing_type', 'Select sale or rent.');
+            $this->invalid('listing_type', __('Select sale or rent.'));
         }
         $title = trim((string) ($attributes['title'] ?? ''));
         if ($title === '') {
-            $this->invalid('title', 'A Listing title is required.');
+            $this->invalid('title', __('A Listing title is required.'));
         }
         $price = $attributes['asking_price'] ?? null;
         if (! is_numeric($price) || (float) $price <= 0) {
-            $this->invalid('asking_price', 'Asking price must be greater than zero.');
+            $this->invalid('asking_price', __('Asking price must be greater than zero.'));
         }
         $currency = strtoupper(trim((string) ($attributes['currency'] ?? '')));
         if (! preg_match('/^[A-Z]{3}$/', $currency)) {
-            $this->invalid('currency', 'Currency must be a three-letter ISO code.');
+            $this->invalid('currency', __('Currency must be a three-letter ISO code.'));
         }
 
         $rentFrequency = $attributes['rent_frequency'] ?? null;
         if ($listingType === ListingType::Rent) {
             if (! RentFrequency::tryFrom((string) $rentFrequency)) {
-                $this->invalid('rent_frequency', 'Rent frequency is required for a rental Listing.');
+                $this->invalid('rent_frequency', __('Rent frequency is required for a rental Listing.'));
             }
         } else {
             $rentFrequency = null;
@@ -169,11 +169,11 @@ class ListingService
 
         $minimum = $attributes['minimum_lease_months'] ?? null;
         if ($minimum !== null && (! filter_var($minimum, FILTER_VALIDATE_INT) || (int) $minimum < 1)) {
-            $this->invalid('minimum_lease_months', 'Minimum lease months must be at least one.');
+            $this->invalid('minimum_lease_months', __('Minimum lease months must be at least one.'));
         }
         $deposit = $attributes['security_deposit'] ?? null;
         if ($deposit !== null && (! is_numeric($deposit) || (float) $deposit < 0)) {
-            $this->invalid('security_deposit', 'Security deposit cannot be negative.');
+            $this->invalid('security_deposit', __('Security deposit cannot be negative.'));
         }
 
         return [
@@ -193,15 +193,15 @@ class ListingService
     {
         $type = $attributes['listable_type'] ?? null;
         if (! isset(self::TARGETS[$type])) {
-            $this->invalid('listable_type', 'Select an Actual Unit or Planned Unit.');
+            $this->invalid('listable_type', __('Select an Actual Unit or Planned Unit.'));
         }
         $class = Relation::getMorphedModel($type);
         if ($class !== self::TARGETS[$type]) {
-            $this->invalid('listable_type', 'Unsupported Listing target type.');
+            $this->invalid('listable_type', __('Unsupported Listing target type.'));
         }
         $target = $class::withoutGlobalScopes()->findOrFail($attributes['listable_id'] ?? 0);
         if ((int) $target->company_id !== $companyId) {
-            $this->invalid('listable_id', 'The selected Listing target belongs to another company.');
+            $this->invalid('listable_id', __('The selected Listing target belongs to another company.'));
         }
 
         return [$type, $target];
@@ -223,15 +223,15 @@ class ListingService
                 $this->invalid('listable_id', __('unit.errors.not_marketable', ['status' => $status->getLabel()]));
             }
             if ($status === UnitStatus::Inactive) {
-                $this->invalid('listable_id', 'An inactive Unit cannot be marketed.');
+                $this->invalid('listable_id', __('An inactive Unit cannot be marketed.'));
             }
             if ($status === UnitStatus::Maintenance && ! $this->allowsMaintenanceMarketing($listing->company_id)) {
-                $this->invalid('listable_id', 'This company does not allow maintenance Units to be marketed.');
+                $this->invalid('listable_id', __('This company does not allow maintenance Units to be marketed.'));
             }
             return;
         }
         if ($target instanceof ProjectPlannedUnit && ! in_array($target->status, ['approved', 'converted'], true)) {
-            $this->invalid('listable_id', 'Only an approved or converted Planned Unit may be marketed.');
+            $this->invalid('listable_id', __('Only an approved or converted Planned Unit may be marketed.'));
         }
     }
 
@@ -246,15 +246,15 @@ class ListingService
     {
         if ($actor->isSuperAdmin()) {
             if (! $requestedId) {
-                $this->invalid('company_id', 'Select the company that will own this Listing.');
+                $this->invalid('company_id', __('Select the company that will own this Listing.'));
             }
             return Company::findOrFail($requestedId);
         }
         if (! $actor->company_id) {
-            $this->invalid('company_id', 'Your user account has no company context.');
+            $this->invalid('company_id', __('Your user account has no company context.'));
         }
         if ($requestedId && (int) $requestedId !== (int) $actor->company_id) {
-            $this->invalid('company_id', 'Company is derived from your current company context.');
+            $this->invalid('company_id', __('Company is derived from your current company context.'));
         }
         return Company::findOrFail($actor->company_id);
     }

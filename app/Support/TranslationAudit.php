@@ -74,6 +74,44 @@ class TranslationAudit
         return $found;
     }
 
+    /**
+     * Error and validation messages thrown as plain English (`->invalid('x', 'Message')`,
+     * `ValidationException::withMessages([...])`, `throw new XException('Message')`), which an
+     * Arabic user would read untranslated. Short key-style names are translated downstream.
+     *
+     * @return string[] "file:line text"
+     */
+    public function rawMessages(): array
+    {
+        $patterns = [
+            '/->(?:invalid|fail|reject|deny)\(\s*[\'"][^\'"]+[\'"]\s*,\s*([\'"])((?:(?!\1)[^\\\\]|\\\\.)*)\1\s*\)/',
+            '/withMessages\(\s*\[[^\]]*?=>\s*([\'"])((?:(?!\1)[^\\\\]|\\\\.)*)\1/',
+            '/throw new \\\\?(?:\w+\\\\)*\w*Exception\(\s*([\'"])((?:(?!\1)[^\\\\]|\\\\.)*)\1/',
+        ];
+        $found = [];
+
+        foreach (File::allFiles(base_path('app')) as $file) {
+            $relative = str_replace('\\', '/', substr($file->getPathname(), strlen(base_path()) + 1));
+            if (! str_ends_with($relative, '.php') || $relative === 'app/Support/TranslationAudit.php') {
+                continue;
+            }
+            $code = file_get_contents($file->getPathname());
+
+            foreach ($patterns as $pattern) {
+                preg_match_all($pattern, $code, $matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
+                foreach ($matches as $hit) {
+                    $text = $hit[2][0];
+                    if (! preg_match('/[A-Za-z]{3}/', $text) || preg_match('/^[a-z0-9_.]+$/', $text)) {
+                        continue;
+                    }
+                    $found[] = $relative.':'.(substr_count(substr($code, 0, $hit[0][1]), "\n") + 1).'  '.$text;
+                }
+            }
+        }
+
+        return $found;
+    }
+
     /** @return array<string, mixed> */
     private function flatten(array $items, string $prefix = ''): array
     {

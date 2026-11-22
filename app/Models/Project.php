@@ -32,7 +32,7 @@ class Project extends Model
 
             if ($hasFinancialHistory) {
                 throw ValidationException::withMessages([
-                    'currency' => 'Project currency is locked once financial history exists.',
+                    'currency' => __('Project currency is locked once financial history exists.'),
                 ]);
             }
         });

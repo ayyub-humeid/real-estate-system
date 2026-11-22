@@ -67,7 +67,7 @@ class User extends Authenticatable implements FilamentUser
             if (Auth::hasUser() && !Auth::user()->isSuperAdmin()) {
                 if (!Auth::user()->company->canAddUser()) {
                     throw \Illuminate\Validation\ValidationException::withMessages([
-                        'limit' => 'You have reached the maximum number of users allowed by your plan.',
+                        'limit' => __('You have reached the maximum number of users allowed by your plan.'),
                     ]);
                 }
             }

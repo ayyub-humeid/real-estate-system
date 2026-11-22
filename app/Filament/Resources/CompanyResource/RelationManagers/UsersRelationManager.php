@@ -112,7 +112,7 @@ class UsersRelationManager extends RelationManager
                     ->using(function (array $data) {
                         $roleId = $data['role_id'] ?? null;
                         unset($data['role_id']);
-                        if (! $roleId) throw new \InvalidArgumentException('A company role is required.');
+                        if (! $roleId) throw new \InvalidArgumentException(__('A company role is required.'));
 
                         $user = \App\Models\User::create($data);
                         app(CompanyRoleService::class)->assignRole($user, Role::findOrFail($roleId));
@@ -131,7 +131,7 @@ class UsersRelationManager extends RelationManager
                     ->using(function (\App\Models\User $record, array $data) {
                         $roleId = $data['role_id'] ?? null;
                         unset($data['role_id']);
-                        if (! $roleId) throw new \InvalidArgumentException('A company role is required.');
+                        if (! $roleId) throw new \InvalidArgumentException(__('A company role is required.'));
 
                         $record->updateQuietly($data);
                         app(CompanyRoleService::class)->assignRole($record, Role::findOrFail($roleId));

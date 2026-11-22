@@ -41,7 +41,7 @@ class UnitSetupService
     {
         $this->authorize($actor, 'update', $unit);
         if ($unit->status === UnitStatus::Inactive->value)
-            $this->invalid('unit', 'Inactive Units cannot be edited; reactivate them first.');
+            $this->invalid('unit', __('Inactive Units cannot be edited; reactivate them first.'));
         $property = Property::withoutGlobalScopes()->findOrFail($attributes['property_id'] ?? $unit->property_id);
         $data = $this->validatedData($property, $attributes, $unit);
         $unit->update($data);
@@ -55,17 +55,17 @@ class UnitSetupService
         if (!$actor->can('create_actual_unit_from_planned_unit'))
             throw new AuthorizationException;
         if ($planned->status !== 'approved')
-            $this->invalid('planned_unit', 'Only an approved planned unit may be converted.');
+            $this->invalid('planned_unit', __('Only an approved planned unit may be converted.'));
         if (!in_array($project->status, ['in_progress', 'completed', 'closed'], true))
-            $this->invalid('project', 'The project must be in progress, completed, or closed.');
+            $this->invalid('project', __('The project must be in progress, completed, or closed.'));
         return DB::transaction(function () use ($actor, $planned, $project, $attributes): Unit {
             $locked = ProjectPlannedUnit::withoutGlobalScopes()->lockForUpdate()->findOrFail($planned->id);
             if ($locked->actualUnit()->withoutGlobalScopes()->exists())
-                $this->invalid('planned_unit', 'This planned unit already has an actual Unit.');
+                $this->invalid('planned_unit', __('This planned unit already has an actual Unit.'));
             $property = Property::withoutGlobalScopes()->findOrFail($attributes['property_id'] ?? 0);
             $this->sameCompany($locked, $property);
             if (!$project->activeProjectProperties()->where('property_id', $property->id)->exists())
-                $this->invalid('property_id', 'The property must be actively attached to this project.');
+                $this->invalid('property_id', __('The property must be actively attached to this project.'));
             $data = $this->validatedData($property, $attributes + [
                 'project_id' => $project->id,
                 'planned_unit_id' => $locked->id,
@@ -85,18 +85,18 @@ class UnitSetupService
             $unit = Unit::withoutGlobalScopes()->lockForUpdate()->findOrFail($unit->id);
             $target = UnitStatus::tryFrom($to);
             if (!$target)
-                $this->invalid('status', 'Select a valid physical Unit status.');
+                $this->invalid('status', __('Select a valid physical Unit status.'));
             $current = UnitStatus::tryFrom($unit->status);
             if ($target->isSetByContract() || $current?->isSetByContract())
                 $this->assertManualSoldRentedChange($unit, $target, $reason);
             if (!$current || !$current->canTransitionTo($target))
-                $this->invalid('status', "Cannot move a Unit from {$unit->status} to {$to}.");
+                $this->invalid('status', __('Cannot move a Unit from :from to :to.', ['from' => status_label($unit->status), 'to' => status_label($to)]));
             if ($to === 'ready' && (!$unit->property_id || !$unit->unit_number || !$unit->type || !$unit->actual_area || !$unit->area_unit))
-                $this->invalid('status', 'A property, unit number, type, actual area, and area unit are required before a Unit is ready.');
+                $this->invalid('status', __('A property, unit number, type, actual area, and area unit are required before a Unit is ready.'));
             if ($to === 'inactive' && blank($reason))
-                $this->invalid('reason', 'An inactive reason is required.');
+                $this->invalid('reason', __('An inactive reason is required.'));
             if ($to === 'draft' && blank($reason))
-                $this->invalid('reason', 'A reactivation reason is required.');
+                $this->invalid('reason', __('A reactivation reason is required.'));
             $from = $unit->status;
             $unit->update(['status' => $to, 'ready_at' => $to === 'ready' ? ($unit->ready_at ?? now()) : $unit->ready_at, 'inactive_at' => $to === 'inactive' ? now() : null, 'inactive_reason' => $to === 'inactive' ? $reason : null]);
             UnitStatusHistory::withoutGlobalScopes()->create(['company_id' => $unit->company_id, 'unit_id' => $unit->id, 'from_status' => $from, 'to_status' => $to, 'reason' => $reason, 'changed_by' => $actor->id, 'changed_at' => now()]);
@@ -110,9 +110,9 @@ class UnitSetupService
     {
         $this->authorize($actor, 'changeOwnership', $unit);
         if (empty($allocations))
-            $this->invalid('ownerships', 'At least one owner is required.');
+            $this->invalid('ownerships', __('At least one owner is required.'));
         if (round(array_sum(array_map(fn($row) => (float) ($row['ownership_percentage'] ?? 0), $allocations)), 2) !== 100.0)
-            $this->invalid('ownerships', 'Active ownership must total exactly 100%.');
+            $this->invalid('ownerships', __('Active ownership must total exactly 100%.'));
         DB::transaction(function () use ($actor, $unit, $allocations, $startDate, $notes): void {
             $locked = Unit::withoutGlobalScopes()->lockForUpdate()->findOrFail($unit->id);
             $locked->activeOwnerships()->lockForUpdate()->update(['end_date' => $startDate]);
@@ -130,7 +130,7 @@ class UnitSetupService
         return DB::transaction(function () use ($actor, $unit, $attributes): DocumentVersion {
             $document = isset($attributes['document_id']) ? Document::findOrFail($attributes['document_id']) : $unit->documents()->create(['title' => $attributes['title'], 'description' => $attributes['description'] ?? null, 'created_by' => $actor->id]);
             if ($document->documentable_type !== Unit::class || (int) $document->documentable_id !== (int) $unit->id)
-                $this->invalid('document_id', 'The document must belong to this Unit.');
+                $this->invalid('document_id', __('The document must belong to this Unit.'));
             $version = $document->versions()->create(['company_id' => $unit->company_id, 'version_number' => ((int) $document->versions()->max('version_number')) + 1, 'file_name' => $attributes['file_name'], 'file_path' => $attributes['file_path'], 'mime_type' => $attributes['mime_type'] ?? null, 'file_size' => $attributes['file_size'] ?? null, 'notes' => $attributes['notes'] ?? null, 'uploaded_by' => $actor->id]);
             return $version;
         });
@@ -139,26 +139,26 @@ class UnitSetupService
     private function validatedData(Property $property, array $attributes, ?Unit $unit = null): array
     {
         if (isset($attributes['company_id']) && (int) $attributes['company_id'] !== (int) $property->company_id)
-            $this->invalid('company_id', 'Company is derived from the Property.');
+            $this->invalid('company_id', __('Company is derived from the Property.'));
         if ($unit && (int) $unit->company_id !== (int) $property->company_id)
-            $this->invalid('property_id', 'A Unit cannot move to a Property from another company.');
+            $this->invalid('property_id', __('A Unit cannot move to a Property from another company.'));
         $projectId = $attributes['project_id'] ?? $unit?->project_id;
         $plannedId = $attributes['planned_unit_id'] ?? $unit?->planned_unit_id;
         if ($projectId) {
             $project = Project::withoutGlobalScopes()->findOrFail($projectId);
             $this->sameCompany($property, $project);
             if (!$project->activeProjectProperties()->where('property_id', $property->id)->exists())
-                $this->invalid('property_id', 'The Property is not actively attached to this Project.');
+                $this->invalid('property_id', __('The Property is not actively attached to this Project.'));
         }
         if ($plannedId) {
             $planned = ProjectPlannedUnit::withoutGlobalScopes()->findOrFail($plannedId);
             $this->sameCompany($property, $planned);
             $plannedProjectId = $planned->floor->building->project_id;
             if ((int) $projectId !== (int) $plannedProjectId)
-                $this->invalid('planned_unit_id', 'The planned Unit must belong to the selected Project.');
+                $this->invalid('planned_unit_id', __('The planned Unit must belong to the selected Project.'));
         }
         if (array_key_exists('type', $attributes) && filled($attributes['type']) && ! UnitType::isValid($attributes['type']))
-            $this->invalid('type', 'Select a valid Unit type.');
+            $this->invalid('type', __('Select a valid Unit type.'));
         return collect($attributes)->only(['property_id', 'project_id', 'planned_unit_id', 'unit_number', 'type', 'bedrooms', 'bathrooms', 'sqft', 'actual_area', 'area_unit', 'location_label', 'description', 'is_featured'])->all();
     }
     private function authorize(User $actor, string $ability, object $record): void
@@ -169,7 +169,7 @@ class UnitSetupService
     private function sameCompany(object $left, object $right): void
     {
         if ((int) $left->company_id !== (int) $right->company_id)
-            $this->invalid('company_id', 'Records from different companies cannot be associated.');
+            $this->invalid('company_id', __('Records from different companies cannot be associated.'));
     }
     /**
      * Sold/Rented normally come from an activated contract. An admin may still set or

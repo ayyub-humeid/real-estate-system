@@ -341,21 +341,21 @@ class ProjectBuildingsRelationManager extends RelationManager
     private function floorForBuilding(ProjectBuilding $building, int|string $id): ProjectBuildingFloor
     {
         $floor = ProjectBuildingFloor::withoutGlobalScopes()->find($id);
-        if (! $floor || (int) $floor->project_building_id !== (int) $building->id) throw ValidationException::withMessages(['floor_id' => 'The selected floor does not belong to this building.']);
+        if (! $floor || (int) $floor->project_building_id !== (int) $building->id) throw ValidationException::withMessages(['floor_id' => __('The selected floor does not belong to this building.')]);
         return $floor;
     }
 
     private function unitForBuilding(ProjectBuilding $building, int|string $id): ProjectPlannedUnit
     {
         $unit = ProjectPlannedUnit::withoutGlobalScopes()->with('floor')->find($id);
-        if (! $unit || (int) $unit->floor->project_building_id !== (int) $building->id) throw ValidationException::withMessages(['planned_unit_id' => 'The selected planned unit does not belong to this building.']);
+        if (! $unit || (int) $unit->floor->project_building_id !== (int) $building->id) throw ValidationException::withMessages(['planned_unit_id' => __('The selected planned unit does not belong to this building.')]);
         return $unit;
     }
 
     private function specificationForBuilding(ProjectBuilding $building, int|string $id): PlannedUnitSpecification
     {
         $specification = PlannedUnitSpecification::withoutGlobalScopes()->with('plannedUnit.floor')->find($id);
-        if (! $specification || (int) $specification->plannedUnit->floor->project_building_id !== (int) $building->id) throw ValidationException::withMessages(['specification_id' => 'The selected specification does not belong to this building.']);
+        if (! $specification || (int) $specification->plannedUnit->floor->project_building_id !== (int) $building->id) throw ValidationException::withMessages(['specification_id' => __('The selected specification does not belong to this building.')]);
         return $specification;
     }
 

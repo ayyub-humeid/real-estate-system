@@ -19,7 +19,7 @@ class BudgetingService
         return DB::transaction(function () use ($actor, $project, $attributes) {
             $versions = ProjectBudget::withoutGlobalScopes()->where('project_id', $project->id)->lockForUpdate()->get();
             if ($versions->contains('status', 'draft'))
-                $this->invalid('budget', 'This project already has a draft budget version.');
+                $this->invalid('budget', __('This project already has a draft budget version.'));
             $next = ((int) $versions->max('version_number')) + 1;
             return ProjectBudget::create(['company_id' => $project->company_id, 'project_id' => $project->id, 'version_number' => $next, 'name' => $attributes['name'] ?? null, 'notes' => $attributes['notes'] ?? null]);
         });
@@ -33,7 +33,7 @@ class BudgetingService
         if (!empty($attributes['parent_id'])) {
             $parent = BudgetCategory::withoutGlobalScopes()->findOrFail($attributes['parent_id']);
             if ((int) $parent->project_budget_id !== (int) $budget->id)
-                $this->invalid('parent_id', 'The parent category must belong to this budget version.');
+                $this->invalid('parent_id', __('The parent category must belong to this budget version.'));
         }
         return BudgetCategory::create(array_merge(collect($attributes)->only(['parent_id', 'name', 'code', 'description', 'sort_order'])->all(), ['company_id' => $budget->company_id, 'project_budget_id' => $budget->id]));
     }
@@ -65,7 +65,7 @@ class BudgetingService
             $this->assertCategoryBelongsToBudget($budget, $parent);
 
             if ($parent->is($category) || $this->isCategoryDescendantOf($parent, $category)) {
-                $this->invalid('parent_id', 'A category cannot be its own parent or a child of itself.');
+                $this->invalid('parent_id', __('A category cannot be its own parent or a child of itself.'));
             }
         }
 
@@ -82,7 +82,7 @@ class BudgetingService
         $this->assertDraft($budget);
 
         if ($category->children()->exists() || $category->items()->exists()) {
-            $this->invalid('category', 'A category can be deleted only after its child categories and budget items are removed.');
+            $this->invalid('category', __('A category can be deleted only after its child categories and budget items are removed.'));
         }
 
         $category->delete();
@@ -126,7 +126,7 @@ class BudgetingService
         $this->authorize($actor, 'submit', $budget);
         $this->assertDraft($budget);
         if (!$budget->categories()->whereHas('items')->exists())
-            $this->invalid('budget', 'A budget needs at least one item before submission.');
+            $this->invalid('budget', __('A budget needs at least one item before submission.'));
         return DB::transaction(function () use ($actor, $budget) {
             $budget->forceFill(['status' => 'pending_approval', 'submitted_by' => $actor->id, 'submitted_at' => now()])->save();
             DB::afterCommit(fn() => $this->notify($actor, $budget->project, 'Budget submitted for approval', "Budget V{$budget->version_number} is awaiting approval."));
@@ -143,7 +143,7 @@ class BudgetingService
             $locked = ProjectBudget::withoutGlobalScopes()->where('project_id', $budget->project_id)->lockForUpdate()->get();
             $target = $locked->firstWhere('id', $budget->id);
             if (!$target || $target->status !== 'pending_approval')
-                $this->invalid('status', 'Budget approval is no longer valid.');
+                $this->invalid('status', __('Budget approval is no longer valid.'));
             foreach ($locked->where('status', 'approved') as $prior)
                 $prior->forceFill(['status' => 'superseded'])->save();
             $target->forceFill(['status' => 'approved', 'approved_by' => $actor->id, 'approved_at' => now()])->save();
@@ -168,7 +168,7 @@ class BudgetingService
         if (!in_array($budget->status, ['draft', 'pending_approval'], true))
             $this->transition('budget', $budget->status, 'cancelled');
         if (blank($reason))
-            $this->invalid('reason', 'A cancellation reason is required.');
+            $this->invalid('reason', __('A cancellation reason is required.'));
 
         $budget->forceFill([
             'status' => 'cancelled',
@@ -182,11 +182,11 @@ class BudgetingService
     {
         $this->authorize($actor, 'revision', $budget);
         if (!in_array($budget->status, ['approved', 'superseded'], true))
-            $this->invalid('budget', 'Only an approved budget can be revised.');
+            $this->invalid('budget', __('Only an approved budget can be revised.'));
         return DB::transaction(function () use ($actor, $budget, $attributes) {
             $project = Project::withoutGlobalScopes()->lockForUpdate()->findOrFail($budget->project_id);
             if (ProjectBudget::withoutGlobalScopes()->where('project_id', $project->id)->where('status', 'draft')->exists())
-                $this->invalid('budget', 'A draft budget revision already exists for this project.');
+                $this->invalid('budget', __('A draft budget revision already exists for this project.'));
             $revision = ProjectBudget::create(['company_id' => $project->company_id, 'project_id' => $project->id, 'version_number' => ((int) ProjectBudget::withoutGlobalScopes()->where('project_id', $project->id)->max('version_number')) + 1, 'name' => $attributes['name'] ?? "Revision of V{$budget->version_number}", 'notes' => $attributes['notes'] ?? null]);
             $map = [];
             foreach ($budget->categories()->orderBy('id')->get() as $category)
@@ -255,7 +255,7 @@ class BudgetingService
             if ($overBudget && !$actor->can('overBudget', $commitment))
                 throw new AuthorizationException;
             if ($overBudget && blank($reason))
-                $this->invalid('reason', 'An over-budget reason is required.');
+                $this->invalid('reason', __('An over-budget reason is required.'));
         }
         $commitment->forceFill(['status' => 'committed', 'committed_at' => now(), 'notes' => $overBudget ? trim(($commitment->notes ? $commitment->notes . "\n" : '') . "Over-budget reason: {$reason}") : $commitment->notes])->save();
         DB::afterCommit(function () use ($actor, $commitment, $overBudget) {
@@ -270,7 +270,7 @@ class BudgetingService
         if ($commitment->status !== 'committed')
             $this->transition('commitment', $commitment->status, 'released');
         if (blank($reason))
-            $this->invalid('reason', 'A release reason is required.');
+            $this->invalid('reason', __('A release reason is required.'));
         $commitment->forceFill(['status' => 'released', 'released_at' => now(), 'notes' => trim(($commitment->notes ? $commitment->notes . "\n" : '') . "Released: {$reason}")])->save();
         DB::afterCommit(fn() => $this->notify($actor, $commitment->project, 'Commitment released', $commitment->description . ' was released.'));
         return $commitment->refresh();
@@ -282,7 +282,7 @@ class BudgetingService
         if (!in_array($commitment->status, ['draft', 'committed'], true))
             $this->transition('commitment', $commitment->status, 'cancelled');
         if (blank($reason))
-            $this->invalid('reason', 'A cancellation reason is required.');
+            $this->invalid('reason', __('A cancellation reason is required.'));
         $commitment->forceFill(['status' => 'cancelled', 'notes' => trim(($commitment->notes ? $commitment->notes . "\n" : '') . "Cancelled: {$reason}")])->save();
         DB::afterCommit(fn() => $this->notify($actor, $commitment->project, 'Commitment cancelled', $commitment->description . ' was cancelled.'));
         return $commitment->refresh();
@@ -292,11 +292,11 @@ class BudgetingService
     {
         $this->authorize($actor, 'create', new FinancialCommitmentAmendment(['company_id' => $commitment->company_id]));
         if ($commitment->status !== 'committed')
-            $this->invalid('commitment', 'Only a committed obligation can be amended.');
+            $this->invalid('commitment', __('Only a committed obligation can be amended.'));
         $this->money($attributes, 'amount_change', true);
         $this->money($attributes, 'budget_amount_change', true);
         if (blank($attributes['reason'] ?? null))
-            $this->invalid('reason', 'An amendment reason is required.');
+            $this->invalid('reason', __('An amendment reason is required.'));
         return FinancialCommitmentAmendment::create(['company_id' => $commitment->company_id, 'financial_commitment_id' => $commitment->id, 'amount_change' => $attributes['amount_change'], 'budget_amount_change' => $attributes['budget_amount_change'], 'reason' => $attributes['reason'], 'status' => 'pending_approval', 'requested_by' => $actor->id, 'requested_at' => now()]);
     }
 
@@ -324,13 +324,13 @@ class BudgetingService
             $commitment = FinancialCommitment::withoutGlobalScopes()->findOrFail($attributes['financial_commitment_id']);
             $this->same($project, $commitment);
             if ($commitment->status !== 'committed')
-                $this->invalid('financial_commitment_id', 'Actual costs may be linked only to an active committed obligation.');
+                $this->invalid('financial_commitment_id', __('Actual costs may be linked only to an active committed obligation.'));
             if ($commitment->party_id && (int) $commitment->party_id !== (int) $party->id)
-                $this->invalid('party_id', 'The vendor must match the financial commitment.');
+                $this->invalid('party_id', __('The vendor must match the financial commitment.'));
         }
         [$item, $line] = $commitment ? [$commitment->item, $commitment->line] : $this->budgetContext($project, $attributes['budget_item_id'] ?? null, true);
         if ($commitment && $commitment->budget_line_id && (int) $commitment->budget_line_id !== (int) ($line?->id))
-            $this->invalid('budget_item_id', 'The budget item must match the commitment line.');
+            $this->invalid('budget_item_id', __('The budget item must match the commitment line.'));
         return ActualCost::create(array_merge(collect($attributes)->only(['name', 'amount', 'currency', 'budget_amount', 'exchange_rate_to_budget', 'incurred_at'])->all(), ['company_id' => $project->company_id, 'project_id' => $project->id, 'financial_commitment_id' => $commitment?->id, 'budget_item_id' => $item?->id, 'budget_line_id' => $line?->id, 'party_id' => $party->id, 'created_by' => $actor->id]));
     }
 
@@ -353,10 +353,10 @@ class BudgetingService
             $commitment = FinancialCommitment::withoutGlobalScopes()->findOrFail($attributes['financial_commitment_id']);
             $this->same($cost->project, $commitment);
             if ($commitment->status !== 'committed') {
-                $this->invalid('financial_commitment_id', 'Actual costs may be linked only to an active committed obligation.');
+                $this->invalid('financial_commitment_id', __('Actual costs may be linked only to an active committed obligation.'));
             }
             if ($commitment->party_id && (int) $commitment->party_id !== (int) $party->id) {
-                $this->invalid('party_id', 'The vendor must match the financial commitment.');
+                $this->invalid('party_id', __('The vendor must match the financial commitment.'));
             }
         }
 
@@ -365,7 +365,7 @@ class BudgetingService
             : $this->budgetContext($cost->project, $attributes['budget_item_id'] ?? null, true);
 
         if ($commitment && $commitment->budget_line_id && (int) $commitment->budget_line_id !== (int) ($line?->id)) {
-            $this->invalid('budget_item_id', 'The budget item must match the commitment line.');
+            $this->invalid('budget_item_id', __('The budget item must match the commitment line.'));
         }
 
         $cost->update(array_merge(
@@ -398,16 +398,16 @@ class BudgetingService
     {
         $this->authorize($actor, 'correct', $original);
         if ($original->status !== 'approved')
-            $this->invalid('actual_cost', 'Only an approved actual cost may be corrected.');
+            $this->invalid('actual_cost', __('Only an approved actual cost may be corrected.'));
         $this->money($attributes, 'amount', true);
         $this->money($attributes, 'budget_amount', true);
         if (blank($attributes['correction_reason'] ?? null))
-            $this->invalid('correction_reason', 'A correction reason is required.');
+            $this->invalid('correction_reason', __('A correction reason is required.'));
         $this->occurredOnOrBeforeToday($attributes['incurred_at'] ?? now()->toDateString(), 'incurred_at', 'Correction date');
         $net = (float) $original->amount + (float) $original->corrections()->where('status', 'approved')->sum('amount') + (float) $attributes['amount'];
         $allocated = (float) $original->allocations()->sum('actual_cost_amount');
         if ($net < $allocated)
-            $this->invalid('amount', 'A correction cannot reduce the cost below cash already allocated.');
+            $this->invalid('amount', __('A correction cannot reduce the cost below cash already allocated.'));
         return ActualCost::create(['company_id' => $original->company_id, 'project_id' => $original->project_id, 'financial_commitment_id' => $original->financial_commitment_id, 'budget_item_id' => $original->budget_item_id, 'budget_line_id' => $original->budget_line_id, 'party_id' => $original->party_id, 'name' => $original->name . ' correction', 'amount' => $attributes['amount'], 'currency' => $original->currency, 'budget_amount' => $attributes['budget_amount'], 'exchange_rate_to_budget' => $attributes['exchange_rate_to_budget'] ?? $original->exchange_rate_to_budget, 'incurred_at' => $attributes['incurred_at'] ?? now()->toDateString(), 'created_by' => $actor->id, 'correction_of_actual_cost_id' => $original->id, 'correction_reason' => $attributes['correction_reason']]);
     }
 
@@ -429,9 +429,9 @@ class BudgetingService
         if ($payment->status !== 'completed')
             $this->transition('payment', $payment->status, 'voided');
         if (blank($reason))
-            $this->invalid('reason', 'A void reason is required.');
+            $this->invalid('reason', __('A void reason is required.'));
         if ($payment->allocations()->exists())
-            $this->invalid('payment', 'A payment with allocations requires an explicit reversal before it can be voided.');
+            $this->invalid('payment', __('A payment with allocations requires an explicit reversal before it can be voided.'));
         $payment->forceFill(['status' => 'voided', 'void_reason' => $reason])->save();
         DB::afterCommit(fn() => $this->notify($actor, $payment->project, 'Payment voided', $payment->reference_number ?: 'A payment was voided.'));
         return $payment->refresh();
@@ -447,18 +447,18 @@ class BudgetingService
             $lockedPayment = Payment::withoutGlobalScopes()->lockForUpdate()->findOrFail($payment->id);
             $lockedCost = ActualCost::withoutGlobalScopes()->lockForUpdate()->findOrFail($cost->id);
             if ($lockedPayment->status !== 'completed')
-                $this->invalid('payment', 'Only completed payments may be allocated.');
+                $this->invalid('payment', __('Only completed payments may be allocated.'));
             if ($lockedCost->status !== 'approved')
-                $this->invalid('actual_cost', 'Only approved actual costs may be allocated.');
+                $this->invalid('actual_cost', __('Only approved actual costs may be allocated.'));
             if ($lockedPayment->company_id !== $lockedCost->company_id || $lockedPayment->project_id !== $lockedCost->project_id || $lockedPayment->party_id !== $lockedCost->party_id)
-                $this->invalid('payment', 'Payment and actual cost must belong to the same company, project, and vendor.');
+                $this->invalid('payment', __('Payment and actual cost must belong to the same company, project, and vendor.'));
             $paymentUsed = (float) PaymentAllocation::withoutGlobalScopes()->where('payment_id', $lockedPayment->id)->sum('payment_amount');
             $costUsed = (float) PaymentAllocation::withoutGlobalScopes()->where('allocatable_type', ActualCost::class)->where('allocatable_id', $lockedCost->id)->sum('actual_cost_amount');
             $net = (float) $lockedCost->amount + (float) $lockedCost->corrections()->where('status', 'approved')->sum('amount');
             if ($paymentUsed + (float) $attributes['payment_amount'] > (float) $lockedPayment->amount + 0.00001)
-                $this->invalid('payment_amount', 'Allocation exceeds the available payment balance.');
+                $this->invalid('payment_amount', __('Allocation exceeds the available payment balance.'));
             if ($costUsed + (float) $attributes['actual_cost_amount'] > $net + 0.00001)
-                $this->invalid('actual_cost_amount', 'Allocation exceeds the approved actual-cost balance.');
+                $this->invalid('actual_cost_amount', __('Allocation exceeds the approved actual-cost balance.'));
             return PaymentAllocation::create(['company_id' => $lockedPayment->company_id, 'project_id' => $lockedPayment->project_id, 'payment_id' => $lockedPayment->id, 'allocatable_type' => ActualCost::class, 'allocatable_id' => $lockedCost->id, 'payment_amount' => $attributes['payment_amount'], 'actual_cost_amount' => $attributes['actual_cost_amount'], 'project_amount' => $attributes['project_amount'], 'exchange_rate_to_project' => $attributes['exchange_rate_to_project'] ?? null]);
         });
     }
@@ -467,7 +467,7 @@ class BudgetingService
     {
         if ((int) $category->project_budget_id !== (int) $budget->id
             || (int) $category->company_id !== (int) $budget->company_id) {
-            $this->invalid('category', 'The selected category must belong to this budget version.');
+            $this->invalid('category', __('The selected category must belong to this budget version.'));
         }
     }
 
@@ -476,7 +476,7 @@ class BudgetingService
         $item->loadMissing('category');
 
         if (! $item->category) {
-            $this->invalid('budget_item', 'The selected budget item no longer has a category.');
+            $this->invalid('budget_item', __('The selected budget item no longer has a category.'));
         }
 
         $this->assertCategoryBelongsToBudget($budget, $item->category);
@@ -507,9 +507,9 @@ class BudgetingService
             return [null, null];
         $item = BudgetItem::withoutGlobalScopes()->with('category.budget', 'line')->findOrFail($itemId);
         if ((int) $item->company_id !== (int) $project->company_id || (int) $item->line->project_id !== (int) $project->id)
-            $this->invalid('budget_item_id', 'The budget item must belong to this project.');
+            $this->invalid('budget_item_id', __('The budget item must belong to this project.'));
         if ($mustBeCurrent && $item->category->budget->status !== 'approved')
-            $this->invalid('budget_item_id', 'New financial records must use an item from the current approved budget.');
+            $this->invalid('budget_item_id', __('New financial records must use an item from the current approved budget.'));
         return [$item, $item->line];
     }
     private function party(Project $project, mixed $id, bool $nullable): ?Party
@@ -517,7 +517,7 @@ class BudgetingService
         if (!$id) {
             if ($nullable)
                 return null;
-            $this->invalid('party_id', 'A vendor/counterparty is required.');
+            $this->invalid('party_id', __('A vendor/counterparty is required.'));
         }
         $party = Party::withoutGlobalScopes()->findOrFail($id);
         $this->same($project, $party);
@@ -529,21 +529,21 @@ class BudgetingService
             return;
         $allowed = [ProjectDesignPackage::class, PropertyAcquisition::class];
         if (!$type || !$id || !in_array($type, $allowed, true))
-            $this->invalid('source', 'The selected source type is not permitted.');
+            $this->invalid('source', __('The selected source type is not permitted.'));
         $source = $type::withoutGlobalScopes()->findOrFail($id);
         $this->same($project, $source);
         if ($source instanceof ProjectDesignPackage && (int) $source->project_id !== (int) $project->id)
-            $this->invalid('source', 'The source package must belong to this project.');
+            $this->invalid('source', __('The source package must belong to this project.'));
     }
     private function assertDraft(ProjectBudget $budget): void
     {
         if ($budget->status !== 'draft')
-            $this->invalid('budget', 'Only a draft budget can be structurally changed.');
+            $this->invalid('budget', __('Only a draft budget can be structurally changed.'));
     }
     private function assertProjectOpen(Project $p): void
     {
         if (in_array($p->status, ['closed', 'cancelled'], true))
-            $this->invalid('project', 'Financial records cannot be changed for a closed or cancelled project.');
+            $this->invalid('project', __('Financial records cannot be changed for a closed or cancelled project.'));
     }
     private function money(array $attributes, string $key, bool $signed = false): void
     {
@@ -559,7 +559,7 @@ class BudgetingService
     private function currency(?string $currency): void
     {
         if (!preg_match('/^[A-Z]{3}$/', (string) $currency))
-            $this->invalid('currency', 'Currency must be a three-letter ISO code.');
+            $this->invalid('currency', __('Currency must be a three-letter ISO code.'));
     }
     private function occurredOnOrBeforeToday(mixed $value, string $field, string $label): void
     {
@@ -576,7 +576,7 @@ class BudgetingService
     private function same(object $a, object $b): void
     {
         if ((int) $a->company_id !== (int) $b->company_id)
-            $this->invalid('company_id', 'Records from different companies cannot be associated.');
+            $this->invalid('company_id', __('Records from different companies cannot be associated.'));
     }
     private function authorize(User $u, string $ability, object $record): void
     {
@@ -589,7 +589,7 @@ class BudgetingService
     }
     private function transition(string $subject, string $from, string $to): never
     {
-        $this->invalid('status', "Cannot transition {$subject} from {$from} to {$to}.");
+        $this->invalid('status', __('Cannot transition :subject from :from to :to.', ['subject' => $subject, 'from' => status_label($from), 'to' => status_label($to)]));
     }
     private function notify(User $actor, Project $project, string $title, string $body): void
     {

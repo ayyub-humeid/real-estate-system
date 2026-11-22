@@ -25,6 +25,24 @@ if (!function_exists('storage_url')) {
     }
 }
 
+if (!function_exists('status_label')) {
+    /** A status code as the user should read it ("in_progress" -> "In progress" / "قيد التنفيذ"). */
+    function status_label(?string $status): string
+    {
+        if (blank($status)) {
+            return '—';
+        }
+
+        foreach (['project.statuses', 'unit.statuses', 'crm.offers.statuses', 'reservations.statuses', 'contract_domain.statuses'] as $group) {
+            if (\Illuminate\Support\Facades\Lang::has("{$group}.{$status}")) {
+                return (string) __("{$group}.{$status}");
+            }
+        }
+
+        return \Illuminate\Support\Str::headline($status);
+    }
+}
+
 if (!function_exists('trans_safe')) {
     /**
      * Return a translated string, guarding against PHP translation files

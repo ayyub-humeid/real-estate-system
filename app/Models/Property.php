@@ -53,7 +53,7 @@ class Property extends Model
         if (Auth::hasUser() && !Auth::user()->isSuperAdmin()) {
             if (!Auth::user()->company->canAddProperty()) {
                 throw \Illuminate\Validation\ValidationException::withMessages([
-                    'limit' => 'You have reached the maximum number of properties allowed by your plan.',
+                    'limit' => __('You have reached the maximum number of properties allowed by your plan.'),
                 ]);
             }
         }

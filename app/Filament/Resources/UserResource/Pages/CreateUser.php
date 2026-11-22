@@ -19,7 +19,7 @@ class CreateUser extends CreateRecord
         $this->roleId = $data['role_id'] ?? null;
         unset($data['role_id']);
 
-        if (! $this->roleId) throw new \InvalidArgumentException('A role is required.');
+        if (! $this->roleId) throw new \InvalidArgumentException(__('A role is required.'));
 
         return $data;
     }

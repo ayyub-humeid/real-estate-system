@@ -16,7 +16,7 @@ class ConstructionService
         $this->authorize($actor, 'update', $project);
         $this->authorize($actor, 'create', new ProjectConstruction(['company_id' => $project->company_id]));
         if (!in_array($project->status, ['approved', 'in_progress'], true))
-            $this->invalid('project', 'Construction can be prepared only for an approved or in-progress project.');
+            $this->invalid('project', __('Construction can be prepared only for an approved or in-progress project.'));
         $this->dates($attributes, 'planned_start_date', 'expected_completion_date');
         $this->party($project, $attributes['manager_party_id'] ?? null, true);
 
@@ -26,7 +26,7 @@ class ConstructionService
             $lockedProject = Project::withoutGlobalScopes()->lockForUpdate()->findOrFail($project->id);
             $cycles = ProjectConstruction::withoutGlobalScopes()->where('project_id', $lockedProject->id)->lockForUpdate();
             if ((clone $cycles)->whereIn('status', ['planned', 'in_progress'])->exists())
-                $this->invalid('project', 'This project already has an active construction execution.');
+                $this->invalid('project', __('This project already has an active construction execution.'));
             // The locked Project row serializes all creation through this service;
             // do not apply FOR UPDATE to the aggregate, which PostgreSQL forbids.
             $executionNumber = ((int) ProjectConstruction::withoutGlobalScopes()->where('project_id', $lockedProject->id)->max('execution_number')) + 1;
@@ -50,7 +50,7 @@ class ConstructionService
         if ($construction->status !== 'planned')
             $this->transition('construction', $construction->status, 'in_progress');
         if ($construction->project->status !== 'in_progress')
-            $this->invalid('project', 'Start the Project before starting site construction.');
+            $this->invalid('project', __('Start the Project before starting site construction.'));
         $construction->forceFill(['status' => 'in_progress', 'actual_start_date' => $construction->actual_start_date ?? today(), 'started_by' => $actor->id])->save();
         DB::afterCommit(fn() => $this->notify($actor, $construction->project, 'Construction started', "Construction started for {$construction->project->name}."));
         return $construction->refresh();
@@ -62,7 +62,7 @@ class ConstructionService
         if (!in_array($construction->status, ['planned', 'in_progress'], true))
             $this->transition('construction', $construction->status, 'cancelled');
         if (blank($reason))
-            $this->invalid('reason', 'A cancellation reason is required.');
+            $this->invalid('reason', __('A cancellation reason is required.'));
         $construction->forceFill(['status' => 'cancelled', 'cancelled_at' => now(), 'cancelled_by' => $actor->id, 'cancellation_reason' => $reason])->save();
         return $construction->refresh();
     }
@@ -76,9 +76,9 @@ class ConstructionService
             $record = ProjectConstruction::withoutGlobalScopes()->lockForUpdate()->findOrFail($construction->id);
             $packages = $record->workPackages()->where('status', '!=', 'cancelled')->lockForUpdate()->get();
             if ($packages->isEmpty() || $packages->contains(fn($package) => $package->status !== 'completed'))
-                $this->invalid('construction', 'Every active work package must be completed before construction can be completed.');
+                $this->invalid('construction', __('Every active work package must be completed before construction can be completed.'));
             if ($this->hasCriticalIssues($record))
-                $this->invalid('construction', 'Resolve active critical construction issues before completion.');
+                $this->invalid('construction', __('Resolve active critical construction issues before completion.'));
             $record->forceFill(['status' => 'completed', 'progress_percentage' => 100, 'actual_completion_date' => today(), 'completed_by' => $actor->id])->save();
             DB::afterCommit(fn() => $this->notify($actor, $record->project, 'Construction completed', "Construction completed for {$record->project->name}."));
             return $record->refresh();
@@ -89,7 +89,7 @@ class ConstructionService
     {
         $this->authorize($actor, 'delete', $construction);
         if ($construction->workPackages()->exists())
-            $this->invalid('construction', 'Remove the empty planned construction before adding work packages, or cancel it once work has begun.');
+            $this->invalid('construction', __('Remove the empty planned construction before adding work packages, or cancel it once work has begun.'));
         $construction->delete();
     }
 
@@ -118,7 +118,7 @@ class ConstructionService
     {
         $this->authorize($actor, 'delete', $package);
         if ($package->tasks()->exists() || $package->issues()->exists() || $package->delays()->exists())
-            $this->invalid('work_package', 'A work package with task, issue, or delay history cannot be deleted. Cancel it instead.');
+            $this->invalid('work_package', __('A work package with task, issue, or delay history cannot be deleted. Cancel it instead.'));
         $package->delete();
     }
 
@@ -128,7 +128,7 @@ class ConstructionService
         if ($package->status !== 'planned')
             $this->transition('work package', $package->status, 'in_progress');
         if ($package->construction->status !== 'in_progress')
-            $this->invalid('construction', 'Start construction before starting a work package.');
+            $this->invalid('construction', __('Start construction before starting a work package.'));
         $package->forceFill(['status' => 'in_progress', 'actual_start_date' => $package->actual_start_date ?? today()])->save();
         DB::afterCommit(fn() => $this->notify($actor, $package->construction->project, 'Work package started', "{$package->name} is now in progress."));
         return $package->refresh();
@@ -140,7 +140,7 @@ class ConstructionService
         if (!in_array($package->status, ['planned', 'in_progress'], true))
             $this->transition('work package', $package->status, 'cancelled');
         if (blank($reason))
-            $this->invalid('reason', 'A cancellation reason is required.');
+            $this->invalid('reason', __('A cancellation reason is required.'));
         $package->forceFill(['status' => 'cancelled', 'cancelled_at' => now(), 'cancelled_by' => $actor->id, 'cancellation_reason' => $reason])->save();
         $this->recalculateConstruction($package->construction);
         return $package->refresh();
@@ -155,9 +155,9 @@ class ConstructionService
             $record = ConstructionWorkPackage::withoutGlobalScopes()->lockForUpdate()->findOrFail($package->id);
             $tasks = $record->tasks()->where('status', '!=', 'cancelled')->lockForUpdate()->get();
             if ($tasks->isEmpty() || $tasks->contains(fn($task) => $task->status !== 'completed'))
-                $this->invalid('work package', 'Every active task must be completed before this work package can be completed.');
+                $this->invalid('work package', __('Every active task must be completed before this work package can be completed.'));
             if ($this->hasCriticalIssues($record))
-                $this->invalid('work package', 'Resolve active critical issues before completing this work package.');
+                $this->invalid('work package', __('Resolve active critical issues before completing this work package.'));
             $record->forceFill(['status' => 'completed', 'progress_percentage' => 100, 'actual_end_date' => today()])->save();
             $this->recalculateConstruction($record->construction);
             DB::afterCommit(fn() => $this->notify($actor, $record->construction->project, 'Work package completed', "{$record->name} is complete."));
@@ -188,7 +188,7 @@ class ConstructionService
     {
         $this->authorize($actor, 'delete', $task);
         if ($task->progressUpdates()->exists() || $task->inspections()->exists() || $task->issues()->exists() || $task->delays()->exists())
-            $this->invalid('task', 'A task with progress, inspection, issue, or delay history cannot be deleted. Cancel it instead.');
+            $this->invalid('task', __('A task with progress, inspection, issue, or delay history cannot be deleted. Cancel it instead.'));
         $task->delete();
     }
 
@@ -198,7 +198,7 @@ class ConstructionService
         if ($task->status !== 'planned')
             $this->transition('task', $task->status, 'in_progress');
         if ($task->workPackage->status !== 'in_progress')
-            $this->invalid('work package', 'Start the work package before starting a task.');
+            $this->invalid('work package', __('Start the work package before starting a task.'));
         $task->forceFill(['status' => 'in_progress', 'actual_start_date' => $task->actual_start_date ?? today()])->save();
         return $task->refresh();
     }
@@ -209,7 +209,7 @@ class ConstructionService
         if (!in_array($task->status, ['planned', 'in_progress', 'awaiting_inspection'], true))
             $this->transition('task', $task->status, 'cancelled');
         if (blank($reason))
-            $this->invalid('reason', 'A cancellation reason is required.');
+            $this->invalid('reason', __('A cancellation reason is required.'));
         $task->forceFill(['status' => 'cancelled', 'cancelled_at' => now(), 'cancelled_by' => $actor->id, 'cancellation_reason' => $reason])->save();
         $this->recalculatePackage($task->workPackage);
         return $task->refresh();
@@ -219,11 +219,11 @@ class ConstructionService
     {
         $this->authorize($actor, 'recordProgress', $task);
         if ($task->status !== 'in_progress')
-            $this->invalid('task', 'Progress can be recorded only for an in-progress task.');
+            $this->invalid('task', __('Progress can be recorded only for an in-progress task.'));
         $this->percentage($attributes['progress_percentage'] ?? null);
         $this->pastDate($attributes['reported_at'] ?? null, 'reported_at', 'Progress date');
         if ((float) $attributes['progress_percentage'] < (float) $task->progress_percentage)
-            $this->invalid('progress_percentage', 'Progress cannot decrease; use the controlled correction action.');
+            $this->invalid('progress_percentage', __('Progress cannot decrease; use the controlled correction action.'));
         return DB::transaction(function () use ($actor, $task, $attributes) {
             $task = ConstructionWorkPackageTask::withoutGlobalScopes()->lockForUpdate()->findOrFail($task->id);
             $update = ConstructionProgressUpdate::create(['company_id' => $task->company_id, 'construction_work_package_task_id' => $task->id, 'progress_percentage' => $attributes['progress_percentage'], 'reported_at' => $attributes['reported_at'], 'notes' => $attributes['notes'] ?? null, 'reported_by' => $actor->id]);
@@ -237,13 +237,13 @@ class ConstructionService
         $this->authorize($actor, 'correctProgress', $current);
         $task = $current->task;
         if (in_array($task->status, ['completed', 'cancelled'], true))
-            $this->invalid('task', 'Completed or cancelled tasks cannot receive corrections.');
+            $this->invalid('task', __('Completed or cancelled tasks cannot receive corrections.'));
         $this->percentage($attributes['progress_percentage'] ?? null);
         $this->pastDate($attributes['reported_at'] ?? null, 'reported_at', 'Progress date');
         if (blank($attributes['correction_reason'] ?? null))
-            $this->invalid('correction_reason', 'A correction reason is required.');
+            $this->invalid('correction_reason', __('A correction reason is required.'));
         if ($this->effectiveUpdate($task)?->id !== $current->id)
-            $this->invalid('progress_update', 'Only the current effective progress update can be corrected.');
+            $this->invalid('progress_update', __('Only the current effective progress update can be corrected.'));
         return DB::transaction(function () use ($actor, $current, $task, $attributes) {
             $task = ConstructionWorkPackageTask::withoutGlobalScopes()->lockForUpdate()->findOrFail($task->id);
             $update = ConstructionProgressUpdate::create(['company_id' => $task->company_id, 'construction_work_package_task_id' => $task->id, 'progress_percentage' => $attributes['progress_percentage'], 'reported_at' => $attributes['reported_at'], 'notes' => $attributes['notes'] ?? null, 'reported_by' => $actor->id, 'corrects_progress_update_id' => $current->id, 'correction_reason' => $attributes['correction_reason']]);
@@ -256,9 +256,9 @@ class ConstructionService
     {
         $this->authorize($actor, 'createInspection', $task);
         if ($task->status !== 'awaiting_inspection' || (float) $task->progress_percentage !== 100.0)
-            $this->invalid('task', 'Inspections require a task awaiting inspection at 100% progress.');
+            $this->invalid('task', __('Inspections require a task awaiting inspection at 100% progress.'));
         if (!in_array($attributes['result'] ?? null, ConstructionInspection::RESULTS, true))
-            $this->invalid('result', 'Select a supported inspection result.');
+            $this->invalid('result', __('Select a supported inspection result.'));
         $this->pastDate($attributes['inspection_date'] ?? null, 'inspection_date', 'Inspection date');
         $party = $this->party($task->workPackage->construction->project, $attributes['inspector_party_id'] ?? null, true);
         return DB::transaction(function () use ($actor, $task, $attributes, $party) {
@@ -275,9 +275,9 @@ class ConstructionService
         if (!in_array($task->status, ['in_progress', 'awaiting_inspection'], true))
             $this->transition('task', $task->status, 'completed');
         if ((float) $task->progress_percentage !== 100.0)
-            $this->invalid('progress', 'Task progress must reach 100% before completion.');
+            $this->invalid('progress', __('Task progress must reach 100% before completion.'));
         if ($task->requires_inspection && !in_array($task->inspections()->latest('id')->value('result'), ['passed', 'passed_with_notes'], true))
-            $this->invalid('inspection', 'A passed inspection is required before completing this task.');
+            $this->invalid('inspection', __('A passed inspection is required before completing this task.'));
         $task->forceFill(['status' => 'completed', 'progress_percentage' => 100, 'actual_end_date' => today()])->save();
         $this->recalculatePackage($task->workPackage);
         return $task->refresh();
@@ -288,7 +288,7 @@ class ConstructionService
         $this->authorize($actor, 'create', new ConstructionIssue(['company_id' => $package->company_id]));
         $this->assertPackageMutable($package);
         if (!in_array($attributes['severity'] ?? null, ConstructionIssue::SEVERITIES, true))
-            $this->invalid('severity', 'Select a supported issue severity.');
+            $this->invalid('severity', __('Select a supported issue severity.'));
         $this->pastDate($attributes['opened_at'] ?? null, 'opened_at', 'Issue opened date');
         $task = $this->taskForPackage($package, $attributes['construction_work_package_task_id'] ?? null);
         $this->projectMember($package->construction->project, $attributes['assigned_to_user_id'] ?? null);
@@ -306,7 +306,7 @@ class ConstructionService
         if (!in_array($to, $allowed[$issue->status] ?? [], true))
             $this->transition('issue', $issue->status, $to);
         if ($to === 'resolved' && blank($notes))
-            $this->invalid('resolution_notes', 'Resolution notes are required.');
+            $this->invalid('resolution_notes', __('Resolution notes are required.'));
         $data = ['status' => $to];
         if ($to === 'resolved')
             $data += ['resolved_at' => today(), 'resolved_by' => $actor->id, 'resolution_notes' => $notes];
@@ -319,22 +319,22 @@ class ConstructionService
         $this->authorize($actor, 'create', new ConstructionDelay(['company_id' => $package->company_id]));
         $this->assertPackageMutable($package);
         if (!in_array($attributes['reason_code'] ?? null, ConstructionDelay::REASONS, true))
-            $this->invalid('reason_code', 'Select a supported delay reason.');
+            $this->invalid('reason_code', __('Select a supported delay reason.'));
         $this->pastDate($attributes['reported_at'] ?? null, 'reported_at', 'Delay reported date');
         $task = $this->taskForPackage($package, $attributes['construction_work_package_task_id'] ?? null);
         $prior = $task ? $task->delays()->latest('id')->value('revised_end_date') : $package->delays()->whereNull('construction_work_package_task_id')->latest('id')->value('revised_end_date');
         $baseline = $prior ?: ($task?->planned_end_date ?? $package->planned_end_date);
         if (!$baseline)
-            $this->invalid('planned_end_date', 'Set a planned end date before recording a delay.');
+            $this->invalid('planned_end_date', __('Set a planned end date before recording a delay.'));
         if (blank($attributes['revised_end_date'] ?? null))
-            $this->invalid('revised_end_date', 'A revised end date is required.');
+            $this->invalid('revised_end_date', __('A revised end date is required.'));
         try {
             $revisedEndDate = Carbon::parse($attributes['revised_end_date']);
         } catch (\Throwable) {
-            $this->invalid('revised_end_date', 'Enter a valid revised end date.');
+            $this->invalid('revised_end_date', __('Enter a valid revised end date.'));
         }
         if ($revisedEndDate->lte(Carbon::parse($baseline)))
-            $this->invalid('revised_end_date', 'The revised end date must be later than the current forecast.');
+            $this->invalid('revised_end_date', __('The revised end date must be later than the current forecast.'));
         $delay = ConstructionDelay::create(['company_id' => $package->company_id, 'construction_work_package_id' => $package->id, 'construction_work_package_task_id' => $task?->id, 'baseline_end_date' => $baseline, 'revised_end_date' => $attributes['revised_end_date'], 'reason_code' => $attributes['reason_code'], 'description' => $attributes['description'] ?? null, 'reported_at' => $attributes['reported_at'], 'reported_by' => $actor->id]);
         DB::afterCommit(fn() => $this->notify($actor, $package->construction->project, 'Construction delay recorded', "A delay was recorded for {$package->name}."));
         return $delay;
@@ -388,19 +388,19 @@ class ConstructionService
     private function assertConstructionMutable(ProjectConstruction $construction): void
     {
         if (in_array($construction->status, ['completed', 'cancelled'], true) || in_array($construction->project->status, ['closed', 'cancelled'], true))
-            $this->invalid('construction', 'This construction record is historical and cannot be changed.');
+            $this->invalid('construction', __('This construction record is historical and cannot be changed.'));
     }
     private function assertPackageMutable(ConstructionWorkPackage $package): void
     {
         $this->assertConstructionMutable($package->construction);
         if (in_array($package->status, ['completed', 'cancelled'], true))
-            $this->invalid('work_package', 'Completed or cancelled work packages cannot be changed.');
+            $this->invalid('work_package', __('Completed or cancelled work packages cannot be changed.'));
     }
     private function assertTaskMutable(ConstructionWorkPackageTask $task): void
     {
         $this->assertPackageMutable($task->workPackage);
         if (in_array($task->status, ['completed', 'cancelled'], true))
-            $this->invalid('task', 'Completed or cancelled tasks cannot be changed.');
+            $this->invalid('task', __('Completed or cancelled tasks cannot be changed.'));
     }
     private function line(Project $project, mixed $id): ?BudgetLine
     {
@@ -408,7 +408,7 @@ class ConstructionService
             return null;
         $line = BudgetLine::withoutGlobalScopes()->findOrFail($id);
         if ((int) $line->company_id !== (int) $project->company_id || (int) $line->project_id !== (int) $project->id)
-            $this->invalid('budget_line_id', 'The budget line must belong to this project.');
+            $this->invalid('budget_line_id', __('The budget line must belong to this project.'));
         return $line;
     }
     private function party(Project $project, mixed $id, bool $nullable): ?Party
@@ -416,11 +416,11 @@ class ConstructionService
         if (!$id) {
             if ($nullable)
                 return null;
-            $this->invalid('party_id', 'A party is required.');
+            $this->invalid('party_id', __('A party is required.'));
         }
         $party = Party::withoutGlobalScopes()->findOrFail($id);
         if ((int) $party->company_id !== (int) $project->company_id)
-            $this->invalid('party_id', 'The selected party must belong to this project company.');
+            $this->invalid('party_id', __('The selected party must belong to this project company.'));
         return $party;
     }
     private function taskForPackage(ConstructionWorkPackage $package, mixed $id): ?ConstructionWorkPackageTask
@@ -429,7 +429,7 @@ class ConstructionService
             return null;
         $task = ConstructionWorkPackageTask::withoutGlobalScopes()->findOrFail($id);
         if ((int) $task->construction_work_package_id !== (int) $package->id || (int) $task->company_id !== (int) $package->company_id)
-            $this->invalid('construction_work_package_task_id', 'The selected task must belong to this work package.');
+            $this->invalid('construction_work_package_task_id', __('The selected task must belong to this work package.'));
         return $task;
     }
     private function projectMember(Project $project, mixed $id): void
@@ -438,7 +438,7 @@ class ConstructionService
             return;
         $member = ProjectMember::withoutGlobalScopes()->where('project_id', $project->id)->where('user_id', $id)->whereNull('ended_at')->first();
         if (!$member)
-            $this->invalid('assigned_to_user_id', 'The assignee must be an active member of this project.');
+            $this->invalid('assigned_to_user_id', __('The assignee must be an active member of this project.'));
     }
     private function dates(array $attributes, string $start, string $end): void
     {
@@ -460,11 +460,11 @@ class ConstructionService
     private function percentage(mixed $value): void
     {
         if (!is_numeric($value) || (float) $value < 0 || (float) $value > 100)
-            $this->invalid('progress_percentage', 'Progress must be between 0 and 100.');
+            $this->invalid('progress_percentage', __('Progress must be between 0 and 100.'));
     }
     private function transition(string $name, string $from, string $to): never
     {
-        $this->invalid('status', "Cannot transition {$name} from {$from} to {$to}.");
+        $this->invalid('status', __('Cannot transition :subject from :from to :to.', ['subject' => $name, 'from' => status_label($from), 'to' => status_label($to)]));
     }
     private function authorize(User $actor, string $ability, object|string $record): void
     {

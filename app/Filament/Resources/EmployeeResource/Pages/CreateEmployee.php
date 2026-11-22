@@ -67,7 +67,7 @@ class CreateEmployee extends CreateRecord
                 $data['company_id'] = $user->company_id;
 
                 if (empty($data['user_id']) || empty($data['company_id'])) {
-                    throw new \Exception('User ID or Company ID is missing');
+                    throw new \Exception(__('User ID or Company ID is missing'));
                 }
 
                 // Create Employee
