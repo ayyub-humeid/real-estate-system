@@ -608,5 +608,30 @@
     .fi-page-dashboard .fi-wi-stats-overview-stats-ctn {
         gap: 1rem !important;
     }
+
+    /* ── Offer page: the heading and next-step sentence get the full width, buttons wrap below ── */
+    .page-offer-view .fi-header {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 1rem !important;
+    }
+    .page-offer-view .fi-header-heading {
+        white-space: nowrap;
+    }
+    .page-offer-view .fi-header-subheading {
+        max-width: 48rem;
+    }
+    .page-offer-view .fi-header .fi-ac {
+        flex-wrap: wrap;
+    }
+    /* Edit sits on the title row, at its end (left in Arabic, right in English), clear of the workflow buttons. */
+    .page-offer-view .fi-header {
+        position: relative;
+    }
+    .page-offer-view .offer-edit-button {
+        position: absolute;
+        top: 0;
+        inset-inline-end: 0;
+    }
 </style>
 

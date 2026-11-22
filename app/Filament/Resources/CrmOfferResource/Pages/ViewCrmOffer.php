@@ -36,6 +36,12 @@ class ViewCrmOffer extends ViewRecord
 
     public function getTitle(): string { return $this->record->reference_number; }
 
+    /** Lets the panel stylesheet give this page's header the full width (see admin-chrome). */
+    public function getExtraBodyAttributes(): array
+    {
+        return ['class' => 'page-offer-view'];
+    }
+
     /** One sentence: where this offer stands and what to do next. */
     public function getSubheading(): string|Htmlable|null
     {
@@ -44,6 +50,7 @@ class ViewCrmOffer extends ViewRecord
 
         return match (true) {
             $this->record->status === OfferStatus::Accepted && ($reservation = $this->reservation()) !== null => __('sales.offer_next.reserved', ['number' => $reservation->reservation_number]),
+            $this->record->status === OfferStatus::Accepted && \App\Support\OfferUnitTarget::awaitsConstruction($this->record) => __('sales.offer_next.awaiting_unit', ['amount' => $amount]),
             $this->record->status === OfferStatus::Accepted => __('sales.offer_next.accepted', ['amount' => $amount]),
             $this->record->status === OfferStatus::Rejected => __('sales.offer_next.rejected'),
             $this->record->status === OfferStatus::Withdrawn => __('sales.offer_next.withdrawn'),
@@ -57,10 +64,13 @@ class ViewCrmOffer extends ViewRecord
         };
     }
 
+    /**
+     * Workflow buttons sit on their own row; Edit is pinned to the end of the title row by the panel stylesheet
+     * (the left edge in Arabic), away from the actions people take every day. All buttons are small.
+     */
     protected function getHeaderActions(): array
     {
-        return [
-            Actions\EditAction::make()->label(__('crm.actions.edit'))->visible(fn () => $this->isOpen()),
+        return array_map(fn ($action) => $action->size('sm'), [
             $this->sendPriceAction(),
             $this->askApprovalAction(),
             $this->acceptOfferAction(),
@@ -70,7 +80,8 @@ class ViewCrmOffer extends ViewRecord
             $this->openReservationAction(),
             Actions\ActionGroup::make([$this->declinedAction(), $this->withdrawAction()])
                 ->label(__('sales.offer_actions.more'))->icon('heroicon-m-ellipsis-vertical')->color('gray')->button(),
-        ];
+            Actions\EditAction::make()->label(__('crm.actions.edit'))->visible(fn () => $this->isOpen())->extraAttributes(['class' => 'offer-edit-button']),
+        ]);
     }
 
     public function getRelationManagers(): array { return [OfferRevisionsRelationManager::class, OfferApprovalsRelationManager::class]; }
@@ -294,6 +305,9 @@ class ViewCrmOffer extends ViewRecord
             ->modalSubmitActionLabel(__('sales.reservation_from_offer.submit'))
             ->visible(fn (): bool => $this->record->status === OfferStatus::Accepted && $this->reservation() === null
                 && auth()->user()->can('convertToReservation', $this->record))
+            // An off-plan unit that is not built yet cannot be reserved: say so instead of failing after the click.
+            ->disabled(fn (): bool => \App\Support\OfferUnitTarget::awaitsConstruction($this->record))
+            ->tooltip(fn (): ?string => \App\Support\OfferUnitTarget::awaitsConstruction($this->record) ? __('reservations.errors.offer_unit_not_built') : null)
             ->form(fn (): array => [
                 Forms\Components\Select::make('unit_id')
                     ->label(__('sales.fields.unit'))

@@ -143,26 +143,54 @@ class CrmOfferResource extends Resource
                 ])->defaultSort('created_at', 'desc');
     }
 
+    /**
+     * Laid out for reading: the headline facts first, then the deal on the left with the team and
+     * (once there is one) the agreement on the right. One column on phones.
+     */
     public static function infolist(Infolist $infolist): Infolist
     {
+        $hasAgreement = fn (CrmOffer $record): bool => $record->agreedRevision !== null;
+
         return $infolist->schema([
-            Components\Section::make(__('crm.offers.sections.overview'))->columnSpanFull()->schema([
-                Components\TextEntry::make('reference_number')->label(__('crm.offers.fields.reference_number'))->weight('bold'),
-                Components\TextEntry::make('opportunity.lead.name')->label(__('crm.fields.lead')),
-                Components\TextEntry::make('listing.title')->label(__('crm.fields.listing'))->placeholder(__('—'))->visible(fn (): bool => (bool) config('features.advertisements')),
-                Components\TextEntry::make('unit.unit_number')->label(__('sales.fields.unit'))->placeholder(__('—')),
-                Components\TextEntry::make('transaction_type')->label(__('crm.offers.fields.transaction_type'))->badge()->formatStateUsing(fn($state) => $state instanceof OpportunityType ? $state->getLabel() : __('crm.opportunity_types.' . $state)),
-                Components\TextEntry::make('status')->label(__('crm.fields.status'))->badge()->formatStateUsing(fn($state) => $state instanceof OfferStatus ? $state->getLabel() : __('crm.offers.statuses.' . $state))->color(fn($state) => $state instanceof OfferStatus ? $state->color() : OfferStatus::tryFrom((string) $state)?->color())->tooltip(fn($state) => $state instanceof OfferStatus ? $state->description() : OfferStatus::tryFrom((string) $state)?->description()),
-                Components\TextEntry::make('assignedTo.name')->label(__('crm.offers.fields.negotiator'))->placeholder(__('—')),
-                Components\TextEntry::make('createdBy.name')->label(__('crm.offers.fields.created_by'))->placeholder(__('—')),
-            ])->columns(3),
-            Components\Section::make(__('crm.offers.sections.agreement'))->columnSpanFull()->schema([
-                Components\TextEntry::make('agreedRevision.revision_number')->label(__('crm.offers.fields.agreed_revision'))->formatStateUsing(fn($state) => $state ? __('crm.offers.revision_number', ['number' => $state]) : '—'),
-                Components\TextEntry::make('agreedRevision.amount')->label(__('crm.offers.fields.agreed_amount'))->money(fn(CrmOffer $record) => $record->agreedRevision?->currency ?? 'USD')->placeholder(__('—')),
-                Components\TextEntry::make('reservations.reservation_number')->label(__('sales.reservation_from_offer.field'))->badge()->color('success')->placeholder(__('—')),
-                Components\TextEntry::make('agreedRevision.confirmedBy.name')->label(__('crm.offers.fields.confirmed_by'))->placeholder(__('—')),
-                Components\TextEntry::make('agreedRevision.confirmed_at')->label(__('crm.offers.fields.confirmed_at'))->dateTime()->placeholder(__('—')),
-            ])->columns(4),
+            Components\Section::make(__('crm.offers.sections.overview'))->icon('heroicon-o-document-text')->columnSpanFull()
+                ->columns(['default' => 1, 'sm' => 2, 'lg' => 4])
+                ->schema([
+                    Components\TextEntry::make('status')->label(__('crm.fields.status'))->badge()->formatStateUsing(fn($state) => $state instanceof OfferStatus ? $state->getLabel() : __('crm.offers.statuses.' . $state))->color(fn($state) => $state instanceof OfferStatus ? $state->color() : OfferStatus::tryFrom((string) $state)?->color())->tooltip(fn($state) => $state instanceof OfferStatus ? $state->description() : OfferStatus::tryFrom((string) $state)?->description()),
+                    Components\TextEntry::make('transaction_type')->label(__('crm.offers.fields.transaction_type'))->badge()->formatStateUsing(fn ($state) => $state instanceof OpportunityType ? $state->getLabel() : __('crm.opportunity_types.' . $state)),
+                    Components\TextEntry::make('latest_price')->label(__('crm.offers.fields.latest_amount'))->weight('bold')->size(Components\TextEntry\TextEntrySize::Large)->placeholder(__('—'))
+                        ->state(function (CrmOffer $record): ?string {
+                            $latest = $record->revisions()->orderByDesc('revision_number')->first();
+
+                            return $latest ? number_format((float) $latest->amount).' '.$latest->currency : null;
+                        }),
+                    Components\TextEntry::make('agreedRevision.amount')->label(__('crm.offers.fields.agreed_amount'))->weight('bold')->size(Components\TextEntry\TextEntrySize::Large)->color('success')
+                        ->money(fn (CrmOffer $record) => $record->agreedRevision?->currency ?? 'USD')->visible($hasAgreement),
+                ]),
+            Components\Grid::make(['default' => 1, 'lg' => 3])->columnSpanFull()->schema([
+                Components\Section::make(__('crm.offers.sections.deal'))->icon('heroicon-o-briefcase')->columnSpan(['lg' => 2])
+                    ->columns(['default' => 1, 'sm' => 2])
+                    ->schema([
+                        Components\TextEntry::make('opportunity.lead.name')->label(__('crm.fields.lead'))->icon('heroicon-o-user')->weight('medium'),
+                        Components\TextEntry::make('unit.unit_number')->label(__('sales.fields.unit'))->icon('heroicon-o-home-modern')->placeholder(__('—')),
+                        Components\TextEntry::make('listing.title')->label(__('crm.fields.listing'))->placeholder(__('—'))->visible(fn (): bool => (bool) config('features.advertisements')),
+                        Components\TextEntry::make('reference_number')->label(__('crm.offers.fields.reference_number'))->copyable(),
+                    ]),
+                Components\Group::make([
+                    Components\Section::make(__('crm.offers.sections.team'))->icon('heroicon-o-user-group')
+                        ->schema([
+                            Components\TextEntry::make('assignedTo.name')->label(__('crm.offers.fields.negotiator'))->placeholder(__('—')),
+                            Components\TextEntry::make('createdBy.name')->label(__('crm.offers.fields.created_by'))->placeholder(__('—')),
+                            Components\TextEntry::make('created_at')->label(__('crm.fields.created_at'))->dateTime()->placeholder(__('—')),
+                        ]),
+                    Components\Section::make(__('crm.offers.sections.agreement'))->icon('heroicon-o-check-badge')->visible($hasAgreement)
+                        ->schema([
+                            Components\TextEntry::make('agreedRevision.revision_number')->label(__('crm.offers.fields.agreed_revision'))->formatStateUsing(fn ($state) => $state ? __('crm.offers.revision_number', ['number' => $state]) : '—'),
+                            Components\TextEntry::make('reservations.reservation_number')->label(__('sales.reservation_from_offer.field'))->badge()->color('success')->placeholder(__('—')),
+                            Components\TextEntry::make('agreedRevision.confirmedBy.name')->label(__('crm.offers.fields.confirmed_by'))->placeholder(__('—')),
+                            Components\TextEntry::make('agreedRevision.confirmed_at')->label(__('crm.offers.fields.confirmed_at'))->dateTime()->placeholder(__('—')),
+                        ]),
+                ])->columnSpan(['lg' => 1]),
+            ]),
         ]);
     }
 
