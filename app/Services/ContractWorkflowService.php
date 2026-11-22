@@ -79,6 +79,7 @@ class ContractWorkflowService
             $locked->update(['status' => ContractVersionStatus::Submitted, 'submitted_at' => now()]);
             $contract->update(['status' => $targetStatus]);
             $this->history($contract, $locked, $actor, $from, $targetStatus->value, 'submitted_for_review');
+            app(SalesNotifier::class)->contractSubmitted($actor, $locked);
 
             return $locked->refresh();
         });
@@ -110,6 +111,7 @@ class ContractWorkflowService
             $locked->update(['status' => ContractVersionStatus::Approved, 'approved_at' => now()]);
             $contract->update(['status' => $targetStatus]);
             $this->history($contract, $locked, $actor, $from, $targetStatus->value, 'approved');
+            app(SalesNotifier::class)->contractDecided($actor, $locked, 'contract_approved');
 
             return $approval->refresh();
         });
@@ -144,6 +146,7 @@ class ContractWorkflowService
                 ],
             );
             $this->history($contract, $locked, $actor, $from, $targetStatus->value, 'revision_requested', $notes);
+            app(SalesNotifier::class)->contractDecided($actor, $locked, 'contract_revision_requested', ['notes' => $notes]);
 
             return $approval;
         });
@@ -356,6 +359,7 @@ class ContractWorkflowService
                 ->where('status', ContractAmendmentStatus::Draft->value)
                 ->update(['status' => ContractAmendmentStatus::Effective->value]);
             $this->history($lockedContract, $lockedVersion, $actor, $from, ContractStatus::Active->value, 'activated');
+            app(SalesNotifier::class)->contractDecided($actor, $lockedVersion, 'contract_activated');
             $this->applyActivationOutcome($lockedContract, $actor);
 
             return $lockedContract->refresh();

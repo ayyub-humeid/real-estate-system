@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Enums\{ListingStatus, ListingType, RentFrequency, UnitStatus};
 use App\Models\{Company, CompanySetting, Listing, ListingPriceHistory, ProjectPlannedUnit, Unit, User};
-use App\Notifications\ProjectWorkflowNotification;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -34,7 +33,7 @@ class ListingService
                 'updated_by' => $actor->id,
             ]));
             $this->writeInitialPriceHistory($listing, $actor);
-            DB::afterCommit(fn() => $actor->notify(new ProjectWorkflowNotification('Listing created', "{$listing->title} was saved as a draft.")));
+            DB::afterCommit(fn() => app(WorkflowNotifier::class)->send([$actor], 'notifications.listing_created', ['title' => $listing->title]));
 
             return $listing->refresh();
         });
@@ -80,7 +79,7 @@ class ListingService
             ]));
             if ($pricingChanged) {
                 $this->writePriceHistory($locked, $was, $actor, $attributes['price_change_reason'] ?? null);
-                DB::afterCommit(fn() => $actor->notify(new ProjectWorkflowNotification('Listing price changed', "Pricing was updated for {$locked->title}.")));
+                DB::afterCommit(fn() => app(WorkflowNotifier::class)->send([$actor], 'notifications.listing_price_changed', ['title' => $locked->title]));
             }
 
             return $locked->refresh();
@@ -130,10 +129,7 @@ class ListingService
                 'archived_at' => $target === ListingStatus::Archived ? now() : $locked->archived_at,
                 'updated_by' => $actor->id,
             ], fn($value) => $value !== null))->save();
-            DB::afterCommit(fn() => $actor->notify(new ProjectWorkflowNotification(
-                'Listing ' . $target->value,
-                "{$locked->title} is now {$target->value}."
-            )));
+            DB::afterCommit(fn() => app(WorkflowNotifier::class)->send([$actor], 'notifications.listing_status_changed', ['title' => $locked->title, 'status' => $target->value]));
 
             return $locked->refresh();
         });

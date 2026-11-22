@@ -61,7 +61,9 @@ class LeadIntakeService
     {
         $this->authorize($actor, 'assign', $lead);
         $owner = $this->owner($actor, $this->recordCompany($actor, $lead), $userId, true);
+        $previousOwner = $lead->assigned_to;
         $lead->update(['assigned_to' => $owner?->id, 'updated_by' => $actor->id]);
+        app(SalesNotifier::class)->leadAssigned($actor, $lead, $previousOwner);
         return $lead->refresh();
     }
     private function normalized(array $data): array

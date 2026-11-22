@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Enums\{UnitStatus, UnitType};
 use App\Models\{Document, DocumentVersion, Party, Project, ProjectPlannedUnit, Property, Unit, UnitOwnership, UnitStatusHistory, User};
-use App\Notifications\ProjectWorkflowNotification;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -73,7 +72,7 @@ class UnitSetupService
             ]);
             $unit = Unit::withoutGlobalScopes()->create($data + ['company_id' => $locked->company_id, 'project_id' => $project->id, 'planned_unit_id' => $locked->id, 'status' => UnitStatus::Draft->value]);
             $locked->update(['status' => 'converted']);
-            DB::afterCommit(fn() => $this->notify($actor, $project, 'Actual Unit created', "Actual Unit {$unit->unit_number} was created from plan {$locked->code}."));
+            DB::afterCommit(fn() => $this->notify($actor, $project, 'unit_created', ['unit' => $unit->unit_number, 'plan' => $locked->code]));
             return $unit;
         });
     }
@@ -101,7 +100,7 @@ class UnitSetupService
             $unit->update(['status' => $to, 'ready_at' => $to === 'ready' ? ($unit->ready_at ?? now()) : $unit->ready_at, 'inactive_at' => $to === 'inactive' ? now() : null, 'inactive_reason' => $to === 'inactive' ? $reason : null]);
             UnitStatusHistory::withoutGlobalScopes()->create(['company_id' => $unit->company_id, 'unit_id' => $unit->id, 'from_status' => $from, 'to_status' => $to, 'reason' => $reason, 'changed_by' => $actor->id, 'changed_at' => now()]);
             if ($to === 'ready' || $to === 'inactive')
-                DB::afterCommit(fn() => $this->notify($actor, $unit->project, "Unit {$to}", "Unit {$unit->unit_number} is now {$to}."));
+                DB::afterCommit(fn() => $this->notify($actor, $unit->project, 'unit_status_changed', ['unit' => $unit->unit_number, 'status' => $to]));
             return $unit->refresh();
         });
     }
@@ -191,12 +190,10 @@ class UnitSetupService
     {
         throw ValidationException::withMessages([$field => $message]);
     }
-    private function notify(User $actor, ?Project $project, string $title, string $body): void
+    /** Tells the project team (and the actor) in each person's own language. */
+    private function notify(User $actor, ?Project $project, string $event, array $params = []): void
     {
-        if (!$project) {
-            $actor->notify(new ProjectWorkflowNotification($title, $body));
-            return;
-        }
-        $project->activeMembers()->with('user')->get()->pluck('user')->filter()->push($actor)->unique('id')->each->notify(new ProjectWorkflowNotification($title, $body, $project->id));
+        $notifier = app(WorkflowNotifier::class);
+        $notifier->send($notifier->projectTeam($project, $actor), 'notifications.'.$event, $params, null, $project?->id);
     }
 }

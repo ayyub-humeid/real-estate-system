@@ -95,6 +95,7 @@ class ReservationWorkflowService
             $this->validateSource($locked);
             $locked->forceFill(['status' => ReservationStatus::Pending->value, 'submitted_by' => $actor->id, 'submitted_at' => now()])->save();
             $this->history($locked, ReservationStatus::Draft, ReservationStatus::Pending, 'send_for_approval', $actor);
+            app(SalesNotifier::class)->reservationSentForApproval($actor, $locked);
             return $locked->refresh();
         });
     }
@@ -114,6 +115,7 @@ class ReservationWorkflowService
             $locked->snapshot()->create(['company_id' => $locked->company_id, ...$payload, 'created_by' => $actor->id, 'created_at' => now()]);
             $locked->forceFill(['status' => ReservationStatus::Active->value, 'approved_by' => $actor->id, 'activated_at' => now()])->save();
             $this->history($locked, ReservationStatus::Pending, ReservationStatus::Active, 'approve_and_activate', $actor);
+            app(SalesNotifier::class)->reservationActivated($actor, $locked);
             return $locked->fresh(['snapshot', 'unit', 'customer']);
         });
     }
@@ -121,12 +123,16 @@ class ReservationWorkflowService
     public function rejectRequest(User $actor, UnitReservation $reservation, ?string $reason = null): UnitReservation
     {
         $this->authorize($actor, 'rejectRequest', $reservation);
-        return $this->transition($actor, $reservation, ReservationStatus::Pending, ReservationStatus::Rejected, 'reject_request', ['rejected_by' => $actor->id, 'rejected_at' => now(), 'rejection_reason' => $reason], $reason);
+        $result = $this->transition($actor, $reservation, ReservationStatus::Pending, ReservationStatus::Rejected, 'reject_request', ['rejected_by' => $actor->id, 'rejected_at' => now(), 'rejection_reason' => $reason], $reason);
+        app(SalesNotifier::class)->reservationRejected($actor, $result, $reason);
+        return $result;
     }
     public function cancelReservation(User $actor, UnitReservation $reservation, ?string $reason = null): UnitReservation
     {
         $this->authorize($actor, 'cancelReservation', $reservation);
-        return $this->transition($actor, $reservation, ReservationStatus::Active, ReservationStatus::Cancelled, 'cancel_reservation', ['cancelled_by' => $actor->id, 'cancelled_at' => now(), 'cancellation_reason' => $reason], $reason, $reservation->unit_id);
+        $result = $this->transition($actor, $reservation, ReservationStatus::Active, ReservationStatus::Cancelled, 'cancel_reservation', ['cancelled_by' => $actor->id, 'cancelled_at' => now(), 'cancellation_reason' => $reason], $reason, $reservation->unit_id);
+        app(SalesNotifier::class)->reservationCancelled($actor, $result);
+        return $result;
     }
     public function extendReservation(User $actor, UnitReservation $reservation, string $validUntil): UnitReservation
     {
@@ -150,6 +156,7 @@ class ReservationWorkflowService
             if (! $locked->valid_until || $locked->valid_until->isFuture()) $this->invalid('valid_until', 'not_expired');
             $locked->forceFill(['status' => ReservationStatus::Expired->value, 'expired_at' => now()])->save();
             $this->history($locked, ReservationStatus::Active, ReservationStatus::Expired, 'expire_reservation', $actor);
+            app(SalesNotifier::class)->reservationExpired($actor, $locked);
             $this->releaseUnit($locked->unit_id);
             return $locked->refresh();
         });
@@ -185,6 +192,7 @@ class ReservationWorkflowService
                     if (! $locked || $locked->status !== ReservationStatus::Active || ! $locked->valid_until || $locked->valid_until->greaterThan(now())) return false;
                     $locked->forceFill(['status' => ReservationStatus::Expired->value, 'expired_at' => now()])->save();
                     $this->history($locked, ReservationStatus::Active, ReservationStatus::Expired, 'expire_reservation', null);
+                    app(SalesNotifier::class)->reservationExpired(null, $locked);
                     $this->releaseUnit($locked->unit_id);
                     return true;
                 });
@@ -237,17 +245,13 @@ class ReservationWorkflowService
         // A negotiated Offer may intentionally be created without a Listing. In
         // that case, the employee must explicitly select the ready physical Unit.
         // A Listing-backed Offer remains authoritative about its own target.
-        $unitId = ! $offer->listing
-            ? (filled($data['unit_id'] ?? null) ? $data['unit_id'] : $offer->unit_id)
-            : match ($offer->listing->listable_type) {
-                'unit' => $offer->listing->listable_id,
-                'planned_unit' => Unit::withoutGlobalScopes()
-                    ->where('company_id', $companyId)
-                    ->where('planned_unit_id', $offer->listing->listable_id)
-                    ->value('id'),
-                default => null,
-            };
-        if (! $unitId) $this->invalid($offer->listing ? 'offer_id' : 'unit_id', 'accepted_offer_unit_required');
+        $listing = \App\Support\OfferUnitTarget::listingOf($offer);
+        $unitId = $listing
+            ? \App\Support\OfferUnitTarget::listingUnitId($listing, $companyId)
+            : (filled($data['unit_id'] ?? null) ? $data['unit_id'] : $offer->unit_id);
+        // Offers saved before the unit was checked up front can name a different unit than their listing.
+        if ($listing && $unitId && $offer->unit_id && (int) $offer->unit_id !== (int) $unitId) $this->invalid('offer_id', 'offer_unit_mismatch');
+        if (! $unitId) $this->invalid($listing ? 'offer_id' : 'unit_id', \App\Support\OfferUnitTarget::awaitsConstruction($offer) ? 'offer_unit_not_built' : 'accepted_offer_unit_required');
         $unit = $this->owned(Unit::class, $unitId, $companyId, 'unit_id'); $this->assertReservableUnit($unit);
         return $this->commercialAttributes(['transaction_type' => $offer->transaction_type->value, 'agreed_amount' => $revision->amount, 'currency' => $revision->currency, 'down_payment_amount' => $revision->down_payment_amount, 'payment_method' => $revision->payment_method, 'payment_terms' => $revision->payment_terms, 'rent_frequency' => $revision->rent_frequency?->value, 'lease_term_value' => $revision->lease_term_value, 'lease_term_unit' => $revision->lease_term_unit, 'deposit_amount' => $revision->deposit_amount, 'terms_json' => $revision->terms_json, 'valid_until' => $data['valid_until'] ?? null], ['source' => ReservationSource::AcceptedOffer->value, 'unit_id' => $unit->id, 'customer_party_id' => $party->id, 'opportunity_id' => $offer->opportunity_id, 'offer_id' => $offer->id, 'offer_revision_id' => $revision->id]);
     }

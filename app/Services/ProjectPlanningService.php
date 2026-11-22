@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Enums\UnitType;
 use App\Models\{PlannedUnitSpecification, Project, ProjectBuilding, ProjectBuildingFloor, ProjectMember, ProjectPlannedUnit, ProjectProperty, Property, User};
-use App\Notifications\ProjectWorkflowNotification;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -31,7 +30,7 @@ class ProjectPlanningService
         return DB::transaction(function () use ($actor, $project, $property, $attributes) {
             $link = ProjectProperty::create(array_merge($attributes, ['company_id' => $project->company_id, 'project_id' => $project->id, 'property_id' => $property->id, 'attached_at' => now()]));
             if (in_array($project->status, ['approved', 'in_progress'], true))
-                DB::afterCommit(fn() => $this->notify($actor, $project, __('project.notifications.property_attached_title'), __('project.notifications.property_attached_body', ['property' => $property->name, 'project' => $project->name])));
+                DB::afterCommit(fn() => $this->notify($actor, $project, 'project.notifications.property_attached', ['property' => $property->name, 'project' => $project->name]));
             return $link;
         });
     }
@@ -45,7 +44,7 @@ class ProjectPlanningService
         return DB::transaction(function () use ($actor, $link) {
             $link->update(['detached_at' => now()]);
             if (in_array($link->project->status, ['approved', 'in_progress'], true))
-                DB::afterCommit(fn() => $this->notify($actor, $link->project, __('project.notifications.property_detached_title'), __('project.notifications.property_detached_body', ['project' => $link->project->name])));
+                DB::afterCommit(fn() => $this->notify($actor, $link->project, 'project.notifications.property_detached', ['project' => $link->project->name]));
             return $link->refresh();
         });
     }
@@ -74,7 +73,7 @@ class ProjectPlanningService
                 throw ValidationException::withMessages(['user_id' => __('project.errors.member_already_active')]);
             $data = array_merge($attributes, ['company_id' => $project->company_id, 'project_id' => $project->id, 'user_id' => $member->id, 'started_at' => $attributes['started_at'] ?? now(), 'ended_at' => null]);
             $link = $existing ? tap($existing)->update($data)->refresh() : ProjectMember::create($data);
-            DB::afterCommit(fn() => $member->notify(new ProjectWorkflowNotification(__('project.notifications.membership_assigned_title'), __('project.notifications.membership_assigned_body', ['project' => $project->name, 'role' => $this->roleLabel($link->role)]), $project->id)));
+            DB::afterCommit(fn() => app(WorkflowNotifier::class)->send([$member], 'project.notifications.membership_assigned', ['project' => $project->name, 'role' => $link->role], null, $project->id));
             return $link;
         });
     }
@@ -86,7 +85,7 @@ class ProjectPlanningService
         if ($member->ended_at)
             throw ValidationException::withMessages(['user_id' => __('project.errors.membership_already_ended')]);
         $member->update(['ended_at' => now()]);
-        DB::afterCommit(fn() => $member->user->notify(new ProjectWorkflowNotification(__('project.notifications.membership_ended_title'), __('project.notifications.membership_ended_body', ['project' => $member->project->name]), $member->project_id)));
+        DB::afterCommit(fn() => app(WorkflowNotifier::class)->send([$member->user], 'project.notifications.membership_ended', ['project' => $member->project->name], null, $member->project_id));
         return $member->refresh();
     }
 
@@ -240,7 +239,7 @@ class ProjectPlanningService
                 $data += ['cancelled_at' => now(), 'cancellation_reason' => $reason];
             $project->update($data);
             if (in_array($to, ['approved', 'cancelled'], true))
-                DB::afterCommit(fn() => $this->notify($actor, $project, __('project.notifications.status_changed_title'), __('project.notifications.status_changed_body', ['project' => $project->name, 'status' => $this->statusLabel($to)])));
+                DB::afterCommit(fn() => $this->notify($actor, $project, 'project.notifications.status_changed', ['project' => $project->name, 'status' => $to]));
             return $project->refresh();
         });
     }
@@ -299,11 +298,11 @@ class ProjectPlanningService
         if (!$user->can($ability, $record))
             throw new AuthorizationException;
     }
-    private function notify(User $actor, Project $project, string $title, string $body): void
+    /** Tells the project team (and the actor) in each person's own language. */
+    private function notify(User $actor, Project $project, string $event, array $params = []): void
     {
-        $project->activeMembers()->with('user')->get()->pluck('user')->filter()->unique('id')->each->notify(new ProjectWorkflowNotification($title, $body, $project->id));
-        if (!$project->activeMembers()->where('user_id', $actor->id)->exists())
-            $actor->notify(new ProjectWorkflowNotification($title, $body, $project->id));
+        $notifier = app(WorkflowNotifier::class);
+        $notifier->send($notifier->projectTeam($project, $actor), $event, $params, null, $project->id);
     }
 
     private function statusLabel(string $status): string

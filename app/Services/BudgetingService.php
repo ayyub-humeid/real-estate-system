@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\{ActualCost, BudgetCategory, BudgetItem, BudgetLine, FinancialCommitment, FinancialCommitmentAmendment, Party, Payment, PaymentAllocation, Project, ProjectBudget, ProjectDesignPackage, PropertyAcquisition, User};
-use App\Notifications\ProjectWorkflowNotification;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -129,7 +128,7 @@ class BudgetingService
             $this->invalid('budget', __('A budget needs at least one item before submission.'));
         return DB::transaction(function () use ($actor, $budget) {
             $budget->forceFill(['status' => 'pending_approval', 'submitted_by' => $actor->id, 'submitted_at' => now()])->save();
-            DB::afterCommit(fn() => $this->notify($actor, $budget->project, 'Budget submitted for approval', "Budget V{$budget->version_number} is awaiting approval."));
+            DB::afterCommit(fn() => $this->notify($actor, $budget->project, 'budget_submitted', ['version' => $budget->version_number]));
             return $budget->refresh();
         });
     }
@@ -147,7 +146,7 @@ class BudgetingService
             foreach ($locked->where('status', 'approved') as $prior)
                 $prior->forceFill(['status' => 'superseded'])->save();
             $target->forceFill(['status' => 'approved', 'approved_by' => $actor->id, 'approved_at' => now()])->save();
-            DB::afterCommit(fn() => $this->notify($actor, $target->project, 'Budget approved', "Budget V{$target->version_number} is now the current baseline."));
+            DB::afterCommit(fn() => $this->notify($actor, $target->project, 'budget_approved', ['version' => $target->version_number]));
             return $target->refresh();
         });
     }
@@ -158,7 +157,7 @@ class BudgetingService
         if ($budget->status !== 'pending_approval')
             $this->transition('budget', $budget->status, 'draft');
         $budget->forceFill(['status' => 'draft', 'notes' => trim(($budget->notes ? $budget->notes . "\n" : '') . "Returned: {$reason}")])->save();
-        DB::afterCommit(fn() => $this->notify($actor, $budget->project, 'Budget returned to draft', "Budget V{$budget->version_number} requires changes."));
+        DB::afterCommit(fn() => $this->notify($actor, $budget->project, 'budget_returned', ['version' => $budget->version_number]));
         return $budget->refresh();
     }
 
@@ -174,7 +173,7 @@ class BudgetingService
             'status' => 'cancelled',
             'notes' => trim(($budget->notes ? $budget->notes . "\n" : '') . "Cancelled: {$reason}"),
         ])->save();
-        DB::afterCommit(fn() => $this->notify($actor, $budget->project, 'Budget cancelled', "Budget V{$budget->version_number} was cancelled."));
+        DB::afterCommit(fn() => $this->notify($actor, $budget->project, 'budget_cancelled', ['version' => $budget->version_number]));
         return $budget->refresh();
     }
 
@@ -259,7 +258,7 @@ class BudgetingService
         }
         $commitment->forceFill(['status' => 'committed', 'committed_at' => now(), 'notes' => $overBudget ? trim(($commitment->notes ? $commitment->notes . "\n" : '') . "Over-budget reason: {$reason}") : $commitment->notes])->save();
         DB::afterCommit(function () use ($actor, $commitment, $overBudget) {
-            $this->notify($actor, $commitment->project, $overBudget ? 'Over-budget commitment committed' : 'Financial commitment committed', $overBudget ? "{$commitment->description} exceeds its planned capacity." : "{$commitment->description} is now committed.");
+            $this->notify($actor, $commitment->project, $overBudget ? 'commitment_over_budget' : 'commitment_committed', ['description' => $commitment->description]);
         });
         return $commitment->refresh();
     }
@@ -272,7 +271,7 @@ class BudgetingService
         if (blank($reason))
             $this->invalid('reason', __('A release reason is required.'));
         $commitment->forceFill(['status' => 'released', 'released_at' => now(), 'notes' => trim(($commitment->notes ? $commitment->notes . "\n" : '') . "Released: {$reason}")])->save();
-        DB::afterCommit(fn() => $this->notify($actor, $commitment->project, 'Commitment released', $commitment->description . ' was released.'));
+        DB::afterCommit(fn() => $this->notify($actor, $commitment->project, 'commitment_released', ['description' => $commitment->description]));
         return $commitment->refresh();
     }
 
@@ -284,7 +283,7 @@ class BudgetingService
         if (blank($reason))
             $this->invalid('reason', __('A cancellation reason is required.'));
         $commitment->forceFill(['status' => 'cancelled', 'notes' => trim(($commitment->notes ? $commitment->notes . "\n" : '') . "Cancelled: {$reason}")])->save();
-        DB::afterCommit(fn() => $this->notify($actor, $commitment->project, 'Commitment cancelled', $commitment->description . ' was cancelled.'));
+        DB::afterCommit(fn() => $this->notify($actor, $commitment->project, 'commitment_cancelled', ['description' => $commitment->description]));
         return $commitment->refresh();
     }
 
@@ -306,7 +305,7 @@ class BudgetingService
         if ($amendment->status !== 'pending_approval')
             $this->transition('commitment amendment', $amendment->status, 'approved');
         $amendment->forceFill(['status' => 'approved', 'approved_by' => $actor->id, 'approved_at' => now()])->save();
-        DB::afterCommit(fn() => $this->notify($actor, $amendment->commitment->project, 'Commitment amendment approved', $amendment->reason));
+        DB::afterCommit(fn() => $this->notify($actor, $amendment->commitment->project, 'amendment_approved', ['reason' => $amendment->reason]));
         return $amendment->refresh();
     }
 
@@ -382,7 +381,7 @@ class BudgetingService
         if ($cost->status !== 'draft')
             $this->transition('actual cost', $cost->status, 'pending approval');
         $cost->forceFill(['status' => 'pending_approval', 'submitted_by' => $actor->id, 'submitted_at' => now()])->save();
-        DB::afterCommit(fn() => $this->notify($actor, $cost->project, 'Actual cost awaiting approval', "{$cost->name} was submitted for approval."));
+        DB::afterCommit(fn() => $this->notify($actor, $cost->project, 'actual_cost_submitted', ['name' => $cost->name]));
         return $cost->refresh();
     }
     public function approveActualCost(User $actor, ActualCost $cost): ActualCost
@@ -433,7 +432,7 @@ class BudgetingService
         if ($payment->allocations()->exists())
             $this->invalid('payment', __('A payment with allocations requires an explicit reversal before it can be voided.'));
         $payment->forceFill(['status' => 'voided', 'void_reason' => $reason])->save();
-        DB::afterCommit(fn() => $this->notify($actor, $payment->project, 'Payment voided', $payment->reference_number ?: 'A payment was voided.'));
+        DB::afterCommit(fn() => $this->notify($actor, $payment->project, 'payment_voided', ['reference' => $payment->reference_number ?: '#'.$payment->id]));
         return $payment->refresh();
     }
 
@@ -591,10 +590,10 @@ class BudgetingService
     {
         $this->invalid('status', __('Cannot transition :subject from :from to :to.', ['subject' => $subject, 'from' => status_label($from), 'to' => status_label($to)]));
     }
-    private function notify(User $actor, Project $project, string $title, string $body): void
+    /** Tells the project team (and the actor) in each person's own language. */
+    private function notify(User $actor, ?Project $project, string $event, array $params = []): void
     {
-        $users = $project->activeMembers()->with('user')->get()
-            ->pluck('user')->filter()->push($actor)->unique('id');
-        $users->each->notify(new ProjectWorkflowNotification($title, $body, $project->id));
+        $notifier = app(WorkflowNotifier::class);
+        $notifier->send($notifier->projectTeam($project, $actor), 'notifications.'.$event, $params, null, $project?->id);
     }
 }

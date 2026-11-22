@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\{BudgetLine, ConstructionDelay, ConstructionInspection, ConstructionIssue, ConstructionProgressUpdate, ConstructionWorkPackage, ConstructionWorkPackageTask, Party, Project, ProjectConstruction, ProjectMember, User};
-use App\Notifications\ProjectWorkflowNotification;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -52,7 +51,7 @@ class ConstructionService
         if ($construction->project->status !== 'in_progress')
             $this->invalid('project', __('Start the Project before starting site construction.'));
         $construction->forceFill(['status' => 'in_progress', 'actual_start_date' => $construction->actual_start_date ?? today(), 'started_by' => $actor->id])->save();
-        DB::afterCommit(fn() => $this->notify($actor, $construction->project, 'Construction started', "Construction started for {$construction->project->name}."));
+        DB::afterCommit(fn() => $this->notify($actor, $construction->project, 'construction_started', ['project' => $construction->project->name]));
         return $construction->refresh();
     }
 
@@ -80,7 +79,7 @@ class ConstructionService
             if ($this->hasCriticalIssues($record))
                 $this->invalid('construction', __('Resolve active critical construction issues before completion.'));
             $record->forceFill(['status' => 'completed', 'progress_percentage' => 100, 'actual_completion_date' => today(), 'completed_by' => $actor->id])->save();
-            DB::afterCommit(fn() => $this->notify($actor, $record->project, 'Construction completed', "Construction completed for {$record->project->name}."));
+            DB::afterCommit(fn() => $this->notify($actor, $record->project, 'construction_completed', ['project' => $record->project->name]));
             return $record->refresh();
         });
     }
@@ -130,7 +129,7 @@ class ConstructionService
         if ($package->construction->status !== 'in_progress')
             $this->invalid('construction', __('Start construction before starting a work package.'));
         $package->forceFill(['status' => 'in_progress', 'actual_start_date' => $package->actual_start_date ?? today()])->save();
-        DB::afterCommit(fn() => $this->notify($actor, $package->construction->project, 'Work package started', "{$package->name} is now in progress."));
+        DB::afterCommit(fn() => $this->notify($actor, $package->construction->project, 'package_started', ['package' => $package->name]));
         return $package->refresh();
     }
 
@@ -161,7 +160,7 @@ class ConstructionService
                 $this->invalid('work package', __('Resolve active critical issues before completing this work package.'));
             $record->forceFill(['status' => 'completed', 'progress_percentage' => 100, 'actual_end_date' => today()])->save();
             $this->recalculateConstruction($record->construction);
-            DB::afterCommit(fn() => $this->notify($actor, $record->construction->project, 'Work package completed', "{$record->name} is complete."));
+            DB::afterCommit(fn() => $this->notify($actor, $record->construction->project, 'package_completed', ['package' => $record->name]));
             return $record->refresh();
         });
     }
@@ -265,7 +264,7 @@ class ConstructionService
         return DB::transaction(function () use ($actor, $task, $attributes, $party) {
             $inspection = ConstructionInspection::create(['company_id' => $task->company_id, 'construction_work_package_task_id' => $task->id, 'inspector_party_id' => $party?->id, 'inspection_date' => $attributes['inspection_date'], 'result' => $attributes['result'], 'notes' => $attributes['notes'] ?? null, 'recorded_by' => $actor->id]);
             if ($inspection->result === 'failed')
-                DB::afterCommit(fn() => $this->notify($actor, $task->workPackage->construction->project, 'Construction inspection failed', "Inspection failed for {$task->name}."));
+                DB::afterCommit(fn() => $this->notify($actor, $task->workPackage->construction->project, 'inspection_failed', ['task' => $task->name]));
             return $inspection;
         });
     }
@@ -295,7 +294,7 @@ class ConstructionService
         $this->projectMember($package->construction->project, $attributes['assigned_to_user_id'] ?? null);
         $issue = ConstructionIssue::create(array_merge(collect($attributes)->only(['assigned_to_user_id', 'title', 'description', 'severity', 'opened_at'])->all(), ['company_id' => $package->company_id, 'construction_work_package_id' => $package->id, 'construction_work_package_task_id' => $task?->id]));
         if ($issue->severity === 'critical')
-            DB::afterCommit(fn() => $this->notify($actor, $package->construction->project, 'Critical construction issue', "{$issue->title} requires attention."));
+            DB::afterCommit(fn() => $this->notify($actor, $package->construction->project, 'issue_critical', ['issue' => $issue->title]));
         return $issue;
     }
 
@@ -337,7 +336,7 @@ class ConstructionService
         if ($revisedEndDate->lte(Carbon::parse($baseline)))
             $this->invalid('revised_end_date', __('The revised end date must be later than the current forecast.'));
         $delay = ConstructionDelay::create(['company_id' => $package->company_id, 'construction_work_package_id' => $package->id, 'construction_work_package_task_id' => $task?->id, 'baseline_end_date' => $baseline, 'revised_end_date' => $attributes['revised_end_date'], 'reason_code' => $attributes['reason_code'], 'description' => $attributes['description'] ?? null, 'reported_at' => $attributes['reported_at'], 'reported_by' => $actor->id]);
-        DB::afterCommit(fn() => $this->notify($actor, $package->construction->project, 'Construction delay recorded', "A delay was recorded for {$package->name}."));
+        DB::afterCommit(fn() => $this->notify($actor, $package->construction->project, 'delay_recorded', ['package' => $package->name]));
         return $delay;
     }
 
@@ -476,8 +475,10 @@ class ConstructionService
     {
         throw ValidationException::withMessages([$field => $message]);
     }
-    private function notify(User $actor, Project $project, string $title, string $body): void
+    /** Tells the project team (and the actor) in each person's own language. */
+    private function notify(User $actor, ?Project $project, string $event, array $params = []): void
     {
-        $project->activeMembers()->with('user')->get()->pluck('user')->filter()->push($actor)->unique('id')->each->notify(new ProjectWorkflowNotification($title, $body, $project->id));
+        $notifier = app(WorkflowNotifier::class);
+        $notifier->send($notifier->projectTeam($project, $actor), 'notifications.'.$event, $params, null, $project?->id);
     }
 }

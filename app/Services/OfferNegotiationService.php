@@ -2,7 +2,8 @@
 
 namespace App\Services;
 
-use App\Enums\{OfferApprovalStatus, OfferPaymentMethod, OfferProposedBySide, OfferRevisionStatus, OfferStatus, OpportunityType, RentFrequency};
+use App\Enums\{OfferApprovalStatus, OfferPaymentMethod, OfferProposedBySide, OfferRevisionStatus, OfferStatus, OpportunityType, RentFrequency, UnitStatus};
+use App\Support\OfferUnitTarget;
 use App\Models\{Company, CrmOffer, CrmOfferApproval, CrmOfferNumberSequence, CrmOfferRevision, Listing, Opportunity, User, Unit};
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Carbon;
@@ -23,7 +24,7 @@ class OfferNegotiationService
             $opportunity = $this->owned(Opportunity::class, $data['opportunity_id'] ?? null, $company->id, 'opportunity_id');
             $listing = $this->listing($data['listing_id'] ?? $opportunity->listing_id, $company->id, $opportunity);
             $type = $this->type($data['transaction_type'] ?? $opportunity->type?->value, $opportunity, $listing);
-            $unit = $this->offerUnit($data['unit_id'] ?? $opportunity->unit_id, $company->id);
+            $unit = $this->targetUnit($listing, $data['unit_id'] ?? $opportunity->unit_id, $company->id);
             $assignee = $this->user($data['assigned_to'] ?? null, $company->id, 'assigned_to');
 
             $offer = new CrmOffer;
@@ -76,7 +77,7 @@ class OfferNegotiationService
                 $this->authorize($actor, 'assign', $locked);
             $changes = ['assigned_to' => $assignee?->id];
             if (array_key_exists('unit_id', $data)) {
-                $changes['unit_id'] = $this->offerUnit($data['unit_id'], $locked->company_id)?->id;
+                $changes['unit_id'] = $this->targetUnit(OfferUnitTarget::listingOf($locked), $data['unit_id'], $locked->company_id)?->id;
             }
             $locked->update($changes);
             return $locked->refresh();
@@ -142,7 +143,9 @@ class OfferNegotiationService
                 $this->invalid('revision', __('crm.offers.errors.approval_requires_submitted'));
             if ($locked->approvals()->where('status', OfferApprovalStatus::Pending->value)->lockForUpdate()->exists())
                 $this->invalid('approval', __('crm.offers.errors.approval_pending'));
-            return CrmOfferApproval::withoutGlobalScopes()->create(['company_id' => $locked->company_id, 'offer_revision_id' => $locked->id, 'requested_by' => $actor->id, 'assigned_approver_id' => null, 'status' => OfferApprovalStatus::Pending->value]);
+            $approval = CrmOfferApproval::withoutGlobalScopes()->create(['company_id' => $locked->company_id, 'offer_revision_id' => $locked->id, 'requested_by' => $actor->id, 'assigned_approver_id' => null, 'status' => OfferApprovalStatus::Pending->value]);
+            app(SalesNotifier::class)->offerApprovalRequested($actor, $approval);
+            return $approval;
         });
     }
 
@@ -158,6 +161,7 @@ class OfferNegotiationService
             if ($locked->assigned_approver_id && $locked->assigned_approver_id !== $actor->id)
                 throw new AuthorizationException;
             $locked->update(['status' => $approved ? OfferApprovalStatus::Approved->value : OfferApprovalStatus::Rejected->value, 'decided_by' => $actor->id, 'decided_at' => now(), 'decision_notes' => $notes]);
+            app(SalesNotifier::class)->offerApprovalDecided($actor, $locked, $approved);
             return $locked->refresh();
         });
     }
@@ -176,6 +180,7 @@ class OfferNegotiationService
                 $this->invalid('approval', __('crm.offers.errors.approval_required'));
             if ($offer->agreedRevision()->lockForUpdate()->exists())
                 $this->invalid('revision', __('crm.offers.errors.agreement_exists'));
+            $this->assertOfferCanBeReserved($offer);
             $offer->revisions()->where('id', '!=', $locked->id)
                 ->where('status', OfferRevisionStatus::Submitted->value)
                 ->get()
@@ -308,9 +313,49 @@ class OfferNegotiationService
             $this->invalid('transaction_type', __('crm.offers.errors.type_mismatch'));
         return $type;
     }
-    private function offerUnit(mixed $id, int $companyId): ?Unit
+    /**
+     * Decides which unit the offer sells and refuses, right away, anything a reservation would refuse later:
+     * no unit at all, a unit that differs from the listing's, or a unit that is not available.
+     * An off-plan listing whose unit is not built yet is allowed; the reservation waits for the build.
+     */
+    private function targetUnit(?Listing $listing, mixed $chosenId, int $companyId): ?Unit
     {
-        return filled($id) ? $this->owned(Unit::class, $id, $companyId, 'unit_id') : null;
+        if ($listing) {
+            $kind = OfferUnitTarget::listingKind($listing);
+            if ($kind === null)
+                $this->invalid('listing_id', __('crm.offers.errors.listing_without_unit'));
+            $listedId = OfferUnitTarget::listingUnitId($listing, $companyId);
+            if (filled($chosenId) && (int) $chosenId !== (int) $listedId)
+                $this->invalid('unit_id', __('crm.offers.errors.unit_listing_mismatch'));
+            if (! $listedId)
+                return null;
+            $unit = $this->owned(Unit::class, $listedId, $companyId, 'unit_id');
+        } else {
+            if (! filled($chosenId))
+                $this->invalid('unit_id', __('crm.offers.errors.unit_required'));
+            $unit = $this->owned(Unit::class, $chosenId, $companyId, 'unit_id');
+        }
+        $this->assertUnitAvailable($unit);
+        return $unit;
+    }
+
+    /** At acceptance: the unit must exist (or be an off-plan unit still being built) and still be free. */
+    private function assertOfferCanBeReserved(CrmOffer $offer): void
+    {
+        $unitId = OfferUnitTarget::unitId($offer);
+        if ($unitId) {
+            $this->assertUnitAvailable(Unit::withoutGlobalScopes()->findOrFail($unitId));
+            return;
+        }
+        if (! OfferUnitTarget::awaitsConstruction($offer))
+            $this->invalid('unit_id', __('crm.offers.errors.unit_required'));
+    }
+
+    private function assertUnitAvailable(Unit $unit): void
+    {
+        $status = $unit->status instanceof UnitStatus ? $unit->status->value : (string) $unit->status;
+        if ($status !== UnitStatus::Ready->value)
+            $this->invalid('unit_id', __('crm.offers.errors.unit_not_available', ['unit' => $unit->unit_number, 'status' => status_label($status)]));
     }
     private function listing(mixed $id, int $companyId, Opportunity $opportunity): ?Listing
     {
