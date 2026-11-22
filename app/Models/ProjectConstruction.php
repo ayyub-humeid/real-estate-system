@@ -29,4 +29,19 @@ class ProjectConstruction extends Model
     {
         return $this->hasMany(ConstructionWorkPackage::class);
     }
+
+    public function tasks(): \Illuminate\Database\Eloquent\Relations\HasManyThrough
+    {
+        return $this->hasManyThrough(ConstructionWorkPackageTask::class, ConstructionWorkPackage::class, 'project_construction_id', 'construction_work_package_id');
+    }
+
+    public function issues(): \Illuminate\Database\Eloquent\Relations\HasManyThrough
+    {
+        return $this->hasManyThrough(ConstructionIssue::class, ConstructionWorkPackage::class, 'project_construction_id', 'construction_work_package_id');
+    }
+
+    public function delays(): \Illuminate\Database\Eloquent\Relations\HasManyThrough
+    {
+        return $this->hasManyThrough(ConstructionDelay::class, ConstructionWorkPackage::class, 'project_construction_id', 'construction_work_package_id');
+    }
 }
