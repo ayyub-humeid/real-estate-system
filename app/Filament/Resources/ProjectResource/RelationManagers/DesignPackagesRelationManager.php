@@ -78,7 +78,8 @@ class DesignPackagesRelationManager extends RelationManager
                     ->label(__('project.design.actions.open'))
                     ->icon('heroicon-o-arrow-top-right-on-square')
                     ->visible(fn (ProjectDesignPackage $record): bool => auth()->user()->can('view', $record))
-                    ->url(fn (ProjectDesignPackage $record): string => ProjectDesignPackageResource::getUrl('view', ['record' => $record])),
+                    ->url(fn (ProjectDesignPackage $record): string => ProjectDesignPackageResource::getUrl('view', ['record' => $record]))
+                    ->openUrlInNewTab(),
                 Tables\Actions\Action::make('editPackage')
                     ->label(__('project.design.actions.edit'))
                     ->icon('heroicon-o-pencil-square')

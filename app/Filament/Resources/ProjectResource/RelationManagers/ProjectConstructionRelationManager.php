@@ -71,7 +71,8 @@ class ProjectConstructionRelationManager extends RelationManager
                 Tables\Actions\Action::make('open')
                     ->label(__('project.construction.actions.open'))->icon('heroicon-o-arrow-top-right-on-square')
                     ->visible(fn (ProjectConstruction $record): bool => auth()->user()->can('view', $record))
-                    ->url(fn (ProjectConstruction $record): string => ProjectConstructionResource::getUrl('view', ['record' => $record])),
+                    ->url(fn (ProjectConstruction $record): string => ProjectConstructionResource::getUrl('view', ['record' => $record]))
+                    ->openUrlInNewTab(),
                 Tables\Actions\DeleteAction::make()->label(__('project.construction.actions.delete'))
                     ->modalDescription(__('project.construction.actions.delete_description'))
                     ->visible(fn (ProjectConstruction $record): bool => auth()->user()->can('delete', $record)),
