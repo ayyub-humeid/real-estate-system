@@ -1735,5 +1735,6 @@
     "Company is derived from the Property.": "تُحدد الشركة من العقار.",
     "A Unit cannot move to a Property from another company.": "لا يمكن نقل الوحدة إلى عقار يتبع شركة أخرى.",
     "The Property is not actively attached to this Project.": "العقار غير مرتبط بهذا المشروع ارتباطاً نشطاً.",
-    "The planned Unit must belong to the selected Project.": "يجب أن تتبع الوحدة المخططة المشروع المحدد."
+    "The planned Unit must belong to the selected Project.": "يجب أن تتبع الوحدة المخططة المشروع المحدد.",
+    "Open": "فتح"
 }
