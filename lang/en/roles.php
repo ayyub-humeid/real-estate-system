@@ -1,6 +1,8 @@
 <?php
 
 return [
+    'label' => 'Role',
+    'plural_label' => 'Roles',
     'names' => [
         'sales_agent' => 'Sales agent',
         'sales_manager' => 'Sales manager',

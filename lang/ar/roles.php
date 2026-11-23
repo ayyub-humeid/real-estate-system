@@ -1,6 +1,8 @@
 <?php
 
 return [
+    'label' => 'دور',
+    'plural_label' => 'الأدوار',
     'names' => [
         'sales_agent' => 'مندوب مبيعات',
         'sales_manager' => 'مدير مبيعات',

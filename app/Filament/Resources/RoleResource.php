@@ -21,17 +21,17 @@ class RoleResource extends ShieldRoleResource
 {
     public static function getModelLabel(): string
     {
-        return __('Role');
+        return __('roles.label');
     }
 
     public static function getPluralModelLabel(): string
     {
-        return __('Roles');
+        return __('roles.plural_label');
     }
 
     public static function getNavigationLabel(): string
     {
-        return __('Roles');
+        return __('roles.plural_label');
     }
 
     public static function getNavigationGroup(): ?string
