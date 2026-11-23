@@ -18,6 +18,7 @@
         "league/flysystem-aws-s3-v3": "3.0",
         "mpdf/mpdf": "^8.3",
         "pusher/pusher-php-server": "*",
+        "spatie/laravel-backup": "^10.5",
         "stripe/stripe-php": "^20.3"
     },
     "require-dev": {
