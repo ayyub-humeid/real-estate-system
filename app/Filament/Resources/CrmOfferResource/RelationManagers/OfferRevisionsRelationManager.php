@@ -23,14 +23,17 @@ class OfferRevisionsRelationManager extends RelationManager
     {
         return __('sales.price_history.title');
     }
-    /** Lets the offer page refresh this tab right after one of its buttons changes something. */
+    /**
+     * Lets the offer page refresh this tab right after one of its buttons changes something.
+     * Relation managers are lazy, so this can arrive while the tab is still a placeholder that
+     * was never mounted; rendering one has no table and would fail, and it loads fresh anyway.
+     */
     #[\Livewire\Attributes\On('offer-changed')]
     public function refreshAfterOfferChange(): void
     {
         if (! isset($this->table)) {
-            return;
+            $this->skipRender();
         }
-        $this->resetTable();
     }
 
     public function isReadOnly(): bool
