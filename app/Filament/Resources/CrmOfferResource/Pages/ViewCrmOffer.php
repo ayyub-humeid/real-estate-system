@@ -50,6 +50,7 @@ class ViewCrmOffer extends ViewRecord
 
         return match (true) {
             $this->record->status === OfferStatus::Accepted && ($reservation = $this->reservation()) !== null => __('sales.offer_next.reserved', ['number' => $reservation->reservation_number]),
+            ($taken = $this->takenUnit()) !== null => __('sales.offer_next.unit_taken', ['unit' => $taken->unit_number, 'status' => status_label($taken->status instanceof \App\Enums\UnitStatus ? $taken->status->value : (string) $taken->status)]),
             $this->record->status === OfferStatus::Accepted && \App\Support\OfferUnitTarget::awaitsConstruction($this->record) => __('sales.offer_next.awaiting_unit', ['amount' => $amount]),
             $this->record->status === OfferStatus::Accepted => __('sales.offer_next.accepted', ['amount' => $amount]),
             $this->record->status === OfferStatus::Rejected => __('sales.offer_next.rejected'),
@@ -93,6 +94,20 @@ class ViewCrmOffer extends ViewRecord
     private function isOpen(): bool
     {
         return in_array($this->record->status, [OfferStatus::Draft, OfferStatus::Negotiating], true);
+    }
+
+    /**
+     * The unit of a deal that is still live, once someone else has taken it. Says so while there is
+     * still something to save, instead of letting the seller find out at the reservation. A deal that
+     * already holds its own reservation is not a conflict, and a closed offer has nothing to warn about.
+     */
+    private function takenUnit(): ?\App\Models\Unit
+    {
+        if (! $this->isOpen() && $this->record->status !== OfferStatus::Accepted) {
+            return null;
+        }
+
+        return $this->reservation() === null ? \App\Support\OfferUnitTarget::takenUnit($this->record) : null;
     }
 
     private function latest(): ?CrmOfferRevision

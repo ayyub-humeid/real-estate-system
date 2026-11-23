@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\{CrmInquirySource, OfferProposedBySide, OfferStatus, OpportunityType, ReservationSource};
 use App\Filament\Resources\CrmOfferResource\Pages\ViewCrmOffer;
-use App\Models\{Company, CrmOffer, Listing, Location, Party, Project, ProjectBuilding, ProjectBuildingFloor, ProjectPlannedUnit, Property, Unit, User};
+use App\Models\{Company, CrmOffer, CrmOfferApproval, Listing, Location, Party, Project, ProjectBuilding, ProjectBuildingFloor, ProjectPlannedUnit, Property, Unit, User};
 use App\Services\{LeadIntakeService, OfferNegotiationService, OpportunityService, ReservationWorkflowService};
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
@@ -141,6 +141,54 @@ class OfferUnitRuleTest extends TestCase
         $this->refusedWith(fn () => $this->accept($actor, $offer), 'unit_id',
             __('crm.offers.errors.unit_not_available', ['unit' => $unit->unit_number, 'status' => status_label('reserved')]));
         $this->assertNotSame(OfferStatus::Accepted, $offer->fresh()->status);
+    }
+
+    /** Every step of the negotiation re-checks the unit, so the work stops the moment someone else takes it. */
+    public function test_a_unit_taken_mid_negotiation_stops_the_very_next_step_not_the_reservation(): void
+    {
+        $offers = app(OfferNegotiationService::class);
+        $steps = [
+            'send the price' => function (User $actor, CrmOffer $offer) use ($offers): void {
+                $offers->submitRevision($actor, $offers->createDraftRevision($actor, $offer, ['proposed_by_side' => OfferProposedBySide::Company->value, 'amount' => 120000, 'currency' => 'USD']));
+            },
+            'ask for approval' => function (User $actor, CrmOffer $offer) use ($offers): void {
+                $revision = $offers->submitRevision($actor, $offers->createDraftRevision($actor, $offer, ['proposed_by_side' => OfferProposedBySide::Company->value, 'amount' => 120000, 'currency' => 'USD']));
+                $offers->requestApproval($actor, $revision);
+            },
+        ];
+
+        foreach ($steps as $step => $run) {
+            $company = $this->company();
+            $actor = $this->actor($company);
+            $actor->givePermissionTo(Permission::findOrCreate('request_offer_approval', 'web'));
+            $unit = $this->unit($company);
+            $offer = $offers->createOffer($actor, ['opportunity_id' => $this->opportunity($actor)->id, 'transaction_type' => 'sale', 'unit_id' => $unit->id]);
+
+            $unit->forceFill(['status' => 'sold'])->save();
+
+            $this->refusedWith(fn () => $run($actor, $offer->fresh()), 'unit_id',
+                __('crm.offers.errors.unit_not_available', ['unit' => $unit->unit_number, 'status' => status_label('sold')]),
+            );
+            $this->assertSame(0, CrmOfferApproval::withoutGlobalScopes()->count(), "Step [$step] let the deal carry on.");
+        }
+    }
+
+    public function test_the_offer_page_says_the_unit_is_gone_instead_of_leaving_the_seller_to_find_out(): void
+    {
+        $company = $this->company();
+        $actor = $this->actor($company);
+        $unit = $this->unit($company);
+        $offer = app(OfferNegotiationService::class)->createOffer($actor, ['opportunity_id' => $this->opportunity($actor)->id, 'transaction_type' => 'sale', 'unit_id' => $unit->id]);
+        $this->actingAs($actor);
+
+        $warning = __('sales.offer_next.unit_taken', ['unit' => $unit->unit_number, 'status' => status_label('sold')]);
+        Livewire::test(ViewCrmOffer::class, ['record' => $offer->getRouteKey()])->assertDontSee($warning);
+
+        $unit->forceFill(['status' => 'sold'])->save();
+
+        Livewire::test(ViewCrmOffer::class, ['record' => $offer->getRouteKey()])
+            ->assertSee($warning)
+            ->assertSee(status_label('sold'));
     }
 
     public function test_an_off_plan_offer_can_be_agreed_but_explains_that_the_unit_must_be_built_before_reserving(): void

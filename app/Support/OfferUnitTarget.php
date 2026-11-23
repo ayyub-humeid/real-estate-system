@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Enums\UnitStatus;
 use App\Models\{CrmOffer, Listing, ProjectPlannedUnit, Unit};
 use Illuminate\Database\Eloquent\Relations\Relation;
 
@@ -58,6 +59,30 @@ final class OfferUnitTarget
         }
 
         return $offer->unit_id ? (int) $offer->unit_id : null;
+    }
+
+    /** The unit the offer sells, loaded, or null when there is none yet. */
+    public static function unit(CrmOffer $offer): ?Unit
+    {
+        $id = self::unitId($offer);
+
+        return $id ? Unit::withoutGlobalScopes()->find($id) : null;
+    }
+
+    /** A unit can still be sold only while it is ready; any other status means someone else holds it. */
+    public static function isAvailable(Unit $unit): bool
+    {
+        $status = $unit->status instanceof UnitStatus ? $unit->status->value : (string) $unit->status;
+
+        return $status === UnitStatus::Ready->value;
+    }
+
+    /** The offer's unit once someone else has taken it, so a screen can say so before more work is wasted. */
+    public static function takenUnit(CrmOffer $offer): ?Unit
+    {
+        $unit = self::unit($offer);
+
+        return $unit && ! self::isAvailable($unit) ? $unit : null;
     }
 
     /** True for an off-plan offer whose planned unit has not been turned into an actual unit yet. */

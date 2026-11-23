@@ -27,6 +27,15 @@ class ViewUnitReservation extends ViewRecord
     {
         $status = $this->record->status;
 
+        // Before approval the unit is not held yet, so another deal can still take it first.
+        if (in_array($status, [ReservationStatus::Draft, ReservationStatus::Pending], true)) {
+            $unit = $this->record->unit;
+            if ($unit && ! \App\Support\OfferUnitTarget::isAvailable($unit)) {
+                return __('reservations.guidance.unit_taken', ['unit' => $unit->unit_number,
+                    'status' => status_label($unit->status instanceof \App\Enums\UnitStatus ? $unit->status->value : (string) $unit->status)]);
+            }
+        }
+
         if ($status === ReservationStatus::Active && $this->record->valid_until) {
             return __('reservations.guidance.active', ['date' => $this->record->valid_until->translatedFormat('Y-m-d')]);
         }

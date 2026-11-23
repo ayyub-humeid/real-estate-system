@@ -29,6 +29,7 @@ return [
     ],
     'guidance' => [
         'draft' => 'This reservation is a draft. Send it for approval when the details are confirmed.',
+        'unit_taken' => 'Unit :unit is no longer available — it is now :status. Approval will be refused: choose another unit, or cancel this reservation.',
         'pending' => 'Waiting for a manager to approve this reservation. Once approved, the unit will be held for this customer.',
         'active' => 'The unit is held for this customer until :date. Next step: create the contract before this date.',
         'active_no_date' => 'The unit is held for this customer. Next step: create the contract.',

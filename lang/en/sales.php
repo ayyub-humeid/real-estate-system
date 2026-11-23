@@ -8,6 +8,7 @@ return [
     'fields' => [
         'project' => 'Project',
         'unit' => 'Unit',
+        'unit_status' => 'Unit status now',
         'unit_label' => 'Unit :number — :property',
     ],
     'help' => [
@@ -69,6 +70,7 @@ return [
         'waiting_approval' => 'A manager must approve the price :amount before the customer can be marked as accepted.',
         'reserved' => 'The unit is reserved under :number. Next step: create the contract from that reservation before it expires.',
         'accepted' => 'Agreed at :amount. Next step: turn this offer into a reservation to hold the unit.',
+        'unit_taken' => 'Unit :unit is no longer available — it is now :status. This deal cannot go ahead: choose another unit, or close this offer.',
         'awaiting_unit' => 'Agreed at :amount. The unit is off-plan and not built yet: create the actual unit from its plan, then turn this offer into a reservation.',
         'rejected' => 'The customer declined. This offer is closed.',
         'withdrawn' => 'We withdrew this offer. It is closed.',

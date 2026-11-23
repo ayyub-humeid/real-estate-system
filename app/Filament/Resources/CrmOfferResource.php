@@ -172,6 +172,12 @@ class CrmOfferResource extends Resource
                     ->schema([
                         Components\TextEntry::make('opportunity.lead.name')->label(__('crm.fields.lead'))->icon('heroicon-o-user')->weight('medium'),
                         Components\TextEntry::make('unit.unit_number')->label(__('sales.fields.unit'))->icon('heroicon-o-home-modern')->placeholder(__('—')),
+                        // Read live, not from the offer, so a unit taken by someone else shows up here at once.
+                        Components\TextEntry::make('unit_live_status')->label(__('sales.fields.unit_status'))->badge()
+                            ->state(fn (CrmOffer $record) => \App\Support\OfferUnitTarget::unit($record)?->status)
+                            ->formatStateUsing(fn ($state) => status_label($state instanceof \App\Enums\UnitStatus ? $state->value : (string) $state))
+                            ->color(fn ($state) => ($state instanceof \App\Enums\UnitStatus ? $state->value : (string) $state) === \App\Enums\UnitStatus::Ready->value ? 'success' : 'danger')
+                            ->placeholder(__('—')),
                         Components\TextEntry::make('listing.title')->label(__('crm.fields.listing'))->placeholder(__('—'))->visible(fn (): bool => (bool) config('features.advertisements')),
                         Components\TextEntry::make('reference_number')->label(__('crm.offers.fields.reference_number'))->copyable(),
                     ]),

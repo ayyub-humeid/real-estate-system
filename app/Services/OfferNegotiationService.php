@@ -115,6 +115,7 @@ class OfferNegotiationService
             $locked = CrmOfferRevision::withoutGlobalScopes()->lockForUpdate()->findOrFail($revision->id);
             $offer = $this->lockedOffer($locked->offer);
             $this->assertOfferOpen($offer);
+            $this->assertOfferCanBeReserved($offer);
             if ($locked->status !== OfferRevisionStatus::Draft)
                 $this->invalid('revision', __('crm.offers.errors.revision_not_draft'));
             if ($locked->expires_at && $locked->expires_at->lt(now()))
@@ -138,7 +139,7 @@ class OfferNegotiationService
         $this->authorize($actor, 'requestApproval', $revision);
         return DB::transaction(function () use ($actor, $revision): CrmOfferApproval {
             $locked = CrmOfferRevision::withoutGlobalScopes()->lockForUpdate()->findOrFail($revision->id);
-            $this->lockedOffer($locked->offer);
+            $this->assertOfferCanBeReserved($this->lockedOffer($locked->offer));
             if ($locked->status !== OfferRevisionStatus::Submitted)
                 $this->invalid('revision', __('crm.offers.errors.approval_requires_submitted'));
             if ($locked->approvals()->where('status', OfferApprovalStatus::Pending->value)->lockForUpdate()->exists())
@@ -353,9 +354,10 @@ class OfferNegotiationService
 
     private function assertUnitAvailable(Unit $unit): void
     {
-        $status = $unit->status instanceof UnitStatus ? $unit->status->value : (string) $unit->status;
-        if ($status !== UnitStatus::Ready->value)
+        if (! OfferUnitTarget::isAvailable($unit)) {
+            $status = $unit->status instanceof UnitStatus ? $unit->status->value : (string) $unit->status;
             $this->invalid('unit_id', __('crm.offers.errors.unit_not_available', ['unit' => $unit->unit_number, 'status' => status_label($status)]));
+        }
     }
     private function listing(mixed $id, int $companyId, Opportunity $opportunity): ?Listing
     {
