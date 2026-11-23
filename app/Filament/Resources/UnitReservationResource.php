@@ -100,7 +100,7 @@ class UnitReservationResource extends Resource
                 static::snapshotEntry('snapshot_actual_area', 'unit_data', 'actual_area', 'actual_area')->suffix(fn (UnitReservation $record) => ' '.(data_get($record->snapshot?->unit_data, 'area_unit') ?? '')),
                 static::snapshotEntry('snapshot_bedrooms', 'unit_data', 'bedrooms', 'bedrooms'),
                 static::snapshotEntry('snapshot_bathrooms', 'unit_data', 'bathrooms', 'bathrooms'),
-                static::snapshotEntry('snapshot_features', 'unit_data', 'features', 'features')->formatStateUsing(fn ($state) => collect($state ?? [])->map(fn (array $feature) => filled($feature['value'] ?? null) ? "{$feature['name']}: ".static::snapshotPlainValue($feature['value']) : ($feature['name'] ?? null))->filter()->implode(', '))->placeholder(__('—'))->columnSpanFull(),
+                Components\TextEntry::make('snapshot_features')->label(__('reservations.fields.features'))->state(fn (UnitReservation $record) => collect(data_get($record->snapshot?->unit_data ?? [], 'features') ?? [])->map(fn (array $feature) => filled($feature['value'] ?? null) ? "{$feature['name']}: ".static::snapshotPlainValue($feature['value']) : ($feature['name'] ?? null))->filter()->implode(', ') ?: null)->placeholder(__('—'))->columnSpanFull(),
             ])->columns(3)->columnSpanFull(),
             Components\Section::make(__('reservations.sections.commercial_terms_at_activation'))->schema([
                 static::snapshotEntry('snapshot_transaction_type', 'commercial_terms', 'transaction_type', 'transaction_type')->formatStateUsing(fn ($state) => OpportunityType::tryFrom((string) $state)?->getLabel() ?? '—'),
@@ -183,7 +183,13 @@ class UnitReservationResource extends Resource
     {
         return Components\TextEntry::make($name)
             ->label(__('reservations.fields.'.$label))
-            ->state(fn (UnitReservation $record) => data_get($record->snapshot?->{$group} ?? [], $key))
+            // Filament joins an array state into one string before any formatter runs, and that
+            // fails on the nested arrays a JSON column holds, so they are flattened up front.
+            ->state(function (UnitReservation $record) use ($group, $key): mixed {
+                $value = data_get($record->snapshot?->{$group} ?? [], $key);
+
+                return is_array($value) ? (static::snapshotPlainValue($value) ?: null) : $value;
+            })
             ->placeholder(__('—'));
     }
 
