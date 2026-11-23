@@ -27,6 +27,10 @@ class OfferRevisionsRelationManager extends RelationManager
     #[\Livewire\Attributes\On('offer-changed')]
     public function refreshAfterOfferChange(): void
     {
+        if (! isset($this->table)) {
+            return;
+        }
+        $this->resetTable();
     }
 
     public function isReadOnly(): bool
