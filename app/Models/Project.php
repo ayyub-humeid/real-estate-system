@@ -21,6 +21,16 @@ class Project extends Model
 
     protected static function booted(): void
     {
+        static::creating(function (self $project): void {
+            $user = \Illuminate\Support\Facades\Auth::user();
+
+            if ($user && ! $user->isSuperAdmin() && $user->company && ! $user->company->canAddProject()) {
+                throw ValidationException::withMessages([
+                    'limit' => __('You have reached the maximum number of active projects allowed by your plan. Complete or close a project, or upgrade your plan.'),
+                ]);
+            }
+        });
+
         static::updating(function (self $project): void {
             if (!$project->isDirty('currency'))
                 return;
