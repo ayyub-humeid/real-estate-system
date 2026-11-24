@@ -27,6 +27,12 @@ class AppServiceProvider extends ServiceProvider
         Connection::resolverFor('pgsql', function ($connection, $database, $prefix, $config) {
             return new \App\Database\PostgresConnection($connection, $database, $prefix, $config);
         });
+
+        // Excel exports must write money as numbers, not text, or SUM() returns zero.
+        $this->app->bind(
+            \Filament\Actions\Exports\Jobs\CreateXlsxFile::class,
+            \App\Jobs\CreateNumericAwareXlsxFile::class,
+        );
     }
 
     /**
