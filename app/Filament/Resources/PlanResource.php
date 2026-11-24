@@ -2,9 +2,11 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Exports\PlanExporter;
 use App\Filament\Resources\PlanResource\Pages;
 use App\Filament\Resources\PlanResource\RelationManagers;
 use App\Models\Plan;
+use Filament\Actions\ExportAction;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -62,6 +64,22 @@ class PlanResource extends Resource
                             ->numeric()
                             ->prefix('$')
                             ->step(0.01),
+                        Forms\Components\TextInput::make('annual_price')
+                            ->label(__('Yearly Price'))
+                            ->numeric()
+                            ->minValue(0)
+                            ->prefix('$')
+                            ->step(0.01)
+                            ->helperText(__('Total charged per year when a company pays yearly. Leave empty if the plan has no yearly option.')),
+                        Forms\Components\TextInput::make('trial_days')
+                            ->label(__('Free Trial (days)'))
+                            ->numeric()
+                            ->integer()
+                            ->minValue(0)
+                            ->maxValue(90)
+                            ->default(0)
+                            ->required()
+                            ->helperText(__('How many free days a new company gets on this plan. Use 0 for no trial.')),
                         Forms\Components\Select::make('billing_cycle')
                             ->label(__('Billing Cycle'))
                             ->required()
@@ -84,6 +102,12 @@ class PlanResource extends Resource
                             ->schema([
                                 Forms\Components\Fieldset::make(__('Resource Limits (Count)'))
                                     ->schema([
+                                        Forms\Components\TextInput::make('max_projects')
+                                            ->label(__('Max Active Projects'))
+                                            ->numeric()
+                                            ->minValue(0)
+                                            ->placeholder(__('Unlimited'))
+                                            ->helperText(__('Completed, closed and cancelled projects do not count.')),
                                         Forms\Components\TextInput::make('max_properties')
                                             ->label(__('Max Properties'))
                                             ->numeric()
@@ -106,23 +130,31 @@ class PlanResource extends Resource
                                     ->schema([
                                         Forms\Components\Toggle::make('maintenance_tracking')
                                             ->label(__('Maintenance Tracking'))
-                                            ->default(false),
+                                            ->default(true)
+                                            ->helperText(__('Included on all plans.')),
                                         Forms\Components\Toggle::make('rental_requests')
                                             ->label(__('Rental Requests Portal'))
-                                            ->default(false),
+                                            ->default(true)
+                                            ->helperText(__('Included on all plans.')),
                                         Forms\Components\Toggle::make('expense_tracking')
                                             ->label(__('Expense Tracking'))
-                                            ->default(false),
-                                        Forms\Components\Toggle::make('document_management')
-                                            ->label(__('Document Management'))
-                                            ->default(false),
+                                            ->default(true)
+                                            ->helperText(__('Included on all plans.')),
+                                        Forms\Components\Toggle::make('construction_tracking')
+                                            ->label(__('Construction Tracking'))
+                                            ->default(false)
+                                            ->helperText(__('Track construction phases, progress and milestones per project.')),
+                                        Forms\Components\Toggle::make('due_diligence')
+                                            ->label(__('Due Diligence & Acquisition'))
+                                            ->default(false)
+                                            ->helperText(__('Full acquisition workflow with due diligence checklists.')),
                                         Forms\Components\Toggle::make('advanced_reports')
                                             ->label(__('Analytics & Reports'))
                                             ->default(false),
                                         Forms\Components\Toggle::make('export_data')
                                             ->label(__('Data Exporting (PDF/Excel)'))
                                             ->default(false),
-                                    ])->columns(3),
+                                    ])->columns(2),
                             ]),
                     ]),
             ]);
@@ -172,6 +204,11 @@ class PlanResource extends Resource
                     ->placeholder(__('All Plans'))
                     ->trueLabel(__('Active'))
                     ->falseLabel(__('Inactive')),
+            ])
+            ->headerActions([
+                ExportAction::make()
+                    ->exporter(PlanExporter::class)
+                    ->color('gray'),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
