@@ -7,6 +7,7 @@ use App\Filament\Resources\SubscriptionResource\RelationManagers;
 use App\Models\Subscription;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -59,14 +60,14 @@ class SubscriptionResource extends Resource
                         Forms\Components\Select::make('status')
                             ->label(__('Status'))
                             ->options([
-                                'active' => __('Active'),
-                                'expired' => __('Expired'),
+                                'active'   => __('Active'),
+                                'trialing' => __('Trialing'),
+                                'expired'  => __('Expired'),
                                 'canceled' => __('Canceled'),
-                                'trailing' => __('Trailing'),
                                 'past_due' => __('Past Due'),
                             ])
                             ->required()
-                            ->default('trailing'),
+                            ->default('active'),
                     ])->columns(3),
 
                 Forms\Components\Section::make(__('Dates'))
@@ -106,19 +107,19 @@ class SubscriptionResource extends Resource
                     ->label(__('Status'))
                     ->badge()
                     ->formatStateUsing(fn(string $state): string => match ($state) {
-                        'active' => __('Active'),
-                        'expired' => __('Expired'),
+                        'active'   => __('Active'),
+                        'trialing' => __('Trialing'),
+                        'expired'  => __('Expired'),
                         'canceled' => __('Canceled'),
-                        'trailing' => __('Trailing'),
                         'past_due' => __('Past Due'),
-                        default => __($state),
+                        default    => __($state),
                     })
                     ->color(fn(string $state): string => match ($state) {
-                        'active' => 'success',
-                        'trailing' => 'warning',
+                        'active'   => 'success',
+                        'trialing' => 'warning',
                         'past_due' => 'danger',
                         'expired', 'canceled' => 'gray',
-                        default => 'secondary',
+                        default    => 'gray',
                     })
                     ->searchable(),
                 Tables\Columns\TextColumn::make('starts_at')
@@ -157,14 +158,50 @@ class SubscriptionResource extends Resource
                 Tables\Filters\SelectFilter::make('status')
                     ->label(__('Status'))
                     ->options([
-                        'active' => __('Active'),
-                        'expired' => __('Expired'),
+                        'active'   => __('Active'),
+                        'trialing' => __('Trialing'),
+                        'expired'  => __('Expired'),
                         'canceled' => __('Canceled'),
-                        'trailing' => __('Trailing'),
                         'past_due' => __('Past Due'),
                     ]),
             ])
             ->actions([
+                Tables\Actions\Action::make('renew_month')
+                    ->label(__('+ 30 days'))
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->modalHeading(__('Renew subscription for 30 days?'))
+                    ->modalDescription(fn (Subscription $record): string =>
+                        __('Company: :company — Plan: :plan', [
+                            'company' => $record->company?->name,
+                            'plan'    => $record->plan?->name,
+                        ])
+                    )
+                    ->action(function (Subscription $record): void {
+                        $base = $record->ends_at?->isFuture() ? $record->ends_at : now();
+                        $record->update(['ends_at' => $base->addDays(30), 'status' => 'active']);
+                        Notification::make()->success()->title(__('Renewed for 30 days.'))->send();
+                    }),
+
+                Tables\Actions\Action::make('renew_year')
+                    ->label(__('+ 1 year'))
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('info')
+                    ->requiresConfirmation()
+                    ->modalHeading(__('Renew subscription for 1 year?'))
+                    ->modalDescription(fn (Subscription $record): string =>
+                        __('Company: :company — Plan: :plan', [
+                            'company' => $record->company?->name,
+                            'plan'    => $record->plan?->name,
+                        ])
+                    )
+                    ->action(function (Subscription $record): void {
+                        $base = $record->ends_at?->isFuture() ? $record->ends_at : now();
+                        $record->update(['ends_at' => $base->addYear(), 'status' => 'active']);
+                        Notification::make()->success()->title(__('Renewed for 1 year.'))->send();
+                    }),
+
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
