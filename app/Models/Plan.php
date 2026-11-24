@@ -20,6 +20,8 @@ class Plan extends Model
         'slug',
         'description',
         'price',
+        'annual_price',
+        'trial_days',
         'billing_cycle',
         'features',
         'is_active',
@@ -29,6 +31,8 @@ class Plan extends Model
         'features' => 'array',
         'is_active' => 'boolean',
         'price' => 'decimal:2',
+        'annual_price' => 'decimal:2',
+        'trial_days' => 'integer',
     ];
 
     public function subscriptions(): \Illuminate\Database\Eloquent\Relations\HasMany
