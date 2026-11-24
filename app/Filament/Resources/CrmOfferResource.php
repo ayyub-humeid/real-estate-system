@@ -47,6 +47,10 @@ class CrmOfferResource extends Resource
                 ->whereNotNull('expires_at')
                 ->where('expires_at', '<=', now())]);
     }
+    public static function getRecordTitle(?\Illuminate\Database\Eloquent\Model $record): string|\Illuminate\Contracts\Support\Htmlable|null
+    {
+        return $record instanceof CrmOffer ? $record->displayName() : null;
+    }
     public static function scopeForViewer(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
     {
         $user = auth()->user();
@@ -112,9 +116,15 @@ class CrmOfferResource extends Resource
     public static function table(Table $table): Table
     {
         return $table->columns([
-            Tables\Columns\TextColumn::make('reference_number')->label(__('crm.offers.fields.reference_number'))->searchable()->sortable()->weight('bold'),
-            Tables\Columns\TextColumn::make('opportunity.lead.name')->label(__('crm.fields.lead'))->searchable(),
-            Tables\Columns\TextColumn::make('unit.unit_number')->label(__('sales.fields.unit'))->placeholder(__('—')),
+            Tables\Columns\TextColumn::make('reference_number')->label(__('sales.fields.offer_name'))
+                ->state(fn(CrmOffer $record) => $record->displayName())
+                ->description(fn(CrmOffer $record) => $record->reference_number)
+                ->searchable(query: fn(\Illuminate\Database\Eloquent\Builder $query, string $search) => $query->where(fn($q) => $q
+                    ->where('reference_number', 'like', "%{$search}%")
+                    ->orWhereHas('opportunity.lead', fn($lead) => $lead->where('name', 'like', "%{$search}%"))
+                    ->orWhereHas('unit', fn($unit) => $unit->where('unit_number', 'like', "%{$search}%"))))
+                ->sortable()->weight('bold'),
+            Tables\Columns\TextColumn::make('unit.unit_number')->label(__('sales.fields.unit'))->placeholder(__('—'))->toggleable(isToggledHiddenByDefault: true),
             Tables\Columns\TextColumn::make('transaction_type')->label(__('crm.offers.fields.transaction_type'))->badge()->formatStateUsing(fn($state) => $state instanceof OpportunityType ? $state->getLabel() : __('crm.opportunity_types.' . $state)),
             Tables\Columns\TextColumn::make('latestRevision.amount')->label(__('crm.offers.fields.latest_amount'))->money(fn(CrmOffer $record) => $record->latestRevision?->currency ?? 'USD')->placeholder(__('—')),
             Tables\Columns\TextColumn::make('status')->label(__('crm.fields.status'))->badge()->formatStateUsing(fn($state) => $state instanceof OfferStatus ? $state->getLabel() : __('crm.offers.statuses.' . $state))->color(fn($state) => $state instanceof OfferStatus ? $state->color() : OfferStatus::tryFrom((string) $state)?->color())->tooltip(fn($state) => $state instanceof OfferStatus ? $state->description() : OfferStatus::tryFrom((string) $state)?->description()),

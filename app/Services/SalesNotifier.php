@@ -31,7 +31,7 @@ class SalesNotifier
                 [
                     'user' => $actor->name,
                     'amount' => $this->money($revision->amount, $revision->currency),
-                    'offer' => $revision->offer?->reference_number ?? '#' . $revision->offer_id
+                    'offer' => $revision->offer?->displayNameWithReference() ?? '#' . $revision->offer_id
                 ],
                 $this->url(CrmOfferResource::class, 'view', $revision->offer_id),
             );
@@ -49,7 +49,7 @@ class SalesNotifier
             $this->notifier->send(
                 $recipients,
                 $approved ? 'notifications.offer_approval_approved' : 'notifications.offer_approval_rejected',
-                ['amount' => $this->money($revision->amount, $revision->currency), 'offer' => $revision->offer?->reference_number ?? '#' . $revision->offer_id],
+                ['amount' => $this->money($revision->amount, $revision->currency), 'offer' => $revision->offer?->displayNameWithReference() ?? '#' . $revision->offer_id],
                 $this->url(CrmOfferResource::class, 'view', $revision->offer_id),
             );
         });

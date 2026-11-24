@@ -191,6 +191,26 @@ class OfferUnitRuleTest extends TestCase
             ->assertSee(status_label('sold'));
     }
 
+    /** The list and the page lead with who and what the offer is about, not only its reference number. */
+    public function test_an_offer_is_named_by_its_customer_and_unit_not_only_its_number(): void
+    {
+        $company = $this->company();
+        $actor = $this->actor($company);
+        $unit = $this->unit($company);
+        $offer = app(OfferNegotiationService::class)->createOffer($actor, ['opportunity_id' => $this->opportunity($actor)->id, 'transaction_type' => 'sale', 'unit_id' => $unit->id]);
+
+        $name = $offer->fresh()->displayName();
+        $this->assertStringContainsString('Nour', $name);
+        $this->assertStringContainsString($unit->unit_number, $name);
+        $this->assertStringContainsString($offer->reference_number, $offer->fresh()->displayNameWithReference());
+
+        $this->actingAs($actor);
+        Livewire::test(\App\Filament\Resources\CrmOfferResource\Pages\ListCrmOffers::class)
+            ->assertSee($name)->assertSee($offer->reference_number)
+            ->searchTable('Nour')->assertCanSeeTableRecords([$offer]);
+        Livewire::test(ViewCrmOffer::class, ['record' => $offer->getRouteKey()])->assertSee($name);
+    }
+
     public function test_an_off_plan_offer_can_be_agreed_but_explains_that_the_unit_must_be_built_before_reserving(): void
     {
         $company = $this->company();

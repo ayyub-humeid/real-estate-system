@@ -8,6 +8,7 @@ return [
         'project' => 'المشروع',
         'unit' => 'الوحدة',
         'unit_status' => 'حالة الوحدة الآن',
+        'offer_name' => 'العرض',
         'unit_label' => 'الوحدة :number — :property',
     ],
     'help' => [

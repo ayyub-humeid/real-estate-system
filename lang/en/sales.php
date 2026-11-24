@@ -9,6 +9,7 @@ return [
         'project' => 'Project',
         'unit' => 'Unit',
         'unit_status' => 'Unit status now',
+        'offer_name' => 'Offer',
         'unit_label' => 'Unit :number — :property',
     ],
     'help' => [

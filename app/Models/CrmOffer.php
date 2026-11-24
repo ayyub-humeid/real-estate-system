@@ -17,6 +17,27 @@ class CrmOffer extends Model
         'closed_at' => 'datetime',
         'next_revision_number' => 'integer'
     ];
+    /**
+     * A name people can recognise: who the offer is for and what it is about, e.g. "Nour · U-101 · Sale".
+     * The reference number stays the exact identifier; this is what to show first.
+     */
+    public function displayName(bool $withType = true): string
+    {
+        $subject = $this->unit?->unit_number ?: $this->listing?->title;
+        $type = $withType && $this->transaction_type instanceof OpportunityType ? $this->transaction_type->getLabel() : null;
+        $name = collect([$this->opportunity?->lead?->name, $subject, $type])->filter()->implode(' · ');
+
+        return $name !== '' ? $name : (string) $this->reference_number;
+    }
+
+    /** The name together with the reference, for places that must be exact, such as notifications. */
+    public function displayNameWithReference(): string
+    {
+        $name = $this->displayName(false);
+
+        return $name === (string) $this->reference_number ? $name : $name.' ('.$this->reference_number.')';
+    }
+
     public function opportunity(): BelongsTo
     {
         return $this->belongsTo(Opportunity::class);

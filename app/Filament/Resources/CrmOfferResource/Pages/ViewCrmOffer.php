@@ -34,7 +34,7 @@ class ViewCrmOffer extends ViewRecord
     private ?CrmOfferRevision $sentRevision = null;
     private bool $latestLoaded = false;
 
-    public function getTitle(): string { return $this->record->reference_number; }
+    public function getTitle(): string { return $this->record->displayName(); }
 
     /** Lets the panel stylesheet give this page's header the full width (see admin-chrome). */
     public function getExtraBodyAttributes(): array
