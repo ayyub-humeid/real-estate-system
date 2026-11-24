@@ -332,6 +332,12 @@ class UnitResource extends Resource
                     ->preload()
                     ->native(false),
 
+                Tables\Filters\SelectFilter::make('project')
+                    ->label(__('Project'))
+                    ->relationship('project', 'name')
+                    ->searchable()
+                    ->native(false),
+
                 Tables\Filters\SelectFilter::make('status')
                     ->label(__('Status'))
                     ->options(UnitStatus::options())
