@@ -78,7 +78,7 @@ public static function canViewAny(): bool
                                                 $query->where('company_id', $get('company_id'));
                                             }
                                         })
-                                        ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->property->name} - Unit {$record->unit_number}")
+                                        ->getOptionLabelFromRecordUsing(fn ($record) => $record->displayName())
                                         ->searchable()
                                         ->preload()
                                         ->required(),

@@ -188,6 +188,15 @@ class Unit extends Model
         return $this->property ? $this->property->location : null;
     }
 
+    /** A label people can recognise, e.g. "A-304 · Marina Tower · Apartment". */
+    public function displayName(): string
+    {
+        $type = filled($this->type) ? (UnitType::tryFrom($this->type)?->getLabel() ?? $this->type) : null;
+        $place = $this->property?->name ?? $this->project?->name;
+
+        return collect([$this->unit_number, $place, $type])->filter()->implode(' · ');
+    }
+
     public function isOperationallyReady(): bool
     {
         return $this->status === \App\Enums\UnitStatus::Ready->value;

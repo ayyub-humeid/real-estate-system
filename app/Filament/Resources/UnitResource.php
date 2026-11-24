@@ -230,6 +230,10 @@ class UnitResource extends Resource
 
                 Tables\Columns\TextColumn::make('unit_number')
                     ->label(__('Unit #'))
+                    ->description(fn (\App\Models\Unit $record): ?string => collect([
+                        $record->type ? (UnitType::tryFrom($record->type)?->getLabel() ?? $record->type) : null,
+                        $record->bedrooms ? $record->bedrooms.' '.__('Beds') : null,
+                    ])->filter()->implode(' · ') ?: null)
                     ->searchable()
                     ->sortable()
                     ->weight('bold'),

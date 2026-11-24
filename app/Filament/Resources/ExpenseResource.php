@@ -116,6 +116,7 @@ public static function canViewAny(): bool
                                 ->relationship('unit', 'unit_number', fn (Builder $q, Forms\Get $get) =>
                                     $q->when($get('property_id'), fn ($q, $id) => $q->where('property_id', $id))
                                 )
+                                ->getOptionLabelFromRecordUsing(fn ($record) => $record->displayName())
                                 ->searchable()
                                 ->preload(),
                         ])->columns(2),

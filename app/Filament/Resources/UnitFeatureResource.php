@@ -42,7 +42,7 @@ class UnitFeatureResource extends Resource
                             ->relationship('unit', 'unit_number', function (Builder $query) {
                                 $query->with('property');
                             })
-                            ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->property->name} - Unit {$record->unit_number}")
+                            ->getOptionLabelFromRecordUsing(fn ($record) => $record->displayName())
                             ->searchable()
                             ->preload()
                             ->required()
