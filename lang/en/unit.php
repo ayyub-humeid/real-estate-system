@@ -7,6 +7,16 @@ return [
         'rent_price' => 'Rent Price',
         'rent_currency' => 'Rent Currency',
     ],
+    'notes' => [
+        'label' => 'Notes',
+        'section' => 'Internal notes',
+        'placeholder' => 'Anything your team should remember about this unit, e.g. corner unit, sea view, owner prefers calls after 5pm.',
+        'help' => 'Only your team sees these notes. They are never shown to customers.',
+        'empty' => 'No notes yet.',
+        'saved' => 'Notes saved',
+        'save_failed' => 'Could not save the notes',
+        'read_only' => 'You can read these notes but not change them.',
+    ],
     'statuses' => ['draft' => 'Draft', 'ready' => 'Ready', 'reserved' => 'Reserved', 'maintenance' => 'Maintenance', 'inactive' => 'Inactive', 'sold' => 'Sold', 'rented' => 'Rented'],
     'status_descriptions' => [
         'draft' => 'Being set up. Not available to customers yet.',

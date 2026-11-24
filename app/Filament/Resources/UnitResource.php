@@ -165,6 +165,18 @@ class UnitResource extends Resource
                 ])
                 ->collapsible(),
 
+            Forms\Components\Section::make(__('unit.notes.section'))
+                ->schema([
+                    Forms\Components\Textarea::make('notes')
+                        ->label(__('unit.notes.label'))
+                        ->rows(3)
+                        ->maxLength(2000)
+                        ->placeholder(__('unit.notes.placeholder'))
+                        ->helperText(__('unit.notes.help'))
+                        ->columnSpanFull(),
+                ])
+                ->collapsible(),
+
             Forms\Components\Section::make(__('Gallery'))
                 ->description(__('Add images for this unit'))
                 ->schema([
@@ -237,6 +249,11 @@ class UnitResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->weight('bold'),
+                Tables\Columns\TextColumn::make('notes')
+                    ->label(__('unit.notes.label'))
+                    ->limit(60)
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\IconColumn::make('is_featured')
                     ->boolean()
                     ->label(__('Is Featured'))
@@ -327,6 +344,34 @@ class UnitResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
+                Action::make('notes')
+                    ->label(__('unit.notes.label'))
+                    ->icon(fn (Unit $record): string => filled($record->notes) ? 'heroicon-s-chat-bubble-left-ellipsis' : 'heroicon-o-chat-bubble-left')
+                    ->tooltip(fn (Unit $record): ?string => filled($record->notes) ? \Illuminate\Support\Str::limit($record->notes, 80) : null)
+                    ->modalHeading(fn (Unit $record): string => $record->displayName())
+                    ->modalWidth('lg')
+                    ->fillForm(fn (Unit $record): array => ['notes' => $record->notes])
+                    ->form(fn (Unit $record): array => [
+                        Forms\Components\Textarea::make('notes')
+                            ->label(__('unit.notes.label'))
+                            ->rows(6)
+                            ->maxLength(2000)
+                            ->placeholder(__('unit.notes.placeholder'))
+                            ->helperText(auth()->user()->can('update', $record) ? __('unit.notes.help') : __('unit.notes.read_only'))
+                            ->disabled(! auth()->user()->can('update', $record)),
+                    ])
+                    ->modalSubmitAction(fn ($action, Unit $record) => auth()->user()->can('update', $record) ? $action : false)
+                    ->modalCancelActionLabel(__('Close'))
+                    ->action(function (Unit $record, array $data): void {
+                        try {
+                            abort_unless(auth()->user()->can('update', $record), 403);
+                            $record->update(['notes' => filled($data['notes'] ?? null) ? trim($data['notes']) : null]);
+                            Notification::make()->success()->title(__('unit.notes.saved'))->send();
+                        } catch (\Throwable $e) {
+                            report($e);
+                            Notification::make()->danger()->title(__('unit.notes.save_failed'))->body($e->getMessage())->persistent()->send();
+                        }
+                    }),
                 Tables\Actions\EditAction::make(),
                 Action::make('changeStatus')->label(__('Change status'))->icon('heroicon-o-arrow-path')->tooltip(__('Change physical operational status'))
                     ->visible(fn (Unit $record) => ! empty(static::statusTransitionOptions($record)) && (auth()->user()->can('changeStatus', $record) || auth()->user()->can('reactivate', $record)))

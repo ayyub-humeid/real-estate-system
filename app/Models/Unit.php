@@ -86,6 +86,7 @@ class Unit extends Model
         'inactive_reason',
         'type',
         'description',
+        'notes',
         'is_featured',
         'bedrooms',
         'bathrooms',

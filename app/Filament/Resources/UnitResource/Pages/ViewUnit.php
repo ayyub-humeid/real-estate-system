@@ -80,6 +80,14 @@ class ViewUnit extends ViewRecord
                                         ->placeholder(__('No description has been added or generated yet.')),
                                 ])
                                 ->collapsible(),
+
+                            Infolists\Components\Section::make(__('unit.notes.section'))
+                                ->schema([
+                                    Infolists\Components\TextEntry::make('notes')
+                                        ->label('')
+                                        ->placeholder(__('unit.notes.empty')),
+                                ])
+                                ->collapsible(),
                         ])->columnSpan(2),
 
                         Infolists\Components\Group::make([
