@@ -199,8 +199,26 @@ class Company extends Model
             return true; // Unlimited
         }
 
-        // Count all units across all properties of this company
-        return $this->properties()->withCount('units')->get()->sum('units_count') < $limit;
+        // Count every unit the company owns, including project units that have no property.
+        return Unit::withoutGlobalScopes()->where('company_id', $this->id)->count() < $limit;
+    }
+
+    /**
+     * Only live projects consume a plan slot. A completed, closed or cancelled project
+     * stays readable for ever without counting against the limit.
+     */
+    public function canAddProject(): bool
+    {
+        $limit = $this->getPlanFeature('max_projects');
+
+        if ($limit === null) {
+            return true; // Unlimited
+        }
+
+        return Project::withoutGlobalScopes()
+            ->where('company_id', $this->id)
+            ->whereIn('status', \App\Enums\ProjectStatus::activeValues())
+            ->count() < $limit;
     }
 
     public function canAddUser(): bool
