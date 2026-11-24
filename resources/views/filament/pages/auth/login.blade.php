@@ -33,9 +33,11 @@
         .madar-login__form-side, .madar-login__visual-side { width: 50%; min-height: 100vh; }
         .madar-login[dir='rtl'] .madar-login__form-side, .madar-login[dir='rtl'] .madar-login__visual-side { direction: rtl; }
         .madar-login__form-side { display: grid; place-items: center; padding: 1.5rem clamp(1.5rem, 7vw, 8rem); background: #0D0D0F; box-shadow: inset 1px 0 0 rgba(255,255,255,.05); }
-        .madar-login__form { width: min(100%, 29rem); transform: translateY(-2rem); }
-        .madar-login__utility { display: flex; justify-content: flex-end; margin-bottom: clamp(1.75rem, 4vh, 3.5rem); }
-        .madar-login[dir='rtl'] .madar-login__utility { justify-content: flex-start; }
+        .madar-login__form { width: min(100%, 29rem); transform: translateY(-2rem); position: relative; }
+        .madar-login__form-side { position: relative; }
+        .madar-login__utility { position: absolute; top: 1.5rem; inset-inline-end: 1.5rem; z-index: 10; }
+        .madar-login[dir='ltr'] .madar-login__utility { right: 1.5rem; left: auto; }
+        .madar-login[dir='rtl'] .madar-login__utility { left: 1.5rem; right: auto; }
         .madar-login__language { border: 1px solid rgba(203,213,225,.26); background: rgba(15,23,42,.44); color: #dce7f8; border-radius: 999px; padding: .55rem .95rem; font-size: .8rem; font-weight: 700; cursor: pointer; transition: .2s ease; }
         .madar-login__language:hover { border-color: #60a5fa; color: #fff; background: rgba(37,99,235,.22); }
         .madar-login__mark { width: 3.35rem; height: 3.35rem; overflow: hidden; border: 1px solid rgba(229,183,100,.58); border-radius: 1rem; background: #050505; box-shadow: 0 14px 32px rgba(0,0,0,.32); margin-bottom: 1.25rem; }
@@ -61,7 +63,7 @@
         .madar-login__brand-name { font-size: 1.35rem; font-weight: 800; letter-spacing: -.03em; text-shadow: 0 2px 14px rgba(0,0,0,.7); }
         .madar-login__tagline { opacity: .9; font-size: .78rem; margin-top: .1rem; text-shadow: 0 2px 12px rgba(0,0,0,.76); }
         .madar-login__message { margin-top: clamp(3.5rem, 11vh, 7.5rem); }
-        .madar-login__title { font-size: clamp(2.35rem, 4.5vw, 4.5rem); font-weight: 800; letter-spacing: -.055em; line-height: 1.08; margin: 0; max-width: 11ch; text-wrap: balance; text-shadow: 0 4px 26px rgba(0,0,0,.8); }
+        .madar-login__title { font-size: clamp(2rem, 3.5vw, 3.8rem); font-weight: 800; letter-spacing: -.055em; line-height: 1.08; margin: 0; max-width: 11ch; text-wrap: balance; text-shadow: 0 4px 26px rgba(0,0,0,.8); }
         .madar-login[dir='rtl'] .madar-login__title { letter-spacing: 0; }
         .madar-login__description { max-width: 31rem; font-size: 1rem; line-height: 1.85; color: rgba(255,255,255,.94); margin: 1.35rem 0 2.2rem; text-shadow: 0 2px 16px rgba(0,0,0,.85); }
         .madar-login__features { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; margin-top: auto; }
@@ -82,18 +84,18 @@
 
     <div class="madar-login__shell">
         <section class="madar-login__form-side">
-            <div class="madar-login__form">
-                <div class="madar-login__utility">
-                    <button
-                        type="button"
-                        x-on:click="localStorage.setItem('madar.locale', '{{ $isRtl ? 'en' : 'ar' }}')"
-                        wire:click="switchLocale('{{ $isRtl ? 'en' : 'ar' }}')"
-                        class="madar-login__language"
-                    >
-                        {{ $isRtl ? 'English' : 'العربية' }}
-                    </button>
-                </div>
+            <div class="madar-login__utility">
+                <button
+                    type="button"
+                    x-on:click="localStorage.setItem('madar.locale', '{{ $isRtl ? 'en' : 'ar' }}')"
+                    wire:click="switchLocale('{{ $isRtl ? 'en' : 'ar' }}')"
+                    class="madar-login__language"
+                >
+                    {{ $isRtl ? 'English' : 'العربية' }}
+                </button>
+            </div>
 
+            <div class="madar-login__form">
                 <div class="madar-login__mark">
                     <img src="{{ asset('madar-logo.png') }}" alt="{{ __('auth_login.brand') }}">
                 </div>
