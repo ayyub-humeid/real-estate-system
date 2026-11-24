@@ -100,6 +100,14 @@
         background-color: #1C1C1F !important;
         border-color: rgba(148, 163, 184, .16) !important;
     }
+    /* The dimmed layer behind a dialog. The panel's slate grey is navy-tinted, which
+       showed as blue over the near-black page, so the layer is plain black instead. */
+    .fi-modal-close-overlay {
+        background-color: rgba(0, 0, 0, .5) !important;
+    }
+    html.dark .fi-modal-close-overlay {
+        background-color: rgba(0, 0, 0, .72) !important;
+    }
     html.dark .fi-modal-window {
         border-radius: 1rem !important;
         box-shadow: 0 24px 80px rgba(0, 0, 0, .48) !important;
