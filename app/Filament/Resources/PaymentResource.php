@@ -2,14 +2,22 @@
 
 namespace App\Filament\Resources;
 
+use App\Enums\ContractPaymentScheduleStatus;
+use App\Filament\Exports\PaymentExporter;
 use App\Filament\Resources\PaymentResource\Pages;
-use App\Models\Payment;
+use App\Models\{Contract, ContractPaymentSchedule, Payment};
+use App\Services\ContractFinancialService;
+use Filament\Forms;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class PaymentResource extends Resource
 {
@@ -51,7 +59,11 @@ class PaymentResource extends Resource
     {
         return parent::getEloquentQuery()->with([
             'project:id,name,currency',
-            'contract:id,contract_number',
+            'contract:id,contract_number,contract_type,unit_id,planned_unit_id,property_id,project_id',
+            'contract.unit:id,unit_number',
+            'contract.plannedUnit:id,code',
+            'contract.property:id,name',
+            'contract.project:id,name',
             'contractPaymentSchedule:id,contract_id,revision_number',
             'party:id,name',
             'recordedBy:id,name',
@@ -87,6 +99,32 @@ class PaymentResource extends Resource
                 Tables\Columns\TextColumn::make('reference_number')->label(__('payment_directory.fields.reference'))->placeholder('—')->copyable()->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                Tables\Filters\Filter::make('payment_date')
+                    ->label(__('payment_directory.fields.payment_date'))
+                    ->form([
+                        Forms\Components\DatePicker::make('from')->label(__('payment_directory.filters.date_from'))->native(false),
+                        Forms\Components\DatePicker::make('until')->label(__('payment_directory.filters.date_until'))->native(false),
+                    ])
+                    ->query(fn (Builder $query, array $data): Builder => $query
+                        ->when($data['from'] ?? null, fn (Builder $q, $date): Builder => $q->whereDate('payment_date', '>=', $date))
+                        ->when($data['until'] ?? null, fn (Builder $q, $date): Builder => $q->whereDate('payment_date', '<=', $date)))
+                    ->indicateUsing(function (array $data): array {
+                        $indicators = [];
+                        if ($data['from'] ?? null) {
+                            $indicators[] = __('payment_directory.filters.date_from').': '.\Carbon\Carbon::parse($data['from'])->toFormattedDateString();
+                        }
+                        if ($data['until'] ?? null) {
+                            $indicators[] = __('payment_directory.filters.date_until').': '.\Carbon\Carbon::parse($data['until'])->toFormattedDateString();
+                        }
+
+                        return $indicators;
+                    }),
+                Tables\Filters\SelectFilter::make('contract')
+                    ->label(__('payment_directory.fields.contract'))
+                    ->relationship('contract', 'contract_number')
+                    ->getOptionLabelFromRecordUsing(fn (Contract $record): string => $record->displayNameWithNumber())
+                    ->searchable()
+                    ->native(false),
                 Tables\Filters\SelectFilter::make('direction')->label(__('payment_directory.fields.direction'))->options([
                     'incoming' => __('payment_directory.directions.incoming'),
                     'outgoing' => __('payment_directory.directions.outgoing'),
@@ -102,8 +140,40 @@ class PaymentResource extends Resource
                     'project_cost' => __('payment_directory.purposes.project_cost'),
                 ]),
             ])
+            ->headerActions([
+                Tables\Actions\Action::make('recordPayment')
+                    ->label(__('payment_directory.actions.record_payment'))
+                    ->icon('heroicon-o-banknotes')
+                    ->color('success')
+                    ->tooltip(__('payment_directory.help.record_payment'))
+                    ->visible(fn (): bool => auth()->user()?->can('record_contract_payment')
+                        && auth()->user()?->can('allocate_contract_payment'))
+                    ->modalHeading(__('payment_directory.actions.record_payment'))
+                    ->modalDescription(__('payment_directory.descriptions.record_payment'))
+                    ->modalSubmitActionLabel(__('payment_directory.actions.save_payment'))
+                    ->form(self::recordPaymentForm())
+                    ->action(fn (array $data) => self::handleRecordPayment($data)),
+
+                Tables\Actions\ExportAction::make()
+                    ->label(__('payment_export.action'))
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->color('gray')
+                    ->tooltip(__('payment_export.action_help'))
+                    ->exporter(PaymentExporter::class)
+                    ->modalHeading(__('payment_export.modal_heading'))
+                    ->modalDescription(__('payment_export.modal_description'))
+                    ->visible(fn (): bool => auth()->user()?->can('view_any_payment') ?? false),
+            ])
             ->actions([
                 Tables\Actions\ViewAction::make()->label(__('payment_directory.actions.details'))->tooltip(__('payment_directory.help.details')),
+            ])
+            ->bulkActions([
+                Tables\Actions\ExportBulkAction::make()
+                    ->label(__('payment_export.action'))
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->exporter(PaymentExporter::class)
+                    ->modalHeading(__('payment_export.modal_heading'))
+                    ->modalDescription(__('payment_export.modal_description')),
             ])
             ->emptyStateHeading(__('payment_directory.empty.heading'))
             ->emptyStateDescription(__('payment_directory.empty.description'))
@@ -163,6 +233,212 @@ class PaymentResource extends Resource
         return ['index' => Pages\ListPayments::route('/'), 'view' => Pages\ViewPayment::route('/{record}')];
     }
 
+    /** Contracts that can receive a payment: those with an issued schedule. */
+    private static function payableContractsQuery(): Builder
+    {
+        return Contract::query()
+            ->whereHas('paymentSchedules', fn(Builder $query): Builder => $query->where('status', ContractPaymentScheduleStatus::Issued->value))
+            ->with(['unit:id,unit_number', 'plannedUnit:id,code', 'property:id,name', 'project:id,name']);
+    }
+
+    /** The one schedule a payment can be applied to. Only an issued schedule accepts receipts. */
+    private static function issuedSchedule(mixed $contractId): ?ContractPaymentSchedule
+    {
+        if (blank($contractId)) {
+            return null;
+        }
+
+        return ContractPaymentSchedule::query()
+            ->where('contract_id', $contractId)
+            ->where('status', ContractPaymentScheduleStatus::Issued->value)
+            ->latest('revision_number')
+            ->first();
+    }
+
+    private static function contractLabels(Builder $query): array
+    {
+        return $query->get()->mapWithKeys(fn(Contract $contract): array => [
+            $contract->id => $contract->displayNameWithNumber(),
+        ])->all();
+    }
+
+    /**
+     * A deliberately short form: settle one installment fast. Splitting a single
+     * payment across several installments stays on the contract's schedule screen,
+     * where the full picture is visible.
+     */
+    private static function recordPaymentForm(): array
+    {
+        return [
+            Forms\Components\Select::make('contract_id')
+                ->label(__('payment_directory.fields.contract'))
+                ->placeholder(__('payment_directory.placeholders.choose_contract'))
+                ->helperText(__('payment_directory.help.contract_choice'))
+                ->options(fn(): array => self::contractLabels(self::payableContractsQuery()->latest('id')->limit(100)))
+                ->getSearchResultsUsing(fn(string $search): array => self::contractLabels(
+                    self::payableContractsQuery()
+                        ->where(fn(Builder $query): Builder => $query
+                            ->where('contract_number', 'like', "%{$search}%")
+                            ->orWhereHas('unit', fn(Builder $unit): Builder => $unit->where('unit_number', 'like', "%{$search}%")))
+                        ->limit(50)
+                ))
+                ->getOptionLabelUsing(fn($value): ?string => self::payableContractsQuery()->find($value)?->displayNameWithNumber())
+                ->searchable()
+                ->required()
+                ->live()
+                ->afterStateUpdated(function ($state, Forms\Set $set): void {
+                    $schedule = self::issuedSchedule($state);
+                    $set('installment_id', null);
+                    $set('amount', null);
+                    $set('party_id', null);
+                    $set('currency', $schedule?->currency);
+                })
+                ->columnSpanFull(),
+
+            Forms\Components\Select::make('party_id')
+                ->label(__('payment_directory.fields.payer'))
+                ->placeholder(__('payment_directory.placeholders.choose_payer'))
+                ->options(function (Forms\Get $get): array {
+                    $schedule = self::issuedSchedule($get('contract_id'));
+
+                    return $schedule?->contractVersion?->parties()->with('party:id,name')->get()
+                        ->mapWithKeys(fn($row): array => [$row->party_id => $row->party?->name])
+                        ->filter()
+                        ->all() ?? [];
+                })
+                ->searchable()
+                ->required()
+                ->visible(fn(Forms\Get $get): bool => filled($get('contract_id'))),
+
+            Forms\Components\Select::make('installment_id')
+                ->label(__('payment_directory.fields.installment_to_settle'))
+                ->placeholder(__('payment_directory.placeholders.choose_installment'))
+                ->helperText(__('payment_directory.help.installment_choice'))
+                ->options(function (Forms\Get $get): array {
+                    $schedule = self::issuedSchedule($get('contract_id'));
+                    if (! $schedule) {
+                        return [];
+                    }
+
+                    return collect(app(ContractFinancialService::class)->outstandingInstallments($schedule))
+                        ->mapWithKeys(fn(array $item): array => [
+                            $item['id'] => __('payment_directory.installment_option', [
+                                'sequence' => $item['sequence'],
+                                'amount' => $item['outstanding'],
+                                'currency' => $item['currency'],
+                                'due' => $item['due_date'] ?? '—',
+                            ]),
+                        ])
+                        ->all();
+                })
+                ->required()
+                ->live()
+                ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set): void {
+                    $schedule = self::issuedSchedule($get('contract_id'));
+                    if (! $schedule) {
+                        return;
+                    }
+                    $installment = collect(app(ContractFinancialService::class)->outstandingInstallments($schedule))
+                        ->firstWhere('id', (int) $state);
+                    $set('amount', $installment['outstanding'] ?? null);
+                    $set('currency', $installment['currency'] ?? $schedule->currency);
+                })
+                ->visible(fn(Forms\Get $get): bool => filled($get('contract_id')))
+                ->columnSpanFull(),
+
+            Forms\Components\TextInput::make('amount')
+                ->label(__('payment_directory.fields.amount'))
+                ->helperText(__('payment_directory.help.amount'))
+                ->numeric()
+                ->minValue(0.0001)
+                ->suffix(fn(Forms\Get $get): ?string => $get('currency'))
+                ->required()
+                ->visible(fn(Forms\Get $get): bool => filled($get('installment_id'))),
+
+            Forms\Components\DatePicker::make('payment_date')
+                ->label(__('payment_directory.fields.payment_date'))
+                ->default(today())
+                ->maxDate(today())
+                ->native(false)
+                ->required()
+                ->visible(fn(Forms\Get $get): bool => filled($get('installment_id'))),
+
+            Forms\Components\Select::make('payment_method')
+                ->label(__('payment_directory.fields.payment_method'))
+                ->options(collect(['cash', 'bank_transfer', 'cheque', 'card', 'other'])
+                    ->mapWithKeys(fn(string $method): array => [$method => __('contract_finance.payment_methods.' . $method)])
+                    ->all())
+                ->native(false)
+                ->required()
+                ->visible(fn(Forms\Get $get): bool => filled($get('installment_id'))),
+
+            Forms\Components\TextInput::make('reference_number')
+                ->label(__('payment_directory.fields.reference'))
+                ->helperText(__('payment_directory.help.reference'))
+                ->maxLength(191)
+                ->visible(fn(Forms\Get $get): bool => filled($get('installment_id'))),
+
+            Forms\Components\Hidden::make('currency'),
+            Forms\Components\Hidden::make('idempotency_key')->default(fn(): string => Str::uuid()->toString()),
+        ];
+    }
+
+    private static function handleRecordPayment(array $data): void
+    {
+        try {
+            $schedule = self::issuedSchedule($data['contract_id'] ?? null);
+
+            if (! $schedule) {
+                Notification::make()->danger()
+                    ->title(__('payment_directory.errors.no_issued_schedule_title'))
+                    ->body(__('payment_directory.errors.no_issued_schedule_body'))
+                    ->persistent()->send();
+
+                return;
+            }
+
+            $payment = app(ContractFinancialService::class)->recordReceipt(auth()->user(), $schedule, [
+                'party_id' => $data['party_id'],
+                'amount' => $data['amount'],
+                'currency' => $data['currency'] ?: $schedule->currency,
+                'payment_date' => $data['payment_date'],
+                'payment_method' => $data['payment_method'],
+                'reference_number' => $data['reference_number'] ?? null,
+                'idempotency_key' => $data['idempotency_key'] ?? null,
+                'allocations' => [[
+                    'installment_id' => (int) $data['installment_id'],
+                    'allocated_amount' => $data['amount'],
+                    'currency' => $data['currency'] ?: $schedule->currency,
+                ]],
+            ]);
+
+            Notification::make()->success()
+                ->title(__('payment_directory.notifications.payment_recorded'))
+                ->body(__('payment_directory.notifications.payment_recorded_body', [
+                    'amount' => $payment->amount,
+                    'currency' => $payment->currency,
+                    'contract' => $schedule->contract?->displayNameWithNumber() ?? '',
+                ]))
+                ->send();
+        } catch (ValidationException $exception) {
+            Notification::make()->danger()
+                ->title(__('contract_finance.errors.unable_to_update'))
+                ->body(collect($exception->errors())->flatten()->first())
+                ->persistent()->send();
+        } catch (AuthorizationException) {
+            Notification::make()->danger()
+                ->title(__('contract_finance.errors.unauthorized_title'))
+                ->body(__('contract_finance.errors.not_authorized'))
+                ->persistent()->send();
+        } catch (\Throwable $exception) {
+            report($exception);
+            Notification::make()->danger()
+                ->title(__('contract_finance.errors.unexpected_error'))
+                ->body(__('contract_finance.errors.try_again_or_support'))
+                ->persistent()->send();
+        }
+    }
+
     private static function direction(?string $value): string
     {
         return __('payment_directory.directions.' . ($value ?: 'outgoing'));
@@ -200,7 +476,7 @@ class PaymentResource extends Resource
     {
         return match (true) {
             $payment->reversal_of_payment_id !== null => $payment->reversalOf?->reference_number ?: __('payment_directory.labels.original_payment'),
-            $payment->contract_id !== null => $payment->contract?->contract_number ?: __('payment_directory.labels.unavailable_record'),
+            $payment->contract_id !== null => $payment->contract?->displayNameWithNumber() ?: __('payment_directory.labels.unavailable_record'),
             $payment->project_id !== null => $payment->project?->name ?: __('payment_directory.labels.unavailable_record'),
             default => '—',
         };
