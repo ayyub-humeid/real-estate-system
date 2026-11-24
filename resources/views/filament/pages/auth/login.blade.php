@@ -47,7 +47,7 @@
         .madar-login__copy { color: #9dadc3; line-height: 1.75; margin: .9rem 0 2.3rem; font-size: .95rem; }
         .madar-login .fi-fo-field-wrp-label, .madar-login .fi-checkbox-label { font-weight: 700; color: #eef4ff; }
         .madar-login .fi-input-wrp { border: 1px solid rgba(148,163,184,.25) !important; border-radius: .85rem !important; background: rgba(255,255,255,.045) !important; box-shadow: none !important; transition: border-color .2s ease, background .2s ease; }
-        .madar-login .fi-input-wrp:focus-within { border-color: rgba(96,165,250,.85) !important; background: rgba(30,58,138,.16) !important; box-shadow: 0 0 0 3px rgba(37,99,235,.14) !important; }
+        .madar-login .fi-input-wrp:focus-within { border-color: rgba(148,163,184,.55) !important; background: rgba(255,255,255,.06) !important; box-shadow: 0 0 0 3px rgba(148,163,184,.14) !important; }
         .madar-login .fi-input, .madar-login .fi-fo-select { border-radius: .8rem; color: #f8fafc !important; background: transparent !important; }
         .madar-login .fi-input::placeholder { color: #64748b !important; }
         .madar-login .fi-input-wrp-icon { color: #93a4bb !important; }

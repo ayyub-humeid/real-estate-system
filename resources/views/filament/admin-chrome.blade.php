@@ -202,20 +202,40 @@
     }
     html.dark .fi-fo-select .choices__list--dropdown .choices__item--selectable.is-highlighted,
     html.dark .fi-fo-select .choices__list[aria-expanded] .choices__item--selectable.is-highlighted {
-        background-color: rgba(59, 130, 246, .18) !important;
+        background-color: rgba(255, 255, 255, .08) !important;
         color: #ffffff !important;
     }
     html.dark .fi-fo-select .choices__item--choice[aria-selected='true'] {
-        background-color: rgba(37, 99, 235, .24) !important;
-        color: #bfdbfe !important;
+        background-color: rgba(255, 255, 255, .13) !important;
+        color: #ffffff !important;
+    }
+
+    /* Neutral focus state for every input/select (replaces Filament's default
+       bright-blue ring and tinted background). */
+    html.dark .fi-input-wrp:focus-within,
+    html.dark .fi-input-wrp.fi-focused {
+        background-color: rgba(255, 255, 255, .05) !important;
+        border-color: rgba(148, 163, 184, .55) !important;
+        --tw-ring-color: rgba(148, 163, 184, .30) !important;
+        box-shadow: 0 0 0 2px rgba(148, 163, 184, .22) !important;
+    }
+    html:not(.dark) .fi-input-wrp:focus-within {
+        border-color: #94a3b8 !important;
+        --tw-ring-color: rgba(100, 116, 139, .30) !important;
+        box-shadow: 0 0 0 2px rgba(100, 116, 139, .18) !important;
+    }
+    html.dark .fi-input:-webkit-autofill,
+    html.dark .fi-input:-webkit-autofill:focus {
+        -webkit-box-shadow: 0 0 0 1000px #17171A inset !important;
+        -webkit-text-fill-color: #f8fafc !important;
     }
     html.dark .fi-fo-select .choices__group {
         color: #94a3b8 !important;
     }
     html.dark .fi-fo-select .choices__list--multiple .choices__item {
-        background-color: rgba(59, 130, 246, .18) !important;
-        color: #bfdbfe !important;
-        border-color: rgba(96, 165, 250, .28) !important;
+        background-color: rgba(255, 255, 255, .10) !important;
+        color: #f1f5f9 !important;
+        border-color: rgba(148, 163, 184, .30) !important;
     }
     html.dark .fi-fo-select select,
     html.dark .fi-fo-select select option,
@@ -405,9 +425,9 @@
     }
     html:not(.dark) .madar-login .fi-input-wrp:focus-within,
     html.dark .madar-login .fi-input-wrp:focus-within {
-        border-color: rgba(96, 165, 250, 0.85) !important;
-        background: rgba(30, 58, 138, 0.16) !important;
-        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14) !important;
+        border-color: rgba(148, 163, 184, 0.55) !important;
+        background: rgba(255, 255, 255, 0.06) !important;
+        box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.14) !important;
     }
     html:not(.dark) .madar-login .fi-input,
     html.dark .madar-login .fi-input,
