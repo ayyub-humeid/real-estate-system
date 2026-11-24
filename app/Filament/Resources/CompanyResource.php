@@ -41,6 +41,7 @@ class CompanyResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
+            ->with('subscription.plan')
             ->withCount([
                 'users',
                 'users as active_users_count' => fn($query) => $query->whereIn('role', ['company_admin', 'property_manager']),
@@ -161,6 +162,30 @@ class CompanyResource extends Resource
                     ->trueColor('success')
                     ->falseColor('danger'),
 
+                Tables\Columns\TextColumn::make('subscription.status')
+                    ->label(__('Plan'))
+                    ->badge()
+                    ->formatStateUsing(fn (?string $state, Company $record): string =>
+                        $record->subscription?->plan?->name
+                            ? $record->subscription->plan->name
+                            : __('No plan')
+                    )
+                    ->color(fn (?string $state): string => match ($state) {
+                        'active'   => 'success',
+                        'trialing' => 'warning',
+                        'past_due' => 'danger',
+                        'expired', 'canceled' => 'gray',
+                        default    => 'gray',
+                    })
+                    ->sortable(false),
+
+                Tables\Columns\TextColumn::make('subscription.ends_at')
+                    ->label(__('Renews / Expires'))
+                    ->dateTime('d M Y')
+                    ->since()
+                    ->sortable()
+                    ->toggleable(),
+
                 Tables\Columns\TextColumn::make('users_count')
                     ->counts('users')
                     ->label(__('Users'))
@@ -194,6 +219,48 @@ class CompanyResource extends Resource
                     ->native(false),
             ])
             ->actions([
+                Tables\Actions\Action::make('assign_subscription')
+                    ->label(__('Assign Plan'))
+                    ->icon('heroicon-o-credit-card')
+                    ->color('warning')
+                    ->visible(fn (Company $record): bool => ! $record->subscription?->exists() || $record->subscription?->status === 'expired')
+                    ->form([
+                        Forms\Components\Select::make('plan_id')
+                            ->label(__('Plan'))
+                            ->options(\App\Models\Plan::where('is_active', true)->pluck('name', 'id'))
+                            ->required()
+                            ->searchable(),
+                        Forms\Components\DatePicker::make('starts_at')
+                            ->label(__('Starts At'))
+                            ->default(now())
+                            ->required(),
+                        Forms\Components\DatePicker::make('ends_at')
+                            ->label(__('Ends At'))
+                            ->default(now()->addMonth())
+                            ->required(),
+                        Forms\Components\Select::make('status')
+                            ->label(__('Status'))
+                            ->options([
+                                'active'   => __('Active'),
+                                'trialing' => __('Trialing'),
+                            ])
+                            ->default('active')
+                            ->required(),
+                    ])
+                    ->action(function (Company $record, array $data): void {
+                        \App\Models\Subscription::create([
+                            'company_id' => $record->id,
+                            'plan_id'    => $data['plan_id'],
+                            'status'     => $data['status'],
+                            'starts_at'  => $data['starts_at'],
+                            'ends_at'    => $data['ends_at'],
+                        ]);
+                        \Filament\Notifications\Notification::make()
+                            ->success()
+                            ->title(__('Plan assigned successfully.'))
+                            ->send();
+                    }),
+
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
