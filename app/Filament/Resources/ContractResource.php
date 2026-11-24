@@ -49,7 +49,7 @@ class ContractResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->with(['property:id,name', 'unit:id,unit_number', 'plannedUnit:id,code']);
+        return parent::getEloquentQuery()->with(['property:id,name', 'project:id,name', 'unit:id,unit_number', 'plannedUnit:id,code']);
     }
 
     public static function form(Forms\Form $form): Forms\Form
@@ -251,7 +251,9 @@ class ContractResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('contract_number')->label(__('Contract number'))->searchable(),
+                Tables\Columns\TextColumn::make('contract_number')->label(__('Contract number'))->searchable()
+                    ->description(fn (Contract $record): string => $record->displayName(withType: false))
+                    ->weight('bold'),
                 Tables\Columns\TextColumn::make('contract_type')->label(__('Contract type'))->formatStateUsing(fn ($state): string => $state instanceof ContractType ? $state->getLabel() : ContractType::tryFrom((string) $state)?->getLabel() ?? (string) $state)->badge(),
                 Tables\Columns\TextColumn::make('status')->label(__('Status'))->formatStateUsing(fn ($state): string => $state instanceof ContractStatus ? $state->getLabel() : ContractStatus::tryFrom((string) $state)?->getLabel() ?? (string) $state)->color(fn ($state): ?string => $state instanceof ContractStatus ? $state->color() : ContractStatus::tryFrom((string) $state)?->color())->tooltip(fn ($state): ?string => $state instanceof ContractStatus ? $state->description() : ContractStatus::tryFrom((string) $state)?->description())->badge(),
                 Tables\Columns\TextColumn::make('created_at')->label(__('Created at'))->dateTime(),

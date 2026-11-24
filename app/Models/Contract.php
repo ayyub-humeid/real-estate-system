@@ -27,6 +27,28 @@ class Contract extends Model
         'status' => ContractStatus::class,
         'ended_at' => 'date',
     ];
+    /**
+     * A name people can recognise: what the contract is about, e.g. "A-304 · Marina Tower · Sale".
+     * The contract number stays the exact identifier; this is what to show first.
+     */
+    public function displayName(bool $withType = true): string
+    {
+        $subject = $this->unit?->unit_number ?: $this->plannedUnit?->code;
+        $place = $this->property?->name ?: $this->project?->name;
+        $type = $withType && $this->contract_type instanceof ContractType ? $this->contract_type->getLabel() : null;
+        $name = collect([$subject, $place, $type])->filter()->implode(' · ');
+
+        return $name !== '' ? $name : (string) $this->contract_number;
+    }
+
+    /** The name together with the number, for places that must be exact, such as pickers and notifications. */
+    public function displayNameWithNumber(): string
+    {
+        $name = $this->displayName();
+
+        return $name === (string) $this->contract_number ? $name : $name.' ('.$this->contract_number.')';
+    }
+
     public function versions(): HasMany
     {
         return $this->hasMany(ContractVersion::class);
