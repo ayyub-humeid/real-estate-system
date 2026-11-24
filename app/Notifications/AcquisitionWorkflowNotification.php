@@ -17,6 +17,7 @@ class AcquisitionWorkflowNotification extends Notification
         public string $body,
         public ?int $acquisitionId = null,
         public array $params = [],
+        public ?string $url = null,
     ) {}
 
     public function via(object $notifiable): array
@@ -40,11 +41,15 @@ class AcquisitionWorkflowNotification extends Notification
                 $params['reason'] = __($params['reason']);
             }
 
-            return [
-                'title' => __($this->title, $params),
-                'body' => __($this->body, $params),
-                'acquisition_id' => $this->acquisitionId,
-            ];
+            $message = \Filament\Notifications\Notification::make()
+                ->title(__($this->title, $params))
+                ->body(__($this->body, $params));
+
+            if ($this->url) {
+                $message->actions([\Filament\Notifications\Actions\Action::make('open')->label(__('Open'))->url($this->url)->markAsRead()]);
+            }
+
+            return array_merge($message->getDatabaseMessage(), ['acquisition_id' => $this->acquisitionId]);
         } finally {
             app()->setLocale($previous);
         }

@@ -33,7 +33,7 @@ class ListingService
                 'updated_by' => $actor->id,
             ]));
             $this->writeInitialPriceHistory($listing, $actor);
-            DB::afterCommit(fn() => app(WorkflowNotifier::class)->send([$actor], 'notifications.listing_created', ['title' => $listing->title]));
+            DB::afterCommit(fn() => app(WorkflowNotifier::class)->send([$actor], 'notifications.listing_created', ['title' => $listing->title], \App\Support\NotificationLink::to($listing)));
 
             return $listing->refresh();
         });
@@ -79,7 +79,7 @@ class ListingService
             ]));
             if ($pricingChanged) {
                 $this->writePriceHistory($locked, $was, $actor, $attributes['price_change_reason'] ?? null);
-                DB::afterCommit(fn() => app(WorkflowNotifier::class)->send([$actor], 'notifications.listing_price_changed', ['title' => $locked->title]));
+                DB::afterCommit(fn() => app(WorkflowNotifier::class)->send([$actor], 'notifications.listing_price_changed', ['title' => $locked->title], \App\Support\NotificationLink::to($locked)));
             }
 
             return $locked->refresh();
@@ -129,7 +129,7 @@ class ListingService
                 'archived_at' => $target === ListingStatus::Archived ? now() : $locked->archived_at,
                 'updated_by' => $actor->id,
             ], fn($value) => $value !== null))->save();
-            DB::afterCommit(fn() => app(WorkflowNotifier::class)->send([$actor], 'notifications.listing_status_changed', ['title' => $locked->title, 'status' => $target->value]));
+            DB::afterCommit(fn() => app(WorkflowNotifier::class)->send([$actor], 'notifications.listing_status_changed', ['title' => $locked->title, 'status' => $target->value], \App\Support\NotificationLink::to($locked)));
 
             return $locked->refresh();
         });

@@ -72,7 +72,7 @@ class UnitSetupService
             ]);
             $unit = Unit::withoutGlobalScopes()->create($data + ['company_id' => $locked->company_id, 'project_id' => $project->id, 'planned_unit_id' => $locked->id, 'status' => UnitStatus::Draft->value]);
             $locked->update(['status' => 'converted']);
-            DB::afterCommit(fn() => $this->notify($actor, $project, 'unit_created', ['unit' => $unit->unit_number, 'plan' => $locked->code]));
+            DB::afterCommit(fn() => $this->notify($actor, $project, 'unit_created', ['unit' => $unit->unit_number, 'plan' => $locked->code], $unit));
             return $unit;
         });
     }
@@ -100,7 +100,7 @@ class UnitSetupService
             $unit->update(['status' => $to, 'ready_at' => $to === 'ready' ? ($unit->ready_at ?? now()) : $unit->ready_at, 'inactive_at' => $to === 'inactive' ? now() : null, 'inactive_reason' => $to === 'inactive' ? $reason : null]);
             UnitStatusHistory::withoutGlobalScopes()->create(['company_id' => $unit->company_id, 'unit_id' => $unit->id, 'from_status' => $from, 'to_status' => $to, 'reason' => $reason, 'changed_by' => $actor->id, 'changed_at' => now()]);
             if ($to === 'ready' || $to === 'inactive')
-                DB::afterCommit(fn() => $this->notify($actor, $unit->project, 'unit_status_changed', ['unit' => $unit->unit_number, 'status' => $to]));
+                DB::afterCommit(fn() => $this->notify($actor, $unit->project, 'unit_status_changed', ['unit' => $unit->unit_number, 'status' => $to], $unit));
             return $unit->refresh();
         });
     }
@@ -191,9 +191,11 @@ class UnitSetupService
         throw ValidationException::withMessages([$field => $message]);
     }
     /** Tells the project team (and the actor) in each person's own language. */
-    private function notify(User $actor, ?Project $project, string $event, array $params = []): void
+    private function notify(User $actor, ?Project $project, string $event, array $params = [], ?\Illuminate\Database\Eloquent\Model ...$targets): void
     {
         $notifier = app(WorkflowNotifier::class);
-        $notifier->send($notifier->projectTeam($project, $actor), 'notifications.'.$event, $params, null, $project?->id);
+        $url = \App\Support\NotificationLink::to(...$targets, ...[$project]);
+        $params = $params + ['project' => $project?->name ?? '—', 'user' => $actor->name];
+        $notifier->send($notifier->projectTeam($project, $actor), 'notifications.'.$event, $params, $url, $project?->id);
     }
 }

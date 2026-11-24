@@ -73,7 +73,7 @@ class ProjectPlanningService
                 throw ValidationException::withMessages(['user_id' => __('project.errors.member_already_active')]);
             $data = array_merge($attributes, ['company_id' => $project->company_id, 'project_id' => $project->id, 'user_id' => $member->id, 'started_at' => $attributes['started_at'] ?? now(), 'ended_at' => null]);
             $link = $existing ? tap($existing)->update($data)->refresh() : ProjectMember::create($data);
-            DB::afterCommit(fn() => app(WorkflowNotifier::class)->send([$member], 'project.notifications.membership_assigned', ['project' => $project->name, 'role' => $link->role], null, $project->id));
+            DB::afterCommit(fn() => app(WorkflowNotifier::class)->send([$member], 'project.notifications.membership_assigned', ['project' => $project->name, 'role' => $link->role], \App\Support\NotificationLink::to($project), $project->id));
             return $link;
         });
     }
@@ -86,6 +86,7 @@ class ProjectPlanningService
             throw ValidationException::withMessages(['user_id' => __('project.errors.membership_already_ended')]);
         $member->update(['ended_at' => now()]);
         DB::afterCommit(fn() => app(WorkflowNotifier::class)->send([$member->user], 'project.notifications.membership_ended', ['project' => $member->project->name], null, $member->project_id));
+        // Removed from the project: no link, because the member can no longer open it.
         return $member->refresh();
     }
 
@@ -302,7 +303,7 @@ class ProjectPlanningService
     private function notify(User $actor, Project $project, string $event, array $params = []): void
     {
         $notifier = app(WorkflowNotifier::class);
-        $notifier->send($notifier->projectTeam($project, $actor), $event, $params, null, $project->id);
+        $notifier->send($notifier->projectTeam($project, $actor), $event, $params, \App\Support\NotificationLink::to($project), $project->id);
     }
 
     private function statusLabel(string $status): string

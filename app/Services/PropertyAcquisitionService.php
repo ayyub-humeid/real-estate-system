@@ -391,6 +391,6 @@ class PropertyAcquisitionService
             ->filter(fn(User $user) => $user->id === $actor->id
                 || $user->can('view_property::acquisition')
                 || ($ownershipEvent && $user->can('view_property_ownership')))
-            ->each->notify(new AcquisitionWorkflowNotification($title, $body, $acquisition?->id, $params));
+            ->each->notify(new AcquisitionWorkflowNotification($title, $body, $acquisition?->id, $params, \App\Support\NotificationLink::to($acquisition)));
     }
 }

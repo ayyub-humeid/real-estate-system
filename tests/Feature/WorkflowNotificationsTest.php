@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\{CrmInquirySource, OfferProposedBySide, OpportunityType, ReservationSource};
-use App\Models\{Company, Location, Party, Property, Unit, UnitReservation, User};
+use App\Models\{Company, Location, Party, Project, Property, Unit, UnitReservation, User};
 use App\Notifications\WorkflowNotification;
 use App\Services\{LeadIntakeService, OfferNegotiationService, OpportunityService, ReservationWorkflowService, SalesNotifier};
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -184,15 +184,32 @@ class WorkflowNotificationsTest extends TestCase
 
     public function test_one_notification_reads_in_each_recipients_language(): void
     {
-        $notification = new WorkflowNotification('notifications.budget_approved', ['version' => 3]);
+        $notification = new WorkflowNotification('notifications.budget_approved', ['version' => 3, 'project' => 'Tower', 'user' => 'Sara']);
 
         $en = $notification->toArray((object) ['locale' => 'en']);
         $ar = $notification->toArray((object) ['locale' => 'ar']);
 
         $this->assertSame('Budget approved', $en['title']);
-        $this->assertSame('Budget V3 is now the current baseline.', $en['body']);
+        $this->assertSame('Budget V3 of Tower was approved by Sara. It is now the baseline for spending.', $en['body']);
         $this->assertSame('تم اعتماد الميزانية', $ar['title']);
         $this->assertStringContainsString('V3', $ar['body']);
+        $this->assertStringContainsString('Tower', $ar['body']);
+    }
+
+    /** A notification the admin cannot act on from the bell is easy to forget, so project events open their record. */
+    public function test_project_events_carry_an_open_button_to_the_record(): void
+    {
+        $company = Company::create(['name' => 'Linked', 'email' => 'linked@example.test']);
+        $project = Project::withoutGlobalScopes()->create(['company_id' => $company->id, 'name' => 'Tower', 'project_type' => 'residential', 'currency' => 'USD', 'status' => 'in_progress']);
+
+        $url = \App\Support\NotificationLink::to($project);
+        $this->assertNotNull($url);
+        $this->assertStringContainsString((string) $project->getKey(), $url);
+
+        $data = (new WorkflowNotification('project.notifications.status_changed', ['project' => 'Tower', 'status' => 'in_progress'], $url))->toArray((object) ['locale' => 'en']);
+
+        $this->assertSame($url, $data['actions'][0]['url']);
+        $this->assertNull(\App\Support\NotificationLink::to(null));
     }
 
     public function test_statuses_and_roles_are_shown_as_words_in_the_recipients_language(): void

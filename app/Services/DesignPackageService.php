@@ -183,6 +183,7 @@ class DesignPackageService
                     __("project.design.notify.{$event}_title", $params, $locale),
                     __("project.design.notify.{$event}_body", $params, $locale),
                     $package->project_id,
+                    \App\Support\NotificationLink::to($package, $package->project),
                 ));
             });
     }
