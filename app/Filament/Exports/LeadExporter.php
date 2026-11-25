@@ -12,6 +12,11 @@ class LeadExporter extends CompanyDataExporter
 {
     protected static ?string $model = Lead::class;
 
+    protected static function exportPermission(): ?string
+    {
+        return 'export_lead';
+    }
+
     protected static function translationFile(): string
     {
         return 'lead_export';

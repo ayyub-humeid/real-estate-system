@@ -141,6 +141,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'reschedule_contract_payment_schedule', 'cancel_contract_payment_schedule',
             'record_contract_payment', 'allocate_contract_payment', 'reverse_contract_payment',
             'manage_contract_financial_notification_routes',
+            // Company data export — a separate right from viewing a list, because the file leaves the system.
+            'export_contract', 'export_unit', 'export_lead', 'export_project', 'export_expense', 'export_payment',
         ];
 
         foreach ($customDomainPermissions as $permission) {
@@ -187,6 +189,7 @@ class RolesAndPermissionsSeeder extends Seeder
                 ->orWhere('name', 'like', '%financial::commitment')
                 ->orWhere('name', 'like', '%actual::cost')
                 ->orWhereIn('name', [
+                    'export_contract', 'export_expense', 'export_payment',
                     'view_any_budget_category', 'view_budget_category', 'create_budget_category', 'update_budget_category', 'delete_budget_category',
                     'view_any_budget_item', 'view_budget_item', 'create_budget_item', 'update_budget_item', 'delete_budget_item',
                     'view_any_financial_commitment_amendment', 'view_financial_commitment_amendment', 'create_financial_commitment_amendment', 'approve_financial_commitment_amendment',

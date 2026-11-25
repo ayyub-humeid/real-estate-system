@@ -160,6 +160,7 @@ class PaymentResource extends Resource
                     ->color('gray')
                     ->tooltip(__('payment_export.action_help'))
                     ->exporter(PaymentExporter::class)
+                    ->authorize(fn (): bool => PaymentExporter::canExport())
                     ->modalHeading(__('payment_export.modal_heading'))
                     ->modalDescription(__('payment_export.modal_description'))
                     ->visible(fn (): bool => auth()->user()?->can('view_any_payment') ?? false),

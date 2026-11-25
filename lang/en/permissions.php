@@ -28,6 +28,9 @@ return [
         'cancel_contract_payment_schedule' => 'Cancel contract payment schedule', 'record_contract_payment' => 'Record contract payment',
         'allocate_contract_payment' => 'Allocate contract payment', 'reverse_contract_payment' => 'Reverse or refund contract payment',
         'manage_contract_financial_notification_routes' => 'Manage contract finance notification routing',
+        'export_contract' => 'Download contracts to Excel', 'export_unit' => 'Download units to Excel',
+        'export_lead' => 'Download leads to Excel', 'export_project' => 'Download projects to Excel',
+        'export_expense' => 'Download expenses to Excel', 'export_payment' => 'Download payments to Excel',
         'accept_offer' => 'Accept offer', 'convert_lead_to_party' => 'Convert lead to party',
         'convert_offer_to_reservation' => 'Convert offer to reservation',
     ],
@@ -56,6 +59,7 @@ return [
         'crm' => 'CRM', 'lead_workflow' => 'Lead workflow', 'opportunity_workflow' => 'Opportunity workflow', 'lead_inquiries' => 'Lead inquiries', 'pipeline_stages' => 'Pipeline stages', 'stage_requirements' => 'Stage requirements', 'requirement_completions' => 'Requirement completions', 'stage_history' => 'Stage history', 'follow_up_tasks' => 'Follow-up tasks', 'task_assignment_and_completion' => 'Task assignment and completion', 'offers_and_negotiations' => 'Offers & negotiations',
         'listings_management' => 'Listings management', 'listing_lifecycle' => 'Listing lifecycle', 'listing_pricing' => 'Listing pricing', 'reservations' => 'Reservations',
         'contracts_agreements' => 'Contracts & agreements', 'version_workflow' => 'Version workflow', 'legal_documents_and_signatures' => 'Legal documents & signatures', 'amendments_and_audit' => 'Amendments & audit', 'contract_finance' => 'Contract finance',
+        'data_export' => 'Data export', 'export_company_data' => 'Download company data',
         'other_custom_permissions' => 'Other custom permissions', 'uncategorized' => 'Uncategorized',
     ],
 ];

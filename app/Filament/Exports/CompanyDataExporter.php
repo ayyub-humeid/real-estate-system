@@ -2,6 +2,7 @@
 
 namespace App\Filament\Exports;
 
+use App\Filament\Exports\Concerns\RequiresExportPermission;
 use Filament\Actions\Exports\Exporter;
 use Filament\Actions\Exports\Models\Export;
 
@@ -11,6 +12,8 @@ use Filament\Actions\Exports\Models\Export;
  */
 abstract class CompanyDataExporter extends Exporter
 {
+    use RequiresExportPermission;
+
     /** Translation file holding this export's file_name and column labels, e.g. "unit_export". */
     abstract protected static function translationFile(): string;
 

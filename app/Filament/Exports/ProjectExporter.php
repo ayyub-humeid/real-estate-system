@@ -11,6 +11,11 @@ class ProjectExporter extends CompanyDataExporter
 {
     protected static ?string $model = Project::class;
 
+    protected static function exportPermission(): ?string
+    {
+        return 'export_project';
+    }
+
     protected static function translationFile(): string
     {
         return 'project_export';

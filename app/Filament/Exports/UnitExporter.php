@@ -13,6 +13,11 @@ class UnitExporter extends CompanyDataExporter implements HasNumericExportColumn
 {
     protected static ?string $model = Unit::class;
 
+    protected static function exportPermission(): ?string
+    {
+        return 'export_unit';
+    }
+
     protected static function translationFile(): string
     {
         return 'unit_export';

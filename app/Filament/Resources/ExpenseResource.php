@@ -244,7 +244,7 @@ public static function canViewAny(): bool
                     ->toggle(),
             ])
             ->headerActions([
-                Tables\Actions\ExportAction::make()->label(__('export.action'))->exporter(ExpenseExporter::class)->color('gray'),
+                Tables\Actions\ExportAction::make()->label(__('export.action'))->exporter(ExpenseExporter::class)->color('gray')->authorize(fn (): bool => ExpenseExporter::canExport()),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),

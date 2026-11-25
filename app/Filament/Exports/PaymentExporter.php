@@ -2,6 +2,7 @@
 
 namespace App\Filament\Exports;
 
+use App\Filament\Exports\Concerns\RequiresExportPermission;
 use App\Filament\Exports\Contracts\HasNumericExportColumns;
 use App\Models\Payment;
 use Filament\Actions\Exports\ExportColumn;
@@ -18,7 +19,14 @@ use Illuminate\Database\Eloquent\Builder;
  */
 class PaymentExporter extends Exporter implements HasNumericExportColumns
 {
+    use RequiresExportPermission;
+
     protected static ?string $model = Payment::class;
+
+    protected static function exportPermission(): ?string
+    {
+        return 'export_payment';
+    }
 
     /** Rows per queued chunk. Keeps memory flat on large exports. */
     protected int $chunkSize = 500;

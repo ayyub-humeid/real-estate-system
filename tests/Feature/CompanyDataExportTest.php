@@ -191,12 +191,12 @@ class CompanyDataExportTest extends TestCase
     public static function companyLists(): array
     {
         return [
-            'contracts' => [ListContracts::class, 'view_any_contract', ContractExporter::class],
-            'units' => [ListUnits::class, 'view_any_unit', UnitExporter::class],
-            'leads' => [ListLeads::class, 'view_any_lead', LeadExporter::class],
-            'projects' => [ListProjects::class, 'view_any_project', ProjectExporter::class],
-            'expenses' => [ListExpenses::class, 'view_any_expense', ExpenseExporter::class],
-            'payments' => [ListPayments::class, 'view_any_payment', \App\Filament\Exports\PaymentExporter::class],
+            'contracts' => [ListContracts::class, 'view_any_contract|export_contract', ContractExporter::class],
+            'units' => [ListUnits::class, 'view_any_unit|export_unit', UnitExporter::class],
+            'leads' => [ListLeads::class, 'view_any_lead|export_lead', LeadExporter::class],
+            'projects' => [ListProjects::class, 'view_any_project|export_project', ProjectExporter::class],
+            'expenses' => [ListExpenses::class, 'view_any_expense|export_expense', ExpenseExporter::class],
+            'payments' => [ListPayments::class, 'view_any_payment|export_payment', \App\Filament\Exports\PaymentExporter::class],
         ];
     }
 
@@ -204,7 +204,9 @@ class CompanyDataExportTest extends TestCase
     public function test_company_list_shows_the_export_button_and_starts_an_export(string $page, string $permission, string $exporter): void
     {
         Bus::fake();
-        $this->actor->givePermissionTo(Permission::findOrCreate($permission, 'web'));
+        foreach (explode('|', $permission) as $name) {
+            $this->actor->givePermissionTo(Permission::findOrCreate($name, 'web'));
+        }
         $this->actingAs($this->actor);
 
         Livewire::test($page)

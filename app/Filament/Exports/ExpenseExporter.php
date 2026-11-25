@@ -12,6 +12,11 @@ class ExpenseExporter extends CompanyDataExporter implements HasNumericExportCol
 {
     protected static ?string $model = Expense::class;
 
+    protected static function exportPermission(): ?string
+    {
+        return 'export_expense';
+    }
+
     protected static function translationFile(): string
     {
         return 'expense_export';

@@ -36,6 +36,7 @@ class StandardRoles
         'extend_unit_reservation', 'expire_unit_reservation', 'update_unit::reservation',
         'update_party',
         'create_contract', 'create_contract_from_reservation', 'update_contract',
+        'export_lead', 'export_contract', 'export_unit',
     ];
 
     private const PROJECT_MANAGER = [
@@ -49,6 +50,7 @@ class StandardRoles
         'view_any_project::budget', 'view_project::budget',
         'view_any_financial::commitment', 'view_financial::commitment',
         'view_any_actual::cost', 'view_actual::cost',
+        'export_project', 'export_unit',
         'view_any_property', 'view_property', 'view_any_unit', 'view_unit', 'view_any_party', 'view_party',
     ];
 

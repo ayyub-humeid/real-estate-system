@@ -12,6 +12,11 @@ class ContractExporter extends CompanyDataExporter
 {
     protected static ?string $model = Contract::class;
 
+    protected static function exportPermission(): ?string
+    {
+        return 'export_contract';
+    }
+
     protected static function translationFile(): string
     {
         return 'contract_export';

@@ -270,6 +270,9 @@ class RoleResource extends ShieldRoleResource
             'Listing lifecycle' => ['exact:publish_listing', 'exact:pause_listing', 'exact:archive_listing'],
             'Listing pricing' => ['exact:change_listing_price'],
         ],
+        'Data Export' => [
+            'Export company data' => ['exact:export_contract', 'exact:export_unit', 'exact:export_lead', 'exact:export_project', 'exact:export_expense', 'exact:export_payment'],
+        ],
         'Contracts & Agreements' => [
             'Version workflow' => [
                 'exact:update_contract_version', 'exact:submit_contract_version', 'exact:approve_contract_version',

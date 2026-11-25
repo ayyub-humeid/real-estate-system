@@ -260,7 +260,7 @@ class ContractResource extends Resource
                 Tables\Columns\TextColumn::make('created_at')->label(__('Created at'))->dateTime(),
             ])
             ->headerActions([
-                Tables\Actions\ExportAction::make()->label(__('export.action'))->exporter(ContractExporter::class)->color('gray'),
+                Tables\Actions\ExportAction::make()->label(__('export.action'))->exporter(ContractExporter::class)->color('gray')->authorize(fn (): bool => ContractExporter::canExport()),
             ])
             ->actions([Tables\Actions\ViewAction::make()]);
     }

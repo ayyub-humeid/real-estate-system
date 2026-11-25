@@ -350,7 +350,7 @@ class UnitResource extends Resource
                     ->native(false),
             ])
             ->headerActions([
-                Tables\Actions\ExportAction::make()->label(__('export.action'))->exporter(UnitExporter::class)->color('gray'),
+                Tables\Actions\ExportAction::make()->label(__('export.action'))->exporter(UnitExporter::class)->color('gray')->authorize(fn (): bool => UnitExporter::canExport()),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
