@@ -243,7 +243,7 @@ class RoleResource extends ShieldRoleResource
             'Unit history and documents' => ['unit_status_history', 'exact:manage_unit_documents'],
         ],
         'CRM' => [
-            'Lead workflow' => ['exact:assign_lead'],
+            'Lead workflow' => ['exact:assign_lead', 'exact:convert_lead_to_party'],
             'Opportunity workflow' => ['exact:assign_opportunity', 'exact:move_opportunity_stage', 'exact:close_won_opportunity', 'exact:close_lost_opportunity'],
             'Lead inquiries' => ['lead_inquiry'],
             'Pipeline stages' => ['crm_pipeline_stage'],
@@ -263,7 +263,7 @@ class RoleResource extends ShieldRoleResource
                 'exact:cancel_crm_follow_up_task',
             ],
             'Activities' => ['exact:create_crm_activity', 'exact:view_crm_activity'],
-            'Offers and negotiations' => ['exact:view_own_crm_offer', 'exact:manage_own_crm_offer', 'offer_revision', 'offer_approval', 'exact:finalize_offer_revision', 'exact:request_offer_approval', 'exact:approve_offer_revision', 'exact:reject_offer_revision', 'exact:confirm_offer_agreement', 'exact:withdraw_offer', 'exact:close_offer', 'exact:expire_offer', 'exact:assign_offer'],
+            'Offers and negotiations' => ['exact:view_own_crm_offer', 'exact:manage_own_crm_offer', 'offer_revision', 'offer_approval', 'exact:finalize_offer_revision', 'exact:request_offer_approval', 'exact:approve_offer_revision', 'exact:reject_offer_revision', 'exact:confirm_offer_agreement', 'exact:withdraw_offer', 'exact:close_offer', 'exact:expire_offer', 'exact:assign_offer', 'exact:accept_offer', 'exact:convert_offer_to_reservation'],
             'Reservations' => ['exact:send_reservation_for_approval', 'exact:approve_and_activate_reservation', 'exact:reject_reservation_request', 'exact:cancel_unit_reservation', 'exact:extend_unit_reservation', 'exact:expire_unit_reservation'],
         ],
         'Listings Management' => [

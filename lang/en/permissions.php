@@ -28,6 +28,8 @@ return [
         'cancel_contract_payment_schedule' => 'Cancel contract payment schedule', 'record_contract_payment' => 'Record contract payment',
         'allocate_contract_payment' => 'Allocate contract payment', 'reverse_contract_payment' => 'Reverse or refund contract payment',
         'manage_contract_financial_notification_routes' => 'Manage contract finance notification routing',
+        'accept_offer' => 'Accept offer', 'convert_lead_to_party' => 'Convert lead to party',
+        'convert_offer_to_reservation' => 'Convert offer to reservation',
     ],
     'actions' => [
         'view_any' => 'View all', 'view_own' => 'View own', 'complete_any' => 'Complete any', 'force_delete_any' => 'Force delete any', 'force_delete' => 'Force delete', 'delete_any' => 'Delete any', 'restore_any' => 'Restore any',

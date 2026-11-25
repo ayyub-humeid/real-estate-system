@@ -28,6 +28,8 @@ return [
         'cancel_contract_payment_schedule' => 'إلغاء جدول دفعات العقد', 'record_contract_payment' => 'تسجيل دفعة عقد',
         'allocate_contract_payment' => 'توزيع دفعة عقد', 'reverse_contract_payment' => 'عكس أو استرداد دفعة عقد',
         'manage_contract_financial_notification_routes' => 'إدارة توجيه إشعارات تمويل العقود',
+        'accept_offer' => 'قبول العرض', 'convert_lead_to_party' => 'تحويل العميل المحتمل إلى طرف',
+        'convert_offer_to_reservation' => 'تحويل العرض إلى حجز',
         'confirm_offer_agreement' => 'تأكيد اتفاق العرض',
     ],
     'actions' => [
