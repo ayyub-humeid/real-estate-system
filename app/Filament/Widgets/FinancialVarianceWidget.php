@@ -15,6 +15,11 @@ class FinancialVarianceWidget extends BaseWidget
 
     protected static bool $isLazy = false;
 
+    public function getHeading(): ?string
+    {
+        return __('dashboard.kpis.financial_variance');
+    }
+
     public static function canView(): bool
     {
         if (! auth()->check()) {

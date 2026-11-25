@@ -24,6 +24,10 @@ return [
         'pending_maintenance' => 'Pending Maintenance',
         'open_opportunities' => 'Open Opportunities',
         'financial_activity_monthly' => 'Project Financial Activity (Monthly)',
+        'financial_overview' => 'Financial Overview',
+        'financial_variance' => 'Budget Variance',
+        'occupancy_overview' => 'Occupancy Overview',
+        'operational_overview' => 'Operational Overview',
     ],
     'descriptions' => [
         'budget_planned' => 'Sum from approved budget versions only',

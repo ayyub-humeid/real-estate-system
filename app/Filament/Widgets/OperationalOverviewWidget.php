@@ -14,6 +14,11 @@ class OperationalOverviewWidget extends BaseWidget
 
     protected int|string|array $columnSpan = 'full';
 
+    public function getHeading(): ?string
+    {
+        return __('dashboard.kpis.operational_overview');
+    }
+
     public static function canView(): bool
     {
         if (! auth()->check()) {

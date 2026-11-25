@@ -24,6 +24,10 @@ return [
         'pending_maintenance' => 'طلبات الصيانة المعلّقة',
         'open_opportunities' => 'الفرص المفتوحة',
         'financial_activity_monthly' => 'النشاط المالي للمشاريع (شهرياً)',
+        'financial_overview' => 'نظرة عامة مالية',
+        'financial_variance' => 'تباين الميزانية',
+        'occupancy_overview' => 'إحصائيات الإشغال',
+        'operational_overview' => 'نظرة عامة تشغيلية',
     ],
     'descriptions' => [
         'budget_planned' => 'المجموع من إصدارات الميزانية المعتمدة فقط',

@@ -11,6 +11,11 @@ class FinancialOverviewStats extends BaseWidget
 {
     protected static bool $isLazy = false;
 
+    public function getHeading(): ?string
+    {
+        return __('dashboard.kpis.financial_overview');
+    }
+
     public static function canView(): bool
     {
         if (! auth()->check()) {
