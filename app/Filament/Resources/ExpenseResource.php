@@ -2,8 +2,10 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Exports\ExpenseExporter;
 use App\Filament\Resources\ExpenseResource\Pages;
 use App\Models\Expense;
+use Filament\Actions\ExportAction;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -241,6 +243,11 @@ public static function canViewAny(): bool
                     ->label(__('This Month'))
                     ->query(fn (Builder $q) => $q->whereMonth('expense_date', now()->month))
                     ->toggle(),
+            ])
+            ->headerActions([
+                ExportAction::make()
+                    ->exporter(ExpenseExporter::class)
+                    ->color('gray'),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
