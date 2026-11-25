@@ -155,4 +155,8 @@ class Project extends Model
     {
         return $this->hasMany(Contract::class);
     }
+    public function opportunities(): HasMany
+    {
+        return $this->hasMany(Opportunity::class);
+    }
 }
