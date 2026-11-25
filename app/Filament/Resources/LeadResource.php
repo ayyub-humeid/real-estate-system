@@ -3,8 +3,10 @@
 namespace App\Filament\Resources;
 
 use App\Enums\{CrmInquirySource, LeadStatus};
+use App\Filament\Exports\LeadExporter;
 use App\Filament\Resources\LeadResource\{Pages, RelationManagers};
 use App\Models\{Company, Lead, User};
+use Filament\Actions\ExportAction;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -91,6 +93,11 @@ class LeadResource extends Resource
                 Tables\Filters\SelectFilter::make('first_source')
                     ->label(__('crm.fields.source'))
                     ->options(CrmInquirySource::options()),
+            ])
+            ->headerActions([
+                ExportAction::make()
+                    ->exporter(LeadExporter::class)
+                    ->color('gray'),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make()->label(__('crm.actions.details')),
