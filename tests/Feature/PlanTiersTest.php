@@ -31,9 +31,11 @@ class PlanTiersTest extends TestCase
         $this->seed(PlanAndSubscriptionSeeder::class);
 
         foreach (Plan::where('is_active', true)->get() as $plan) {
-            foreach (['maintenance_tracking', 'rental_requests', 'expense_tracking', 'document_management'] as $feature) {
+            foreach (['maintenance_tracking', 'rental_requests', 'expense_tracking'] as $feature) {
                 $this->assertTrue($plan->features[$feature], "{$plan->slug} must include {$feature}");
             }
+            // Documents are wired into contracts, acquisitions and units, so they are never plan-gated.
+            $this->assertArrayNotHasKey('document_management', $plan->features);
         }
     }
 
