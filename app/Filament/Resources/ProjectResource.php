@@ -5,7 +5,6 @@ use App\Filament\Exports\ProjectExporter;
 use App\Filament\Resources\ProjectResource\Pages;
 use App\Filament\Resources\ProjectResource\RelationManagers;
 use App\Models\{Company, Project};
-use Filament\Actions\ExportAction;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Infolists;
@@ -69,6 +68,8 @@ class ProjectResource extends Resource
             Tables\Columns\TextColumn::make('active_project_properties_count')->label(__('Properties')),
             Tables\Columns\TextColumn::make('active_members_count')->label(__('Members')),
             Tables\Columns\TextColumn::make('buildings_count')->label(__('Buildings'))
+        ])->headerActions([
+            Tables\Actions\ExportAction::make()->label(__('export.action'))->exporter(ProjectExporter::class)->color('gray'),
         ])->actions([Tables\Actions\ViewAction::make(), Tables\Actions\EditAction::make(), Tables\Actions\DeleteAction::make()])
         ->emptyStateHeading(__('No projects yet'))
         ->emptyStateDescription(__('Create your first project to get started.'))

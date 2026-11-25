@@ -6,7 +6,6 @@ use App\Filament\Exports\PlanExporter;
 use App\Filament\Resources\PlanResource\Pages;
 use App\Filament\Resources\PlanResource\RelationManagers;
 use App\Models\Plan;
-use Filament\Actions\ExportAction;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -206,7 +205,8 @@ class PlanResource extends Resource
                     ->falseLabel(__('Inactive')),
             ])
             ->headerActions([
-                ExportAction::make()
+                Tables\Actions\ExportAction::make()
+                    ->label(__('export.action'))
                     ->exporter(PlanExporter::class)
                     ->color('gray'),
             ])
