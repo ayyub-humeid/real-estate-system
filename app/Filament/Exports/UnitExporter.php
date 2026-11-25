@@ -76,4 +76,11 @@ class UnitExporter extends Exporter
             'date' => now()->format('Y-m-d'),
         ]);
     }
+
+    public static function getCompletedNotificationBody(\Filament\Actions\Exports\Models\Export $export): string
+    {
+        return __('export.completed', [
+            'count' => number_format($export->successful_rows),
+        ]);
+    }
 }
