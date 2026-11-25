@@ -350,11 +350,6 @@ class UnitResource extends Resource
                     ->options(UnitType::options())
                     ->native(false),
             ])
-            ->headerActions([
-                ExportAction::make()
-                    ->exporter(UnitExporter::class)
-                    ->color('gray'),
-            ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Action::make('notes')

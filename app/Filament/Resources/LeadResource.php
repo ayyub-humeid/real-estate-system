@@ -94,11 +94,6 @@ class LeadResource extends Resource
                     ->label(__('crm.fields.source'))
                     ->options(CrmInquirySource::options()),
             ])
-            ->headerActions([
-                ExportAction::make()
-                    ->exporter(LeadExporter::class)
-                    ->color('gray'),
-            ])
             ->actions([
                 Tables\Actions\ViewAction::make()->label(__('crm.actions.details')),
                 Tables\Actions\EditAction::make()->label(__('crm.actions.edit')),

@@ -69,13 +69,7 @@ class ProjectResource extends Resource
             Tables\Columns\TextColumn::make('active_project_properties_count')->label(__('Properties')),
             Tables\Columns\TextColumn::make('active_members_count')->label(__('Members')),
             Tables\Columns\TextColumn::make('buildings_count')->label(__('Buildings'))
-        ])
-        ->headerActions([
-            ExportAction::make()
-                ->exporter(ProjectExporter::class)
-                ->color('gray'),
-        ])
-        ->actions([Tables\Actions\ViewAction::make(), Tables\Actions\EditAction::make(), Tables\Actions\DeleteAction::make()])
+        ])->actions([Tables\Actions\ViewAction::make(), Tables\Actions\EditAction::make(), Tables\Actions\DeleteAction::make()])
         ->emptyStateHeading(__('No projects yet'))
         ->emptyStateDescription(__('Create your first project to get started.'))
         ->emptyStateIcon('heroicon-o-building-office-2');

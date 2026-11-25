@@ -244,11 +244,6 @@ public static function canViewAny(): bool
                     ->query(fn (Builder $q) => $q->whereMonth('expense_date', now()->month))
                     ->toggle(),
             ])
-            ->headerActions([
-                ExportAction::make()
-                    ->exporter(ExpenseExporter::class)
-                    ->color('gray'),
-            ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),

@@ -260,11 +260,6 @@ class ContractResource extends Resource
                 Tables\Columns\TextColumn::make('status')->label(__('Status'))->formatStateUsing(fn ($state): string => $state instanceof ContractStatus ? $state->getLabel() : ContractStatus::tryFrom((string) $state)?->getLabel() ?? (string) $state)->color(fn ($state): ?string => $state instanceof ContractStatus ? $state->color() : ContractStatus::tryFrom((string) $state)?->color())->tooltip(fn ($state): ?string => $state instanceof ContractStatus ? $state->description() : ContractStatus::tryFrom((string) $state)?->description())->badge(),
                 Tables\Columns\TextColumn::make('created_at')->label(__('Created at'))->dateTime(),
             ])
-            ->headerActions([
-                ExportAction::make()
-                    ->exporter(ContractExporter::class)
-                    ->color('gray'),
-            ])
             ->actions([Tables\Actions\ViewAction::make()]);
     }
 
