@@ -58,7 +58,7 @@ class Unit extends Model
         // ADD THIS
         static::creating(function ($model) {
             if (Auth::hasUser() && !Auth::user()->isSuperAdmin()) {
-                if (!Auth::user()->company->canAddUnit()) {
+                if (!Auth::user()->company?->canAddUnit()) {
                     throw \Illuminate\Validation\ValidationException::withMessages([
                         'limit' => __('You have reached the maximum number of units allowed by your plan.'),
                     ]);

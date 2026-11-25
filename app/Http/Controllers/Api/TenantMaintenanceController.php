@@ -25,7 +25,7 @@ class TenantMaintenanceController extends Controller
             return response()->json(['message' => 'Tenant company not found.'], 403);
         }
 
-        if (!$tenant->company->hasFeature('maintenance_tracking')) {
+        if (!$tenant->company?->hasFeature('maintenance_tracking')) {
             return response()->json([
                 'success' => false,
                 'message' => 'This feature is not available on your plan.'
@@ -55,7 +55,7 @@ class TenantMaintenanceController extends Controller
             return response()->json(['message' => 'Tenant company not found.'], 403);
         }
 
-        if (!$tenant->company->hasFeature('maintenance_tracking')) {
+        if (!$tenant->company?->hasFeature('maintenance_tracking')) {
             return response()->json([
                 'success' => false,
                 'message' => 'This feature is not available on your plan.'

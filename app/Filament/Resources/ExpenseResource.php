@@ -24,9 +24,10 @@ class ExpenseResource extends Resource
 public static function canViewAny(): bool
 {
     $user = auth()->user();
+    if (! $user) return false;
     if ($user->isSuperAdmin()) return true;
     
-    return $user->company->hasFeature('expense_tracking') 
+    return $user->companyHasFeature('expense_tracking') 
         && $user->can('view_any_expense');
 }
 
