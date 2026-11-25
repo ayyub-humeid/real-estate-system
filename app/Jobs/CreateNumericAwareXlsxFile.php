@@ -13,14 +13,22 @@ use OpenSpout\Common\Entity\Style\Style;
 use OpenSpout\Writer\XLSX\Writer;
 
 /**
- * Writes the export's money columns as numeric cells instead of text.
+ * Writes the export's money columns as numeric cells instead of text, and widens
+ * every column to fit the content it actually carries.
  *
- * Mirrors Filament's own CreateXlsxFile, changing one thing: for an exporter that
- * declares numeric columns, those cells are cast to float before openspout types
- * them, so a finance team can total the column in Excel.
+ * Mirrors Filament's own CreateXlsxFile, changing two things: for an exporter
+ * that declares numeric columns, those cells are cast to float before openspout
+ * types them (so a finance team can total the column in Excel), and each column
+ * gets a width matched to the longest value it holds (so a sheet opens readable,
+ * without manual resizing).
  */
 class CreateNumericAwareXlsxFile extends CreateXlsxFile
 {
+    /** Hard caps keep a stray long cell from pushing a column off the screen. */
+    private const MIN_WIDTH = 10.0;
+    private const MAX_WIDTH = 50.0;
+    private const PADDING = 2.0;
+
     public function handle(): void
     {
         $disk = $this->export->getFileDisk();
@@ -30,6 +38,9 @@ class CreateNumericAwareXlsxFile extends CreateXlsxFile
 
         $csvDelimiter = $this->exporter::getCsvDelimiter();
         $numericPositions = $this->numericColumnPositions();
+        $directory = $this->export->getFileDirectory();
+
+        $this->applyColumnWidths($writer, $disk, $directory, $csvDelimiter);
 
         $writeRowsFromFile = function (string $file, ?Style $style = null, bool $castNumerics = false) use ($csvDelimiter, $disk, $writer, $numericPositions): void {
             $csvReader = CsvReader::createFromStream($disk->readStream($file));
@@ -55,11 +66,11 @@ class CreateNumericAwareXlsxFile extends CreateXlsxFile
 
         // Headers stay text; only data rows are cast.
         $writeRowsFromFile(
-            $this->export->getFileDirectory().DIRECTORY_SEPARATOR.'headers.csv',
+            $directory.DIRECTORY_SEPARATOR.'headers.csv',
             $this->exporter->getXlsxHeaderCellStyle() ?? $cellStyle,
         );
 
-        foreach ($disk->files($this->export->getFileDirectory()) as $file) {
+        foreach ($disk->files($directory) as $file) {
             if (str($file)->endsWith('headers.csv') || ! str($file)->endsWith('.csv')) {
                 continue;
             }
@@ -70,13 +81,60 @@ class CreateNumericAwareXlsxFile extends CreateXlsxFile
         $writer->close();
 
         $disk->putFileAs(
-            $this->export->getFileDirectory(),
+            $directory,
             new File($temporaryFile),
             "{$this->export->file_name}.xlsx",
             Filesystem::VISIBILITY_PRIVATE,
         );
 
         unlink($temporaryFile);
+    }
+
+    /**
+     * One scan across header + data to compute each column's longest cell,
+     * then set a width that fits that cell. openspout requires widths to be
+     * set before rows are written, so the scan has to happen first.
+     */
+    private function applyColumnWidths(Writer $writer, Filesystem $disk, string $directory, string $csvDelimiter): void
+    {
+        $maxLengths = $this->maxLengthsFromFile($disk, $directory.DIRECTORY_SEPARATOR.'headers.csv', $csvDelimiter, []);
+
+        foreach ($disk->files($directory) as $file) {
+            if (str($file)->endsWith('headers.csv') || ! str($file)->endsWith('.csv')) {
+                continue;
+            }
+            $maxLengths = $this->maxLengthsFromFile($disk, $file, $csvDelimiter, $maxLengths);
+        }
+
+        if ($maxLengths === []) {
+            return;
+        }
+
+        $sheet = $writer->getCurrentSheet();
+        foreach ($maxLengths as $index => $length) {
+            $width = max(self::MIN_WIDTH, min(self::MAX_WIDTH, $length + self::PADDING));
+            // openspout column indices are 1-based.
+            $sheet->setColumnWidth($width, $index + 1);
+        }
+    }
+
+    /**
+     * @param array<int, int> $carry
+     * @return array<int, int>
+     */
+    private function maxLengthsFromFile(Filesystem $disk, string $file, string $csvDelimiter, array $carry): array
+    {
+        $csvReader = CsvReader::createFromStream($disk->readStream($file));
+        $csvReader->setDelimiter($csvDelimiter);
+
+        foreach ((new Statement)->process($csvReader)->getRecords() as $row) {
+            foreach (array_values($row) as $index => $value) {
+                $length = mb_strlen((string) $value);
+                $carry[$index] = max($carry[$index] ?? 0, $length);
+            }
+        }
+
+        return $carry;
     }
 
     /**

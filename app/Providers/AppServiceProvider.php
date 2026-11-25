@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use Illuminate\Queue\Events\JobProcessing;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 use App\Models\User;
@@ -67,5 +70,16 @@ class AppServiceProvider extends ServiceProvider
         \App\Models\User::observe(\App\Observers\UserObserver::class);
         \App\Models\MaintenanceRequest::observe(\App\Observers\MaintenanceRequestObserver::class);
         \App\Models\RentalRequest::observe(\App\Observers\RentalRequestObserver::class);
+
+        // Queued jobs run under the worker's default locale, not the user's.
+        // Stamp the invoking locale on every payload and restore it when the job runs,
+        // so an Arabic admin's Excel export comes back in Arabic.
+        Queue::createPayloadUsing(fn (): array => ['locale' => app()->getLocale()]);
+        Event::listen(JobProcessing::class, function (JobProcessing $event): void {
+            $locale = $event->job->payload()['locale'] ?? null;
+            if (is_string($locale) && $locale !== '') {
+                app()->setLocale($locale);
+            }
+        });
     }
 }
