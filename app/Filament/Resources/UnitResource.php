@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Exports\UnitExporter;
 use App\Filament\Resources\UnitResource\Pages;
 use App\Filament\Resources\UnitResource\RelationManagers;
 use App\Models\Unit;
@@ -13,6 +14,7 @@ use App\Models\Party;
 use App\Enums\Currency;
 use App\Services\PropertyDescriptionService;
 use App\Services\UnitSetupService;
+use Filament\Actions\ExportAction;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -347,6 +349,11 @@ class UnitResource extends Resource
                     ->label(__('Type'))
                     ->options(UnitType::options())
                     ->native(false),
+            ])
+            ->headerActions([
+                ExportAction::make()
+                    ->exporter(UnitExporter::class)
+                    ->color('gray'),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
