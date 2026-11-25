@@ -92,6 +92,12 @@ class Expense extends Model
         return $this->belongsTo(Unit::class);
     }
 
+    /** Expenses carry no project of their own; they reach it through the unit or the property. */
+    public function effectiveProject(): ?Project
+    {
+        return $this->unit?->effectiveProject() ?? $this->property?->currentProject();
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');

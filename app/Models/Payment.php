@@ -23,6 +23,12 @@ class Payment extends Model
     ];
 
     public function project(): BelongsTo { return $this->belongsTo(Project::class); }
+
+    /** Project-cost payments carry their project; contract receipts reach it through the contract. */
+    public function effectiveProject(): ?Project
+    {
+        return $this->project ?? $this->contract?->effectiveProject();
+    }
     public function contract(): BelongsTo { return $this->belongsTo(Contract::class); }
     public function contractPaymentSchedule(): BelongsTo { return $this->belongsTo(ContractPaymentSchedule::class); }
     public function party(): BelongsTo { return $this->belongsTo(Party::class); }

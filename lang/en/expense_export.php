@@ -8,6 +8,7 @@ return [
         'amount' => 'Amount',
         'currency' => 'Currency',
         'status' => 'Status',
+        'project' => 'Project',
         'property' => 'Property',
         'unit' => 'Unit',
         'payment_method' => 'Payment method',

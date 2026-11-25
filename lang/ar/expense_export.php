@@ -8,6 +8,7 @@ return [
         'amount' => 'المبلغ',
         'currency' => 'العملة',
         'status' => 'الحالة',
+        'project' => 'المشروع',
         'property' => 'العقار',
         'unit' => 'الوحدة',
         'payment_method' => 'طريقة الدفع',

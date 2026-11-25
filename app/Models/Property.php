@@ -76,6 +76,12 @@ class Property extends Model
     public function documents(): MorphMany { return $this->morphMany(Document::class, 'documentable'); }
     public function projectProperties(): HasMany { return $this->hasMany(ProjectProperty::class); }
 
+    /** The project this property is attached to now, newest attachment first. */
+    public function currentProject(): ?Project
+    {
+        return $this->projectProperties->whereNull('detached_at')->sortByDesc('attached_at')->first()?->project;
+    }
+
     /**
      * Polymorphic: all images belonging to this property.
      * Usage: $property->images  (auto-scoped by imageable_type + imageable_id)

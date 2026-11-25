@@ -128,6 +128,12 @@ class Unit extends Model
         return $this->belongsTo(Project::class);
     }
 
+    /** The unit's own project, or the one its property is attached to. */
+    public function effectiveProject(): ?Project
+    {
+        return $this->project ?? $this->property?->currentProject();
+    }
+
     public function plannedUnit(): BelongsTo
     {
         return $this->belongsTo(ProjectPlannedUnit::class, 'planned_unit_id');

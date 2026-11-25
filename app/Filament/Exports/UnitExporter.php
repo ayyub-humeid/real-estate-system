@@ -30,7 +30,7 @@ class UnitExporter extends CompanyDataExporter implements HasNumericExportColumn
 
     public static function modifyQuery(Builder $query): Builder
     {
-        return $query->with(['property:id,name', 'project:id,name']);
+        return $query->with(['property.projectProperties.project:id,name', 'project:id,name']);
     }
 
     public static function getColumns(): array
@@ -38,7 +38,8 @@ class UnitExporter extends CompanyDataExporter implements HasNumericExportColumn
         return [
             ExportColumn::make('unit_number')->label(static::label('unit_number')),
             ExportColumn::make('property.name')->label(static::label('property')),
-            ExportColumn::make('project.name')->label(static::label('project')),
+            ExportColumn::make('project.name')->label(static::label('project'))
+                ->state(fn (Unit $record): ?string => $record->effectiveProject()?->name),
             ExportColumn::make('type')->label(static::label('type'))
                 ->formatStateUsing(fn (?string $state): ?string => $state ? (UnitType::tryFrom($state)?->getLabel() ?? $state) : null),
             ExportColumn::make('status')->label(static::label('status'))

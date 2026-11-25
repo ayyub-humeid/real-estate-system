@@ -8,6 +8,7 @@ return [
         'status' => 'Status',
         'source' => 'Source',
         'owner' => 'Owner',
+        'projects' => 'Projects of interest',
         'created_at' => 'Created at',
         'created_by' => 'Created by',
         'record_id' => 'Record ID',

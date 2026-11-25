@@ -24,7 +24,7 @@ class LeadExporter extends CompanyDataExporter
 
     public static function modifyQuery(Builder $query): Builder
     {
-        return $query->with(['assignedTo:id,name', 'createdBy:id,name']);
+        return $query->with(['assignedTo:id,name', 'createdBy:id,name', 'opportunities.project:id,name']);
     }
 
     public static function getColumns(): array
@@ -38,6 +38,8 @@ class LeadExporter extends CompanyDataExporter
             ExportColumn::make('first_source')->label(static::label('source'))
                 ->formatStateUsing(fn (?CrmInquirySource $state): ?string => $state?->getLabel()),
             ExportColumn::make('assignedTo.name')->label(static::label('owner')),
+            ExportColumn::make('projects')->label(static::label('projects'))
+                ->state(fn (Lead $record): ?string => $record->opportunities->pluck('project.name')->filter()->unique()->implode(', ') ?: null),
             ExportColumn::make('created_at')->label(static::label('created_at'))
                 ->formatStateUsing(fn ($state): ?string => $state?->format('Y-m-d')),
             ExportColumn::make('createdBy.name')->label(static::label('created_by'))->enabledByDefault(false),

@@ -44,9 +44,10 @@ class PaymentExporter extends Exporter implements HasNumericExportColumns
     {
         return $query->with([
             'contract:id,contract_number,contract_type,unit_id,planned_unit_id,property_id,project_id',
-            'contract.unit:id,unit_number',
-            'contract.plannedUnit:id,code',
-            'contract.property:id,name',
+            'contract.unit.project:id,name',
+            'contract.unit.property.projectProperties.project:id,name',
+            'contract.plannedUnit.floor.building.project:id,name',
+            'contract.property.projectProperties.project:id,name',
             'contract.project:id,name',
             'project:id,name,currency',
             'party:id,name',
@@ -93,7 +94,8 @@ class PaymentExporter extends Exporter implements HasNumericExportColumns
                 ->state(fn (Payment $record): ?string => $record->contract?->displayName()),
 
             ExportColumn::make('project.name')
-                ->label(__('payment_export.columns.project')),
+                ->label(__('payment_export.columns.project'))
+                ->state(fn (Payment $record): ?string => $record->effectiveProject()?->name),
 
             // Numeric so Excel can total the column.
             ExportColumn::make('amount')

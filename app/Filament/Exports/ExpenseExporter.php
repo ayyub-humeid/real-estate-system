@@ -29,7 +29,7 @@ class ExpenseExporter extends CompanyDataExporter implements HasNumericExportCol
 
     public static function modifyQuery(Builder $query): Builder
     {
-        return $query->with(['property:id,name', 'unit:id,unit_number', 'creator:id,name']);
+        return $query->with(['property.projectProperties.project:id,name', 'unit.project:id,name', 'unit.property.projectProperties.project:id,name', 'creator:id,name']);
     }
 
     public static function getColumns(): array
@@ -45,6 +45,8 @@ class ExpenseExporter extends CompanyDataExporter implements HasNumericExportCol
             ExportColumn::make('currency')->label(static::label('currency')),
             ExportColumn::make('status')->label(static::label('status'))
                 ->formatStateUsing(fn (?string $state): ?string => $state ? __('expense_export.statuses.'.$state) : null),
+            ExportColumn::make('project')->label(static::label('project'))
+                ->state(fn (Expense $record): ?string => $record->effectiveProject()?->name),
             ExportColumn::make('property.name')->label(static::label('property')),
             ExportColumn::make('unit.unit_number')->label(static::label('unit')),
             ExportColumn::make('payment_method')->label(static::label('payment_method')),

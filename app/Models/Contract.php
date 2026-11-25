@@ -49,6 +49,15 @@ class Contract extends Model
         return $name === (string) $this->contract_number ? $name : $name.' ('.$this->contract_number.')';
     }
 
+    /** The project a contract belongs to, even when it was written against a unit, planned unit or property instead. */
+    public function effectiveProject(): ?Project
+    {
+        return $this->project
+            ?? $this->unit?->effectiveProject()
+            ?? $this->plannedUnit?->floor?->building?->project
+            ?? $this->property?->currentProject();
+    }
+
     public function versions(): HasMany
     {
         return $this->hasMany(ContractVersion::class);

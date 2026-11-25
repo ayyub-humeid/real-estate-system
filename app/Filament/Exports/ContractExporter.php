@@ -25,7 +25,8 @@ class ContractExporter extends CompanyDataExporter
     public static function modifyQuery(Builder $query): Builder
     {
         return $query->with([
-            'unit:id,unit_number', 'plannedUnit:id,code', 'property:id,name', 'project:id,name', 'createdBy:id,name',
+            'project:id,name', 'unit.project:id,name', 'unit.property.projectProperties.project:id,name',
+            'plannedUnit.floor.building.project:id,name', 'property.projectProperties.project:id,name', 'createdBy:id,name',
         ]);
     }
 
@@ -42,7 +43,8 @@ class ContractExporter extends CompanyDataExporter
             ExportColumn::make('unit.unit_number')->label(static::label('unit')),
             ExportColumn::make('plannedUnit.code')->label(static::label('planned_unit')),
             ExportColumn::make('property.name')->label(static::label('property')),
-            ExportColumn::make('project.name')->label(static::label('project')),
+            ExportColumn::make('project.name')->label(static::label('project'))
+                ->state(fn (Contract $record): ?string => $record->effectiveProject()?->name),
             ExportColumn::make('created_at')->label(static::label('created_at'))
                 ->formatStateUsing(fn ($state): ?string => $state?->format('Y-m-d')),
             ExportColumn::make('createdBy.name')->label(static::label('created_by'))->enabledByDefault(false),
