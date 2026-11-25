@@ -24,17 +24,19 @@ class MaintenanceRequestResource extends Resource
 public static function shouldRegisterNavigation(): bool
 {
     $user = auth()->user();
+    if (! $user) return false;
     if ($user->isSuperAdmin()) return true;
-    return $user->company->hasFeature('maintenance_tracking');
+    return $user->companyHasFeature('maintenance_tracking');
 }
 
 public static function canViewAny(): bool
 {
     $user = auth()->user();
+    if (! $user) return false;
     if ($user->isSuperAdmin()) return true;
     
     // Check BOTH feature AND Shield permission
-    return $user->company->hasFeature('maintenance_tracking') 
+    return $user->companyHasFeature('maintenance_tracking') 
         && $user->can('view_any_maintenance::request');
 }
 

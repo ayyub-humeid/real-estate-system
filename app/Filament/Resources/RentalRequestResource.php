@@ -27,9 +27,10 @@ class RentalRequestResource extends Resource
 public static function canViewAny(): bool
 {
     $user = auth()->user();
+    if (! $user) return false;
     if ($user->isSuperAdmin()) return true;
     
-    return $user->company->hasFeature('rental_requests') 
+    return $user->companyHasFeature('rental_requests') 
         && $user->can('view_any_rental::request');
 }
     public static function getEloquentQuery(): Builder

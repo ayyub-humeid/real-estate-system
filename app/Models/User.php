@@ -65,7 +65,7 @@ class User extends Authenticatable implements FilamentUser
 
         static::creating(function ($model) {
             if (Auth::hasUser() && !Auth::user()->isSuperAdmin()) {
-                if (!Auth::user()->company->canAddUser()) {
+                if (!Auth::user()->company?->canAddUser()) {
                     throw \Illuminate\Validation\ValidationException::withMessages([
                         'limit' => __('You have reached the maximum number of users allowed by your plan.'),
                     ]);
@@ -82,6 +82,15 @@ class User extends Authenticatable implements FilamentUser
     public function isSuperAdmin(): bool
     {
         return $this->hasRole('super_admin');
+    }
+
+    /**
+     * Null-safe plan feature check: false when the user has no company
+     * or the company has no active subscription/plan.
+     */
+    public function companyHasFeature(string $feature): bool
+    {
+        return (bool) $this->company?->hasFeature($feature);
     }
 
     public function isCompanyAdmin(): bool

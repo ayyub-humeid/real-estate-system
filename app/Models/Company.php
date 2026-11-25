@@ -165,7 +165,7 @@ class Company extends Model
             return $default;
         }
 
-        return $this->subscription->plan->features[$feature] ?? $default;
+        return $this->subscription->plan?->features[$feature] ?? $default;
     }
 
     public function canAddProperty(): bool
