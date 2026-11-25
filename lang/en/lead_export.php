@@ -1,17 +1,15 @@
 <?php
 return [
-    'file_name' => 'leads-:date',
+    'file_name' => 'leads-:date-:id',
     'columns' => [
-        'contact_name' => 'Contact name',
-        'email' => 'Email',
+        'name' => 'Name',
         'phone' => 'Phone',
+        'email' => 'Email',
         'status' => 'Status',
         'source' => 'Source',
-        'interests' => 'Interests',
-        'budget' => 'Budget',
+        'owner' => 'Owner',
         'created_at' => 'Created at',
-        'updated_at' => 'Updated at',
-        'assigned_to' => 'Assigned to',
+        'created_by' => 'Created by',
         'record_id' => 'Record ID',
     ],
 ];

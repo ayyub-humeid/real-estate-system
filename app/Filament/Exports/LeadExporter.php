@@ -2,87 +2,41 @@
 
 namespace App\Filament\Exports;
 
+use App\Enums\{CrmInquirySource, LeadStatus};
 use App\Models\Lead;
 use Filament\Actions\Exports\ExportColumn;
-use Filament\Actions\Exports\Exporter;
 use Illuminate\Database\Eloquent\Builder;
 
-/**
- * Lead export — CRM and sales funnel tracking.
- *
- * Shows leads/opportunities: contact, source, status, interests, and dates
- * so sales teams can track pipeline and report on conversion metrics.
- */
-class LeadExporter extends Exporter
+/** Lead list for sales follow-up and source analysis. */
+class LeadExporter extends CompanyDataExporter
 {
     protected static ?string $model = Lead::class;
 
+    protected static function translationFile(): string
+    {
+        return 'lead_export';
+    }
+
     public static function modifyQuery(Builder $query): Builder
     {
-        return $query->with([
-            'contact:id,name,email,phone',
-            'source:id,name',
-            'createdBy:id,name',
-        ])->orderBy('created_at', 'desc');
+        return $query->with(['assignedTo:id,name', 'createdBy:id,name']);
     }
 
     public static function getColumns(): array
     {
         return [
-            ExportColumn::make('contact.name')
-                ->label(__('lead_export.columns.contact_name')),
-
-            ExportColumn::make('contact.email')
-                ->label(__('lead_export.columns.email')),
-
-            ExportColumn::make('contact.phone')
-                ->label(__('lead_export.columns.phone')),
-
-            ExportColumn::make('status')
-                ->label(__('lead_export.columns.status'))
-                ->formatStateUsing(fn (?string $state): string => $state ? __('enums.lead_status.'.$state) : ''),
-
-            ExportColumn::make('source.name')
-                ->label(__('lead_export.columns.source')),
-
-            ExportColumn::make('interests')
-                ->label(__('lead_export.columns.interests'))
-                ->formatStateUsing(fn ($state): string => is_array($state) ? implode(', ', $state) : (string) ($state ?? '')),
-
-            ExportColumn::make('budget')
-                ->label(__('lead_export.columns.budget'))
-                ->enabledByDefault(false),
-
-            ExportColumn::make('created_at')
-                ->label(__('lead_export.columns.created_at'))
+            ExportColumn::make('name')->label(static::label('name')),
+            ExportColumn::make('phone')->label(static::label('phone')),
+            ExportColumn::make('email')->label(static::label('email')),
+            ExportColumn::make('status')->label(static::label('status'))
+                ->formatStateUsing(fn (?LeadStatus $state): ?string => $state?->getLabel()),
+            ExportColumn::make('first_source')->label(static::label('source'))
+                ->formatStateUsing(fn (?CrmInquirySource $state): ?string => $state?->getLabel()),
+            ExportColumn::make('assignedTo.name')->label(static::label('owner')),
+            ExportColumn::make('created_at')->label(static::label('created_at'))
                 ->formatStateUsing(fn ($state): ?string => $state?->format('Y-m-d')),
-
-            ExportColumn::make('updated_at')
-                ->label(__('lead_export.columns.updated_at'))
-                ->formatStateUsing(fn ($state): ?string => $state?->format('Y-m-d'))
-                ->enabledByDefault(false),
-
-            ExportColumn::make('createdBy.name')
-                ->label(__('lead_export.columns.assigned_to'))
-                ->enabledByDefault(false),
-
-            ExportColumn::make('id')
-                ->label(__('lead_export.columns.record_id'))
-                ->enabledByDefault(false),
+            ExportColumn::make('createdBy.name')->label(static::label('created_by'))->enabledByDefault(false),
+            ExportColumn::make('id')->label(static::label('record_id'))->enabledByDefault(false),
         ];
-    }
-
-    public function getFileName(mixed $export): string
-    {
-        return __('lead_export.file_name', [
-            'date' => now()->format('Y-m-d'),
-        ]);
-    }
-
-    public static function getCompletedNotificationBody(\Filament\Actions\Exports\Models\Export $export): string
-    {
-        return __('export.completed', [
-            'count' => number_format($export->successful_rows),
-        ]);
     }
 }

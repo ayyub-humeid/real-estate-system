@@ -1,7 +1,7 @@
 <?php
 return [
     'action' => 'تصدير إلى Excel',
-    'file_name' => 'plans-:date',
+    'file_name' => 'plans-:date-:id',
     'columns' => [
         'name' => 'اسم الخطة',
         'price_monthly' => 'السعر الشهري',

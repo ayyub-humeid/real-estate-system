@@ -2,94 +2,53 @@
 
 namespace App\Filament\Exports;
 
+use App\Filament\Exports\Contracts\HasNumericExportColumns;
 use App\Models\Expense;
 use Filament\Actions\Exports\ExportColumn;
-use Filament\Actions\Exports\Exporter;
 use Illuminate\Database\Eloquent\Builder;
 
-/**
- * Expense export — budget tracking and reconciliation.
- *
- * Shows expenses: amount, category, project, date, vendor, and status
- * so finance teams can reconcile budgets and analyze spending.
- */
-class ExpenseExporter extends Exporter
+/** Expense ledger for budget reconciliation; amounts stay numeric so Excel can total them. */
+class ExpenseExporter extends CompanyDataExporter implements HasNumericExportColumns
 {
     protected static ?string $model = Expense::class;
 
+    protected static function translationFile(): string
+    {
+        return 'expense_export';
+    }
+
+    public static function numericColumns(): array
+    {
+        return ['amount'];
+    }
+
     public static function modifyQuery(Builder $query): Builder
     {
-        return $query->with([
-            'project:id,name',
-            'createdBy:id,name',
-        ])->orderBy('expense_date', 'desc');
+        return $query->with(['property:id,name', 'unit:id,unit_number', 'creator:id,name']);
     }
 
     public static function getColumns(): array
     {
         return [
-            ExportColumn::make('expense_date')
-                ->label(__('expense_export.columns.date'))
+            ExportColumn::make('expense_date')->label(static::label('date'))
                 ->formatStateUsing(fn ($state): ?string => $state?->format('Y-m-d')),
-
-            ExportColumn::make('category')
-                ->label(__('expense_export.columns.category'))
-                ->formatStateUsing(fn (?string $state): string => $state ? __('enums.expense_category.'.$state) : ''),
-
-            ExportColumn::make('description')
-                ->label(__('expense_export.columns.description')),
-
-            ExportColumn::make('vendor')
-                ->label(__('expense_export.columns.vendor')),
-
-            ExportColumn::make('amount')
-                ->label(__('expense_export.columns.amount'))
-                ->formatStateUsing(fn ($state): ?float => $state !== null ? (float) $state : null),
-
-            ExportColumn::make('currency')
-                ->label(__('expense_export.columns.currency')),
-
-            ExportColumn::make('project.name')
-                ->label(__('expense_export.columns.project')),
-
-            ExportColumn::make('status')
-                ->label(__('expense_export.columns.status'))
-                ->formatStateUsing(fn (?string $state): string => $state ? __('enums.expense_status.'.$state) : ''),
-
-            ExportColumn::make('payment_method')
-                ->label(__('expense_export.columns.payment_method'))
-                ->enabledByDefault(false),
-
-            ExportColumn::make('reference')
-                ->label(__('expense_export.columns.reference'))
-                ->enabledByDefault(false),
-
-            ExportColumn::make('createdBy.name')
-                ->label(__('expense_export.columns.created_by'))
-                ->enabledByDefault(false),
-
-            ExportColumn::make('created_at')
-                ->label(__('expense_export.columns.created_at'))
-                ->formatStateUsing(fn ($state): ?string => $state?->format('Y-m-d'))
-                ->enabledByDefault(false),
-
-            ExportColumn::make('id')
-                ->label(__('expense_export.columns.record_id'))
-                ->enabledByDefault(false),
+            ExportColumn::make('title')->label(static::label('title')),
+            ExportColumn::make('category')->label(static::label('category'))
+                ->formatStateUsing(fn (?string $state): ?string => $state ? __('expense_export.categories.'.$state) : null),
+            ExportColumn::make('amount')->label(static::label('amount'))
+                ->formatStateUsing(fn ($state): ?float => static::number($state)),
+            ExportColumn::make('currency')->label(static::label('currency')),
+            ExportColumn::make('status')->label(static::label('status'))
+                ->formatStateUsing(fn (?string $state): ?string => $state ? __('expense_export.statuses.'.$state) : null),
+            ExportColumn::make('property.name')->label(static::label('property')),
+            ExportColumn::make('unit.unit_number')->label(static::label('unit')),
+            ExportColumn::make('payment_method')->label(static::label('payment_method')),
+            ExportColumn::make('reference_number')->label(static::label('reference')),
+            ExportColumn::make('paid_at')->label(static::label('paid_at'))
+                ->formatStateUsing(fn ($state): ?string => $state?->format('Y-m-d')),
+            ExportColumn::make('description')->label(static::label('description'))->enabledByDefault(false),
+            ExportColumn::make('creator.name')->label(static::label('created_by'))->enabledByDefault(false),
+            ExportColumn::make('id')->label(static::label('record_id'))->enabledByDefault(false),
         ];
-    }
-
-    public function getFileName(mixed $export): string
-    {
-        return __('expense_export.file_name', [
-            'date' => now()->format('Y-m-d'),
-        ]);
-    }
-
-    public static function getCompletedNotificationBody(\Filament\Actions\Exports\Models\Export $export): string
-    {
-        return __('export.completed', [
-            'count' => number_format($export->successful_rows),
-        ]);
     }
 }

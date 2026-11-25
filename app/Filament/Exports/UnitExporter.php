@@ -2,84 +2,56 @@
 
 namespace App\Filament\Exports;
 
+use App\Enums\{UnitStatus, UnitType};
+use App\Filament\Exports\Contracts\HasNumericExportColumns;
 use App\Models\Unit;
 use Filament\Actions\Exports\ExportColumn;
-use Filament\Actions\Exports\Exporter;
 use Illuminate\Database\Eloquent\Builder;
 
-/**
- * Unit export — inventory and sales tracking.
- *
- * Shows unit inventory: number, type, status, property, area, and reservations
- * so companies can track sales progress and report to investors.
- */
-class UnitExporter extends Exporter
+/** Unit inventory with prices, so sales progress can be reported and totalled in Excel. */
+class UnitExporter extends CompanyDataExporter implements HasNumericExportColumns
 {
     protected static ?string $model = Unit::class;
 
+    protected static function translationFile(): string
+    {
+        return 'unit_export';
+    }
+
+    public static function numericColumns(): array
+    {
+        return ['actual_area', 'sale_price', 'rent_price'];
+    }
+
     public static function modifyQuery(Builder $query): Builder
     {
-        return $query->with([
-            'property:id,name',
-            'project:id,name',
-            'reservations:id,unit_id,reservation_number,status',
-        ])->orderBy('unit_number');
+        return $query->with(['property:id,name', 'project:id,name']);
     }
 
     public static function getColumns(): array
     {
         return [
-            ExportColumn::make('unit_number')
-                ->label(__('unit_export.columns.unit_number')),
-
-            ExportColumn::make('property.name')
-                ->label(__('unit_export.columns.property')),
-
-            ExportColumn::make('project.name')
-                ->label(__('unit_export.columns.project')),
-
-            ExportColumn::make('status')
-                ->label(__('unit_export.columns.status'))
-                ->formatStateUsing(fn (?string $state): string => $state ? __('enums.unit_status.'.$state) : ''),
-
-            ExportColumn::make('unit_type')
-                ->label(__('unit_export.columns.type'))
-                ->formatStateUsing(fn (?string $state): string => $state ? __('enums.unit_type.'.$state) : ''),
-
-            ExportColumn::make('area_sqm')
-                ->label(__('unit_export.columns.area'))
-                ->formatStateUsing(fn ($state): ?string => $state ? number_format($state, 2).' sqm' : null),
-
-            ExportColumn::make('bedrooms')
-                ->label(__('unit_export.columns.bedrooms'))
-                ->enabledByDefault(false),
-
-            ExportColumn::make('bathrooms')
-                ->label(__('unit_export.columns.bathrooms'))
-                ->enabledByDefault(false),
-
-            ExportColumn::make('created_at')
-                ->label(__('unit_export.columns.created_at'))
-                ->formatStateUsing(fn ($state): ?string => $state?->format('Y-m-d'))
-                ->enabledByDefault(false),
-
-            ExportColumn::make('id')
-                ->label(__('unit_export.columns.record_id'))
-                ->enabledByDefault(false),
+            ExportColumn::make('unit_number')->label(static::label('unit_number')),
+            ExportColumn::make('property.name')->label(static::label('property')),
+            ExportColumn::make('project.name')->label(static::label('project')),
+            ExportColumn::make('type')->label(static::label('type'))
+                ->formatStateUsing(fn (?string $state): ?string => $state ? (UnitType::tryFrom($state)?->getLabel() ?? $state) : null),
+            ExportColumn::make('status')->label(static::label('status'))
+                ->formatStateUsing(fn (?string $state): ?string => $state ? (UnitStatus::tryFrom($state)?->getLabel() ?? $state) : null),
+            ExportColumn::make('bedrooms')->label(static::label('bedrooms')),
+            ExportColumn::make('bathrooms')->label(static::label('bathrooms')),
+            ExportColumn::make('actual_area')->label(static::label('area'))
+                ->formatStateUsing(fn ($state): ?float => static::number($state)),
+            ExportColumn::make('area_unit')->label(static::label('area_unit')),
+            ExportColumn::make('sale_price')->label(static::label('sale_price'))
+                ->formatStateUsing(fn ($state): ?float => static::number($state)),
+            ExportColumn::make('sale_currency')->label(static::label('sale_currency')),
+            ExportColumn::make('rent_price')->label(static::label('rent_price'))
+                ->formatStateUsing(fn ($state): ?float => static::number($state)),
+            ExportColumn::make('rent_currency')->label(static::label('rent_currency')),
+            ExportColumn::make('created_at')->label(static::label('created_at'))
+                ->formatStateUsing(fn ($state): ?string => $state?->format('Y-m-d'))->enabledByDefault(false),
+            ExportColumn::make('id')->label(static::label('record_id'))->enabledByDefault(false),
         ];
-    }
-
-    public function getFileName(mixed $export): string
-    {
-        return __('unit_export.file_name', [
-            'date' => now()->format('Y-m-d'),
-        ]);
-    }
-
-    public static function getCompletedNotificationBody(\Filament\Actions\Exports\Models\Export $export): string
-    {
-        return __('export.completed', [
-            'count' => number_format($export->successful_rows),
-        ]);
     }
 }

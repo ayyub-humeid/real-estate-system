@@ -1,17 +1,15 @@
 <?php
 return [
-    'file_name' => 'leads-:date',
+    'file_name' => 'leads-:date-:id',
     'columns' => [
-        'contact_name' => 'اسم جهة الاتصال',
-        'email' => 'البريد الإلكتروني',
+        'name' => 'الاسم',
         'phone' => 'الهاتف',
+        'email' => 'البريد الإلكتروني',
         'status' => 'الحالة',
         'source' => 'المصدر',
-        'interests' => 'الاهتمامات',
-        'budget' => 'الميزانية',
+        'owner' => 'المسؤول',
         'created_at' => 'تاريخ الإنشاء',
-        'updated_at' => 'آخر تحديث',
-        'assigned_to' => 'تم التعيين إلى',
+        'created_by' => 'أنشئ بواسطة',
         'record_id' => 'معرّف السجل',
     ],
 ];

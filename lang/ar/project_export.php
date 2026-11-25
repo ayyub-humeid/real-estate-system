@@ -1,15 +1,18 @@
 <?php
 return [
-    'file_name' => 'projects-:date',
+    'file_name' => 'projects-:date-:id',
     'columns' => [
         'name' => 'اسم المشروع',
+        'type' => 'النوع',
         'status' => 'الحالة',
-        'location' => 'الموقع',
+        'currency' => 'العملة',
+        'start_date' => 'تاريخ البدء',
+        'expected_completion' => 'تاريخ الإنجاز المتوقع',
         'units_count' => 'الوحدات',
         'properties_count' => 'العقارات',
+        'buildings_count' => 'المباني',
         'description' => 'الوصف',
         'created_at' => 'تاريخ الإنشاء',
-        'updated_at' => 'آخر تحديث',
         'record_id' => 'معرّف السجل',
     ],
 ];

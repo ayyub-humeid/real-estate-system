@@ -2,10 +2,9 @@
 
 namespace App\Filament\Exports;
 
+use App\Filament\Exports\Contracts\HasNumericExportColumns;
 use App\Models\Plan;
 use Filament\Actions\Exports\ExportColumn;
-use Filament\Actions\Exports\Exporter;
-use Illuminate\Database\Eloquent\Builder;
 
 /**
  * Plan tiers with feature limits — what each company gets.
@@ -13,13 +12,18 @@ use Illuminate\Database\Eloquent\Builder;
  * Shows all feature flags so admins and customers can see exactly what
  * the difference is between Starter, Growth, and Business plans.
  */
-class PlanExporter extends Exporter
+class PlanExporter extends CompanyDataExporter implements HasNumericExportColumns
 {
     protected static ?string $model = Plan::class;
 
-    public static function modifyQuery(Builder $query): Builder
+    protected static function translationFile(): string
     {
-        return $query->orderBy('price');
+        return 'plan_export';
+    }
+
+    public static function numericColumns(): array
+    {
+        return ['price', 'annual_price'];
     }
 
     public static function getColumns(): array
@@ -30,11 +34,11 @@ class PlanExporter extends Exporter
 
             ExportColumn::make('price')
                 ->label(__('plan_export.columns.price_monthly'))
-                ->formatStateUsing(fn (?float $state): ?string => $state !== null ? number_format($state, 2) : null),
+                ->formatStateUsing(fn ($state): ?float => static::number($state)),
 
             ExportColumn::make('annual_price')
                 ->label(__('plan_export.columns.price_annual'))
-                ->formatStateUsing(fn (?float $state): ?string => $state !== null ? number_format($state, 2) : null),
+                ->formatStateUsing(fn ($state): ?float => static::number($state)),
 
             ExportColumn::make('trial_days')
                 ->label(__('plan_export.columns.trial_days')),
@@ -96,12 +100,5 @@ class PlanExporter extends Exporter
                 ->label(__('plan_export.features.export_data'))
                 ->formatStateUsing(fn (?bool $state): string => $state ? __('plan_export.boolean.yes') : __('plan_export.boolean.no')),
         ];
-    }
-
-    public function getFileName(mixed $export): string
-    {
-        return __('plan_export.file_name', [
-            'date' => now()->format('Y-m-d'),
-        ]);
     }
 }

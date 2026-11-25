@@ -2,84 +2,46 @@
 
 namespace App\Filament\Exports;
 
+use App\Enums\{ContractStatus, ContractType};
 use App\Models\Contract;
 use Filament\Actions\Exports\ExportColumn;
-use Filament\Actions\Exports\Exporter;
 use Illuminate\Database\Eloquent\Builder;
 
-/**
- * Contract export — sales/legal audit trail.
- *
- * Shows contract number, parties, amounts, status, and dates so companies
- * can audit their portfolio, reconcile with legal docs, or share with accountants.
- */
-class ContractExporter extends Exporter
+/** Contract register: what each contract covers and where it stands, for legal and sales audits. */
+class ContractExporter extends CompanyDataExporter
 {
     protected static ?string $model = Contract::class;
+
+    protected static function translationFile(): string
+    {
+        return 'contract_export';
+    }
 
     public static function modifyQuery(Builder $query): Builder
     {
         return $query->with([
-            'unit:id,unit_number',
-            'plannedUnit:id,code',
-            'property:id,name',
-            'project:id,name',
-        ])->orderBy('contract_number');
+            'unit:id,unit_number', 'plannedUnit:id,code', 'property:id,name', 'project:id,name', 'createdBy:id,name',
+        ]);
     }
 
     public static function getColumns(): array
     {
         return [
-            ExportColumn::make('contract_number')
-                ->label(__('contract_export.columns.contract_number')),
-
-            ExportColumn::make('contract_type')
-                ->label(__('contract_export.columns.type'))
-                ->formatStateUsing(fn (?string $state): string => $state ? __('enums.contract_type.'.$state) : ''),
-
-            ExportColumn::make('status')
-                ->label(__('contract_export.columns.status'))
-                ->formatStateUsing(fn (?string $state): string => $state ? __('enums.contract_status.'.$state) : ''),
-
-            ExportColumn::make('unit.unit_number')
-                ->label(__('contract_export.columns.unit')),
-
-            ExportColumn::make('property.name')
-                ->label(__('contract_export.columns.property')),
-
-            ExportColumn::make('project.name')
-                ->label(__('contract_export.columns.project')),
-
-            ExportColumn::make('created_at')
-                ->label(__('contract_export.columns.created_at'))
+            ExportColumn::make('contract_number')->label(static::label('contract_number')),
+            ExportColumn::make('subject')->label(static::label('subject'))
+                ->state(fn (Contract $record): string => $record->displayName(withType: false)),
+            ExportColumn::make('contract_type')->label(static::label('type'))
+                ->formatStateUsing(fn (?ContractType $state): ?string => $state?->getLabel()),
+            ExportColumn::make('status')->label(static::label('status'))
+                ->formatStateUsing(fn (?ContractStatus $state): ?string => $state?->getLabel()),
+            ExportColumn::make('unit.unit_number')->label(static::label('unit')),
+            ExportColumn::make('plannedUnit.code')->label(static::label('planned_unit')),
+            ExportColumn::make('property.name')->label(static::label('property')),
+            ExportColumn::make('project.name')->label(static::label('project')),
+            ExportColumn::make('created_at')->label(static::label('created_at'))
                 ->formatStateUsing(fn ($state): ?string => $state?->format('Y-m-d')),
-
-            ExportColumn::make('updated_at')
-                ->label(__('contract_export.columns.updated_at'))
-                ->formatStateUsing(fn ($state): ?string => $state?->format('Y-m-d'))
-                ->enabledByDefault(false),
-
-            ExportColumn::make('created_by')
-                ->label(__('contract_export.columns.created_by'))
-                ->enabledByDefault(false),
-
-            ExportColumn::make('id')
-                ->label(__('contract_export.columns.record_id'))
-                ->enabledByDefault(false),
+            ExportColumn::make('createdBy.name')->label(static::label('created_by'))->enabledByDefault(false),
+            ExportColumn::make('id')->label(static::label('record_id'))->enabledByDefault(false),
         ];
-    }
-
-    public function getFileName(mixed $export): string
-    {
-        return __('contract_export.file_name', [
-            'date' => now()->format('Y-m-d'),
-        ]);
-    }
-
-    public static function getCompletedNotificationBody(\Filament\Actions\Exports\Models\Export $export): string
-    {
-        return __('export.completed', [
-            'count' => number_format($export->successful_rows),
-        ]);
     }
 }
