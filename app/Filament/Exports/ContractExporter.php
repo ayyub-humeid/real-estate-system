@@ -31,8 +31,7 @@ class ContractExporter extends Exporter
     {
         return [
             ExportColumn::make('contract_number')
-                ->label(__('contract_export.columns.contract_number'))
-                ->searchable(),
+                ->label(__('contract_export.columns.contract_number')),
 
             ExportColumn::make('contract_type')
                 ->label(__('contract_export.columns.type'))

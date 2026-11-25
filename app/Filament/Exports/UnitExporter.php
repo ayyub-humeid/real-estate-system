@@ -30,8 +30,7 @@ class UnitExporter extends Exporter
     {
         return [
             ExportColumn::make('unit_number')
-                ->label(__('unit_export.columns.unit_number'))
-                ->searchable(),
+                ->label(__('unit_export.columns.unit_number')),
 
             ExportColumn::make('property.name')
                 ->label(__('unit_export.columns.property')),

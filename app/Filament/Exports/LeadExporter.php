@@ -30,8 +30,7 @@ class LeadExporter extends Exporter
     {
         return [
             ExportColumn::make('contact.name')
-                ->label(__('lead_export.columns.contact_name'))
-                ->searchable(),
+                ->label(__('lead_export.columns.contact_name')),
 
             ExportColumn::make('contact.email')
                 ->label(__('lead_export.columns.email')),

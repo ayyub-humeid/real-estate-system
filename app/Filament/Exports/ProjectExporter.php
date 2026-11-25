@@ -28,8 +28,7 @@ class ProjectExporter extends Exporter
     {
         return [
             ExportColumn::make('name')
-                ->label(__('project_export.columns.name'))
-                ->searchable(),
+                ->label(__('project_export.columns.name')),
 
             ExportColumn::make('status')
                 ->label(__('project_export.columns.status'))
