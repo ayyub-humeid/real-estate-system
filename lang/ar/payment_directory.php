@@ -2,7 +2,7 @@
 return [
     'labels' => ['payment' => 'دفعة', 'payments' => 'الدفعات', 'unavailable_record' => 'السجل المرتبط غير متاح', 'original_payment' => 'الدفعة الأصلية'],
     'headings' => ['directory' => 'الدفعات', 'overview' => 'نظرة عامة على الدفعة', 'purpose' => 'غرض الدفعة', 'contract_allocations' => 'توزيعات الأقساط', 'project_allocations' => 'توزيعات تكاليف المشروع'],
-    'descriptions' => ['directory' => 'راجع الدفعات الواردة والصادرة عبر العقود والمشاريع. تُسجل الدفعات من مسار العمل الأصلي للحفاظ على التاريخ المالي.', 'summary' => ':total سجل دفعة · :incoming وارد · :outgoing صادر · :pending بانتظار المراجعة'],
+    'descriptions' => ['directory' => 'راجع الدفعات الواردة والصادرة عبر العقود والمشاريع. تُسجل الدفعات من مسار العمل الأصلي للحفاظ على التاريخ المالي.', 'summary' => ':total سجل دفعة · :incoming وارد · :outgoing صادر · :pending بانتظار المراجعة', 'record_payment' => 'يسجّل إيصالاً مقابل جدول دفعات عقد مُصدَر. لتوزيع دفعة واحدة على عدة أقساط، استخدم شاشة جدول دفعات العقد.'],
     'fields' => ['payment_date' => 'تاريخ الدفعة', 'direction' => 'الاتجاه', 'amount' => 'المبلغ', 'purpose' => 'الغرض', 'party' => 'الطرف', 'status' => 'الحالة', 'reference' => 'الرقم المرجعي', 'source' => 'مصدر الدفعة', 'currency' => 'العملة', 'payment_method' => 'طريقة الدفع', 'recorded_by' => 'سجّلها', 'linked_record' => 'السجل المرتبط', 'reversal_of' => 'عكس للدفعة', 'installment' => 'القسط', 'due_date' => 'تاريخ الاستحقاق', 'allocated_amount' => 'المبلغ الموزع', 'actual_cost' => 'التكلفة الفعلية', 'cost_amount' => 'مبلغ التكلفة', 'project_amount' => 'مبلغ عملة المشروع', 'contract' => 'العقد', 'payer' => 'الدافع', 'installment_to_settle' => 'القسط المطلوب تسديده'],
     'directions' => ['incoming' => 'وارد', 'outgoing' => 'صادر'],
     'statuses' => ['pending' => 'قيد الانتظار', 'completed' => 'مكتملة', 'failed' => 'فشلت', 'voided' => 'ملغاة'],
@@ -11,7 +11,6 @@ return [
     'filters' => ['date_from' => 'مدفوعة من', 'date_until' => 'مدفوعة إلى'],
     'placeholders' => ['choose_contract' => 'ابحث برقم العقد أو الوحدة…', 'choose_payer' => 'اختر الطرف الدافع', 'choose_installment' => 'اختر القسط الذي تغطيه هذه الدفعة'],
     'installment_option' => 'القسط رقم :sequence · المتبقي :amount :currency · يستحق :due',
-    'descriptions' => ['record_payment' => 'يسجّل إيصالاً مقابل جدول دفعات عقد مُصدَر. لتوزيع دفعة واحدة على عدة أقساط، استخدم شاشة جدول دفعات العقد.'],
     'help' => [
         'details' => 'يعرض مصدر الدفعة والسجل المرتبط وكل قسط أو تكلفة غطتها هذه الدفعة.',
         'record_payment' => 'سجّل دفعة عميل مقابل قسط عقد دون مغادرة هذه الشاشة.',

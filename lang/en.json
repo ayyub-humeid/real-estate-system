@@ -1,0 +1,22 @@
+{
+    "Acquisition": "Acquisition",
+    "Backups": "Backups",
+    "Budget": "Budget",
+    "Crm": "CRM",
+    "Dashboard": "Dashboard",
+    "Deletion": "Deletion",
+    "Employee": "Employee",
+    "Enums": "Enums",
+    "Export": "Export",
+    "Locations": "Locations",
+    "Maintenance": "Maintenance",
+    "Notifications": "Notifications",
+    "Permissions": "Permissions",
+    "Project": "Project",
+    "Reservations": "Reservations",
+    "Roles": "Roles",
+    "Sales": "Sales",
+    "Settings": "Settings",
+    "Tenant": "Tenant",
+    "Unit": "Unit"
+}

@@ -2,7 +2,7 @@
 return [
     'labels' => ['payment' => 'Payment', 'payments' => 'Payments', 'unavailable_record' => 'Linked record is unavailable', 'original_payment' => 'Original payment'],
     'headings' => ['directory' => 'Payments', 'overview' => 'Payment overview', 'purpose' => 'Payment purpose', 'contract_allocations' => 'Installment allocations', 'project_allocations' => 'Project cost allocations'],
-    'descriptions' => ['directory' => 'Review incoming and outgoing payments across contracts and projects. Payments are recorded from their original workflow to preserve financial history.', 'summary' => ':total payment records · :incoming incoming · :outgoing outgoing · :pending pending review'],
+    'descriptions' => ['directory' => 'Review incoming and outgoing payments across contracts and projects. Payments are recorded from their original workflow to preserve financial history.', 'summary' => ':total payment records · :incoming incoming · :outgoing outgoing · :pending pending review', 'record_payment' => 'Records a receipt against an issued contract payment schedule. To split one payment across several installments, use the contract\'s payment schedule screen instead.'],
     'fields' => ['payment_date' => 'Payment date', 'direction' => 'Direction', 'amount' => 'Amount', 'purpose' => 'Purpose', 'party' => 'Party', 'status' => 'Status', 'reference' => 'Reference number', 'source' => 'Payment source', 'currency' => 'Currency', 'payment_method' => 'Payment method', 'recorded_by' => 'Recorded by', 'linked_record' => 'Linked record', 'reversal_of' => 'Reversal of', 'installment' => 'Installment', 'due_date' => 'Due date', 'allocated_amount' => 'Allocated amount', 'actual_cost' => 'Actual cost', 'cost_amount' => 'Cost amount', 'project_amount' => 'Project-currency amount', 'contract' => 'Contract', 'payer' => 'Who paid', 'installment_to_settle' => 'Installment to settle'],
     'directions' => ['incoming' => 'Incoming', 'outgoing' => 'Outgoing'],
     'statuses' => ['pending' => 'Pending', 'completed' => 'Completed', 'failed' => 'Failed', 'voided' => 'Voided'],
@@ -11,7 +11,6 @@ return [
     'filters' => ['date_from' => 'Paid from', 'date_until' => 'Paid until'],
     'placeholders' => ['choose_contract' => 'Search by contract number or unit…', 'choose_payer' => 'Select the paying party', 'choose_installment' => 'Select which installment this covers'],
     'installment_option' => 'Installment #:sequence · :amount :currency outstanding · due :due',
-    'descriptions' => ['record_payment' => 'Records a receipt against an issued contract payment schedule. To split one payment across several installments, use the contract\'s payment schedule screen instead.'],
     'help' => [
         'details' => 'Shows the payment source, linked record, and every installment or cost allocation covered by this payment.',
         'record_payment' => 'Record a customer payment against a contract installment without leaving this screen.',

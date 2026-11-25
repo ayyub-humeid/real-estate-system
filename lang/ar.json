@@ -1743,5 +1743,22 @@
     "A Unit cannot move to a Property from another company.": "لا يمكن نقل الوحدة إلى عقار يتبع شركة أخرى.",
     "The Property is not actively attached to this Project.": "العقار غير مرتبط بهذا المشروع ارتباطاً نشطاً.",
     "The planned Unit must belong to the selected Project.": "يجب أن تتبع الوحدة المخططة المشروع المحدد.",
-    "Open": "فتح"
+    "Open": "فتح",
+    "No plan": "بدون خطة",
+    "Renews / Expires": "التجديد / الانتهاء",
+    "Assign Plan": "تعيين خطة",
+    "Trialing": "فترة تجريبية",
+    "Plan assigned successfully.": "تم تعيين الخطة بنجاح.",
+    "Included on all plans.": "مشمول في جميع الخطط.",
+    "Construction Tracking": "متابعة الإنشاءات",
+    "Track construction phases, progress and milestones per project.": "تابع مراحل الإنشاء ونسب الإنجاز والمحطات الرئيسية لكل مشروع.",
+    "Due Diligence & Acquisition": "العناية الواجبة والاستحواذ",
+    "Full acquisition workflow with due diligence checklists.": "مسار استحواذ كامل مع قوائم تحقق العناية الواجبة.",
+    "+ 30 days": "+ 30 يومًا",
+    "Renew subscription for 30 days?": "تجديد الاشتراك لمدة 30 يومًا؟",
+    "Company: :company — Plan: :plan": "الشركة: :company — الخطة: :plan",
+    "Renewed for 30 days.": "تم التجديد لمدة 30 يومًا.",
+    "+ 1 year": "+ سنة",
+    "Renew subscription for 1 year?": "تجديد الاشتراك لمدة سنة؟",
+    "Renewed for 1 year.": "تم التجديد لمدة سنة."
 }
