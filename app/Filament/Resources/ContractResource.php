@@ -3,12 +3,14 @@
 namespace App\Filament\Resources;
 
 use App\Enums\Currency;
+use App\Filament\Exports\ContractExporter;
 use App\Filament\Resources\ContractResource\Pages;
 use App\Filament\Resources\ContractResource\RelationManagers;
 use App\Filament\Resources\PartyResource;
 use App\Enums\{ContractStatus, ContractType};
 use App\Models\{Company, Contract, ContractParty, ContractTemplateVersion, Party, ProjectPlannedUnit, Property, Unit, UnitReservation};
 use App\Services\CompanyLegalPartyService;
+use Filament\Actions\ExportAction;
 use Filament\Forms;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
@@ -257,6 +259,11 @@ class ContractResource extends Resource
                 Tables\Columns\TextColumn::make('contract_type')->label(__('Contract type'))->formatStateUsing(fn ($state): string => $state instanceof ContractType ? $state->getLabel() : ContractType::tryFrom((string) $state)?->getLabel() ?? (string) $state)->badge(),
                 Tables\Columns\TextColumn::make('status')->label(__('Status'))->formatStateUsing(fn ($state): string => $state instanceof ContractStatus ? $state->getLabel() : ContractStatus::tryFrom((string) $state)?->getLabel() ?? (string) $state)->color(fn ($state): ?string => $state instanceof ContractStatus ? $state->color() : ContractStatus::tryFrom((string) $state)?->color())->tooltip(fn ($state): ?string => $state instanceof ContractStatus ? $state->description() : ContractStatus::tryFrom((string) $state)?->description())->badge(),
                 Tables\Columns\TextColumn::make('created_at')->label(__('Created at'))->dateTime(),
+            ])
+            ->headerActions([
+                ExportAction::make()
+                    ->exporter(ContractExporter::class)
+                    ->color('gray'),
             ])
             ->actions([Tables\Actions\ViewAction::make()]);
     }
