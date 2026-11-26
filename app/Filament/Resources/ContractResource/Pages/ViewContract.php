@@ -336,8 +336,21 @@ class ViewContract extends ViewRecord
                 ->form([
                     Forms\Components\DatePicker::make('ended_at')
                         ->label(__('contract_domain.end.ended_on'))
-                        ->default(now())
-                        ->maxDate(now())
+                        ->displayFormat('d/m/Y')
+                        ->default(today())
+                        ->minDate(function () {
+                            $start = app(ContractWorkflowService::class)->effectiveVersion($this->record)->start_date;
+
+                            return $start?->lte(today()) ? $start : null;
+                        })
+                        ->maxDate(today()->endOfDay())
+                        ->helperText(function (): ?string {
+                            $start = app(ContractWorkflowService::class)->effectiveVersion($this->record)->start_date;
+
+                            return $start?->gt(today())
+                                ? __('contract_domain.end.not_started', ['date' => $start->format('d/m/Y')])
+                                : null;
+                        })
                         ->required(),
                     Forms\Components\Textarea::make('reason')
                         ->label(__('contract_domain.end.reason'))

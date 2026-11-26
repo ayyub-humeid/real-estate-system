@@ -391,11 +391,9 @@ class ContractWorkflowService
             } catch (\Throwable) {
                 $this->invalid('ended_at', __('contract_domain.end.ended_on'));
             }
-            $version = $locked->versions()->withoutGlobalScopes()
-                ->where('status', ContractVersionStatus::Signed->value)
-                ->orderByDesc('version_number')
-                ->first() ?? $locked->versions()->withoutGlobalScopes()->orderByDesc('version_number')->firstOrFail();
-            if ($version->start_date && $date->lt($version->start_date->copy()->startOfDay())) {
+            $version = $this->effectiveVersion($locked);
+            // A lease cancelled before it begins has no valid date on or after its start.
+            if ($version->start_date && $version->start_date->lte(today()) && $date->lt($version->start_date->copy()->startOfDay())) {
                 $this->invalid('ended_at', __('contract_domain.end.date_before_start'));
             }
             if ($date->gt(now()->endOfDay())) {
@@ -426,6 +424,15 @@ class ContractWorkflowService
 
             return $locked->refresh();
         });
+    }
+
+    /** The signed version in force, or the latest one when none is signed. */
+    public function effectiveVersion(Contract $contract): ContractVersion
+    {
+        return $contract->versions()->withoutGlobalScopes()
+            ->where('status', ContractVersionStatus::Signed->value)
+            ->reorder('version_number', 'desc')
+            ->first() ?? $contract->versions()->withoutGlobalScopes()->reorder('version_number', 'desc')->firstOrFail();
     }
 
     /**

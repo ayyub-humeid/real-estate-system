@@ -100,6 +100,7 @@ return [
         'help' => 'Closes a lease when the tenant leaves or the term finishes. The unit becomes Ready again so it can be offered to someone else.',
         'modal_description' => 'The lease will be marked as Ended and the unit will become Ready again unless another active lease still uses it. This cannot be undone. Unpaid installments stay on record.',
         'ended_on' => 'Ended on',
+        'not_started' => 'This lease has not started yet (it starts on :date). Ending it now cancels it before it begins.',
         'reason' => 'Reason',
         'reason_help' => 'For example: term finished, tenant left early, terminated by agreement.',
         'done' => 'Contract ended',
