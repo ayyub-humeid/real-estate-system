@@ -59,30 +59,30 @@ class ContractResource extends Resource
         return $form->schema([
             Forms\Components\Select::make('company_id')
                 ->label(__('Company'))
-                ->options(fn () => Company::withoutGlobalScopes()->orderBy('name')->pluck('name', 'id'))
-                ->visible(fn (): bool => auth()->user()->isSuperAdmin())
-                ->required(fn (): bool => auth()->user()->isSuperAdmin())
+                ->options(fn() => Company::withoutGlobalScopes()->orderBy('name')->pluck('name', 'id'))
+                ->visible(fn(): bool => auth()->user()->isSuperAdmin())
+                ->required(fn(): bool => auth()->user()->isSuperAdmin())
                 ->live(),
             Forms\Components\Select::make('contract_type')
                 ->label(__('Contract type'))
                 ->options(ContractType::options())
                 ->required()
                 ->live()
-                ->afterStateUpdated(fn (Set $set) => $set('template_version_id', null)),
+                ->afterStateUpdated(fn(Set $set) => $set('template_version_id', null)),
             Forms\Components\Select::make('reservation_id')
                 ->label(__('Source reservation'))
-                ->options(fn (Get $get): array => UnitReservation::withoutGlobalScopes()
+                ->options(fn(Get $get): array => UnitReservation::withoutGlobalScopes()
                     ->with('unit.property')
                     ->where('company_id', self::formCompanyId($get))
                     ->where('status', \App\Enums\ReservationStatus::Active->value)
                     ->orderByDesc('id')
                     ->get()
-                    ->mapWithKeys(fn (UnitReservation $reservation): array => [
-                        $reservation->id => trim($reservation->reservation_number.' — '.($reservation->unit?->unit_number ?? __('Actual unit')).' — '.($reservation->unit?->property?->name ?? '')),
+                    ->mapWithKeys(fn(UnitReservation $reservation): array => [
+                        $reservation->id => trim($reservation->reservation_number . ' — ' . ($reservation->unit?->unit_number ?? __('Actual unit')) . ' — ' . ($reservation->unit?->property?->name ?? '')),
                     ])->all())
                 ->searchable()
                 ->preload()
-                ->disabled(fn (Get $get): bool => ! self::formCompanyId($get))
+                ->disabled(fn(Get $get): bool => ! self::formCompanyId($get))
                 ->live()
                 ->afterStateUpdated(function ($state, Set $set): void {
                     if (! $state) {
@@ -134,14 +134,14 @@ class ContractResource extends Resource
                 ->helperText(__('contract_domain.guidance.reservation_source')),
             Forms\Components\Select::make('property_id')
                 ->label(__('Property'))
-                ->options(fn (Get $get): array => Property::withoutGlobalScopes()
+                ->options(fn(Get $get): array => Property::withoutGlobalScopes()
                     ->where('company_id', self::formCompanyId($get))
                     ->orderBy('name')
                     ->pluck('name', 'id')
                     ->all())
                 ->searchable()
                 ->preload()
-                ->disabled(fn (Get $get): bool => ! self::formCompanyId($get))
+                ->disabled(fn(Get $get): bool => ! self::formCompanyId($get))
                 // A Property selection is the only event that reloads the
                 // dependent actual-unit options; searching the property field
                 // itself does not repeatedly query the Units table.
@@ -158,55 +158,55 @@ class ContractResource extends Resource
                     $reservationId = $get('reservation_id');
                     if ($reservationId && ! UnitReservation::withoutGlobalScopes()
                         ->whereKey($reservationId)
-                        ->whereHas('unit', fn (Builder $query) => $query->where('property_id', $state))
+                        ->whereHas('unit', fn(Builder $query) => $query->where('property_id', $state))
                         ->exists()) {
                         $set('reservation_id', null);
                     }
                 }),
             Forms\Components\Select::make('unit_id')
                 ->label(__('Actual unit'))
-                ->options(fn (Get $get): array => self::availableActualUnitOptions($get))
+                ->options(fn(Get $get): array => self::availableActualUnitOptions($get))
                 ->searchable()
-                ->required(fn (Get $get): bool => ContractType::tryFrom((string) $get('contract_type'))?->requiresActualUnit() ?? false)
-                ->disabled(fn (Get $get): bool => ! self::formCompanyId($get) || ! $get('property_id'))
+                ->required(fn(Get $get): bool => ContractType::tryFrom((string) $get('contract_type'))?->requiresActualUnit() ?? false)
+                ->disabled(fn(Get $get): bool => ! self::formCompanyId($get) || ! $get('property_id'))
                 ->helperText(__('contract_domain.guidance.actual_unit_availability')),
             Forms\Components\Select::make('planned_unit_id')
                 ->label(__('Planned unit'))
-                ->options(fn (Get $get): array => ProjectPlannedUnit::withoutGlobalScopes()
+                ->options(fn(Get $get): array => ProjectPlannedUnit::withoutGlobalScopes()
                     ->with('floor.building.project')
                     ->where('company_id', self::formCompanyId($get))
-                    ->whereDoesntHave('contracts', fn (Builder $query) => $query
+                    ->whereDoesntHave('contracts', fn(Builder $query) => $query
                         ->where('status', ContractStatus::Active->value))
                     ->orderBy('code')
                     ->get()
-                    ->mapWithKeys(fn (ProjectPlannedUnit $unit): array => [
-                        $unit->id => trim($unit->code.' — '.($unit->floor?->building?->project?->name ?? __('No project')).' — '.($unit->floor?->building?->name ?? __('No building'))),
+                    ->mapWithKeys(fn(ProjectPlannedUnit $unit): array => [
+                        $unit->id => trim($unit->code . ' — ' . ($unit->floor?->building?->project?->name ?? __('No project')) . ' — ' . ($unit->floor?->building?->name ?? __('No building'))),
                     ])->all())
                 ->searchable()
                 ->preload()
-                ->required(fn (Get $get): bool => ContractType::tryFrom((string) $get('contract_type'))?->requiresPlannedUnit() ?? false)
-                ->disabled(fn (Get $get): bool => ! self::formCompanyId($get))
+                ->required(fn(Get $get): bool => ContractType::tryFrom((string) $get('contract_type'))?->requiresPlannedUnit() ?? false)
+                ->disabled(fn(Get $get): bool => ! self::formCompanyId($get))
                 ->helperText(__('contract_domain.guidance.planned_unit_availability')),
             Forms\Components\Select::make('template_version_id')
                 ->label(__('Template version'))
-                ->options(fn (Get $get): array => ContractTemplateVersion::withoutGlobalScopes()
+                ->options(fn(Get $get): array => ContractTemplateVersion::withoutGlobalScopes()
                     ->with('template:id,name')
                     ->where('company_id', self::formCompanyId($get))
-                    ->whereHas('template', fn (Builder $query) => $query
+                    ->whereHas('template', fn(Builder $query) => $query
                         ->where('is_active', true)
                         ->where('contract_type', $get('contract_type')))
                     ->orderByDesc('id')
                     ->get()
-                    ->mapWithKeys(fn (ContractTemplateVersion $version): array => [
-                        $version->id => ($version->template?->name ?? __('Template')).' — V'.$version->version_number,
+                    ->mapWithKeys(fn(ContractTemplateVersion $version): array => [
+                        $version->id => ($version->template?->name ?? __('Template')) . ' — V' . $version->version_number,
                     ])->all())
                 ->searchable()
                 ->preload()
                 ->required()
-                ->disabled(fn (Get $get): bool => ! self::formCompanyId($get) || ! $get('contract_type'))
+                ->disabled(fn(Get $get): bool => ! self::formCompanyId($get) || ! $get('contract_type'))
                 // A contract cannot be printed without its legal template, so an
                 // empty list has to say what to do rather than block in silence.
-                ->helperText(fn (Get $get): string => match (true) {
+                ->helperText(fn(Get $get): string => match (true) {
                     ! self::formCompanyId($get) || ! $get('contract_type') => __('contract_domain.template.choose_type_first'),
                     ! self::hasActiveTemplate(self::formCompanyId($get), (string) $get('contract_type')) => __('contract_domain.template.none_for_type'),
                     default => __('Only active template versions matching this contract type are available.'),
@@ -217,9 +217,9 @@ class ContractResource extends Resource
                 ->minValue(0)
                 // A rental's total is the rent across its term, so it is
                 // calculated from the rent terms below instead of typed in.
-                ->readOnly(fn (Get $get): bool => RentTermFields::isLeaseForm($get))
-                ->required(fn (Get $get): bool => ! RentTermFields::isLeaseForm($get))
-                ->helperText(fn (Get $get): string => RentTermFields::isLeaseForm($get)
+                ->readOnly(fn(Get $get): bool => RentTermFields::isLeaseForm($get))
+                ->required(fn(Get $get): bool => ! RentTermFields::isLeaseForm($get))
+                ->helperText(fn(Get $get): string => RentTermFields::isLeaseForm($get)
                     ? __('contract_domain.rent.total_help')
                     : __('Filled automatically from the selected reservation when available.')),
             Forms\Components\Select::make('currency')
@@ -244,7 +244,7 @@ class ContractResource extends Resource
                 ->schema([
                     Forms\Components\Select::make('party_id')
                         ->label(__('Party'))
-                        ->options(fn (Get $get): array => self::partyOptions(self::formCompanyId($get)))
+                        ->options(fn(Get $get): array => self::partyOptions(self::formCompanyId($get)))
                         ->searchable()
                         ->helperText(__('Choose an external party or the company itself. Only parties of this company are available.'))
                         ->required(),
@@ -288,14 +288,14 @@ class ContractResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('contract_number')->label(__('Contract number'))->searchable()
-                    ->description(fn (Contract $record): string => $record->displayName(withType: false))
+                    ->description(fn(Contract $record): string => $record->displayName(withType: false))
                     ->weight('bold'),
-                Tables\Columns\TextColumn::make('contract_type')->label(__('Contract type'))->formatStateUsing(fn ($state): string => $state instanceof ContractType ? $state->getLabel() : ContractType::tryFrom((string) $state)?->getLabel() ?? (string) $state)->badge(),
-                Tables\Columns\TextColumn::make('status')->label(__('Status'))->formatStateUsing(fn ($state): string => $state instanceof ContractStatus ? $state->getLabel() : ContractStatus::tryFrom((string) $state)?->getLabel() ?? (string) $state)->color(fn ($state): ?string => $state instanceof ContractStatus ? $state->color() : ContractStatus::tryFrom((string) $state)?->color())->tooltip(fn ($state): ?string => $state instanceof ContractStatus ? $state->description() : ContractStatus::tryFrom((string) $state)?->description())->badge(),
+                Tables\Columns\TextColumn::make('contract_type')->label(__('Contract type'))->formatStateUsing(fn($state): string => $state instanceof ContractType ? $state->getLabel() : ContractType::tryFrom((string) $state)?->getLabel() ?? (string) $state)->badge(),
+                Tables\Columns\TextColumn::make('status')->label(__('Status'))->formatStateUsing(fn($state): string => $state instanceof ContractStatus ? $state->getLabel() : ContractStatus::tryFrom((string) $state)?->getLabel() ?? (string) $state)->color(fn($state): ?string => $state instanceof ContractStatus ? $state->color() : ContractStatus::tryFrom((string) $state)?->color())->tooltip(fn($state): ?string => $state instanceof ContractStatus ? $state->description() : ContractStatus::tryFrom((string) $state)?->description())->badge(),
                 Tables\Columns\TextColumn::make('created_at')->label(__('Created at'))->dateTime(),
             ])
             ->headerActions([
-                Tables\Actions\ExportAction::make()->label(__('export.action'))->exporter(ContractExporter::class)->color('gray')->authorize(fn (): bool => ContractExporter::canExport()),
+                Tables\Actions\ExportAction::make()->label(__('export.action'))->exporter(ContractExporter::class)->color('gray')->authorize(fn(): bool => ContractExporter::canExport()),
             ])
             ->actions([Tables\Actions\ViewAction::make()]);
     }
@@ -318,22 +318,22 @@ class ContractResource extends Resource
                                         ->copyable(),
                                     Infolists\Components\TextEntry::make('contract_type')
                                         ->label(__('Contract type'))
-                                        ->formatStateUsing(fn ($state): string => $state instanceof ContractType ? $state->getLabel() : ContractType::tryFrom((string) $state)?->getLabel() ?? (string) $state)
+                                        ->formatStateUsing(fn($state): string => $state instanceof ContractType ? $state->getLabel() : ContractType::tryFrom((string) $state)?->getLabel() ?? (string) $state)
                                         ->badge(),
                                     Infolists\Components\TextEntry::make('customer_party')
                                         ->label(__('sales.party.client'))
-                                        ->state(fn (Contract $record): string => self::customerParty($record)?->party?->name
+                                        ->state(fn(Contract $record): string => self::customerParty($record)?->party?->name
                                             ?? self::customerParty($record)?->snapshot['name']
                                             ?? '—')
-                                        ->url(fn (Contract $record): ?string => self::customerParty($record)?->party
+                                        ->url(fn(Contract $record): ?string => self::customerParty($record)?->party
                                             && auth()->user()->can('update', self::customerParty($record)->party)
-                                                ? PartyResource::getUrl('edit', ['record' => self::customerParty($record)->party])
-                                                : null),
+                                            ? PartyResource::getUrl('edit', ['record' => self::customerParty($record)->party])
+                                            : null),
                                     Infolists\Components\TextEntry::make('status')
                                         ->label(__('Status'))
-                                        ->formatStateUsing(fn ($state): string => $state instanceof ContractStatus ? $state->getLabel() : ContractStatus::tryFrom((string) $state)?->getLabel() ?? (string) $state)
-                                        ->color(fn ($state): ?string => $state instanceof ContractStatus ? $state->color() : ContractStatus::tryFrom((string) $state)?->color())
-                                        ->tooltip(fn ($state): ?string => $state instanceof ContractStatus ? $state->description() : ContractStatus::tryFrom((string) $state)?->description())
+                                        ->formatStateUsing(fn($state): string => $state instanceof ContractStatus ? $state->getLabel() : ContractStatus::tryFrom((string) $state)?->getLabel() ?? (string) $state)
+                                        ->color(fn($state): ?string => $state instanceof ContractStatus ? $state->color() : ContractStatus::tryFrom((string) $state)?->color())
+                                        ->tooltip(fn($state): ?string => $state instanceof ContractStatus ? $state->description() : ContractStatus::tryFrom((string) $state)?->description())
                                         ->badge(),
                                     Infolists\Components\TextEntry::make('createdBy.name')->label(__('Created by'))->placeholder('—'),
                                     Infolists\Components\TextEntry::make('created_at')->label(__('Created at'))->dateTime(),
@@ -404,7 +404,7 @@ class ContractResource extends Resource
         $parties = Party::withoutGlobalScopes()
             ->where('company_id', $company->id)
             ->where('is_active', true)
-            ->when($company->self_party_id, fn (Builder $query) => $query->whereKeyNot($company->self_party_id))
+            ->when($company->self_party_id, fn(Builder $query) => $query->whereKeyNot($company->self_party_id))
             ->orderBy('name')
             ->pluck('name', 'id')
             ->all();
@@ -414,23 +414,15 @@ class ContractResource extends Resource
         }
 
         return [
-            $company->selfParty->id => __('Company').' — '.($company->selfParty->name ?: $company->name),
+            $company->selfParty->id => __('Company') . ' — ' . ($company->selfParty->name ?: $company->name),
         ] + $parties;
     }
 
     /** Whether this company has a usable legal template for that kind of contract. */
     public static function hasActiveTemplate(?int $companyId, ?string $contractType): bool
     {
-        if (! $companyId || ! $contractType) {
-            return false;
-        }
-
-        return ContractTemplateVersion::withoutGlobalScopes()
-            ->where('company_id', $companyId)
-            ->whereHas('template', fn (Builder $query) => $query
-                ->where('is_active', true)
-                ->where('contract_type', $contractType))
-            ->exists();
+        return $companyId && $contractType
+            && app(\App\Services\ContractTemplateReadiness::class)->isReady($companyId, $contractType);
     }
 
     public static function formCompanyId(Get $get): ?int
@@ -460,9 +452,9 @@ class ContractResource extends Resource
             ->where('property_id', $propertyId)
             ->whereDoesntHave('reservations', function (Builder $query) use ($selectedReservationId): void {
                 $query->where('status', \App\Enums\ReservationStatus::Active->value)
-                    ->when($selectedReservationId, fn (Builder $query) => $query->whereKeyNot($selectedReservationId));
+                    ->when($selectedReservationId, fn(Builder $query) => $query->whereKeyNot($selectedReservationId));
             })
-            ->whereDoesntHave('contracts', fn (Builder $query) => $query
+            ->whereDoesntHave('contracts', fn(Builder $query) => $query
                 ->where('status', ContractStatus::Active->value))
             ->orderBy('unit_number')
             ->pluck('unit_number', 'id')

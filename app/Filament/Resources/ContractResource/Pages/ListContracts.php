@@ -15,6 +15,11 @@ class ListContracts extends ListRecords
         return __('Contracts');
     }
 
+    protected function getHeaderWidgets(): array
+    {
+        return [\App\Filament\Widgets\ContractTemplateSetupWidget::class];
+    }
+
     protected function getHeaderActions(): array
     {
         return [

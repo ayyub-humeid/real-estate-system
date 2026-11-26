@@ -120,8 +120,15 @@ class ContractPdfService
         if (! $this->hasGd() && $this->requiresImageProcessing($settings, $signatures)) {
             $this->invalid('pdf', __('contract_domain.pdf.image_processing_unavailable'));
         }
-        $body = $this->replacePlaceholders($version->templateVersion->body, $version);
-        $this->assertRenderableContent($version, $body);
+        $template = ContractPlaceholders::unwrapBlocks(
+            ContractTemplateTokenService::normalise($version->templateVersion->body)
+                ?: '<h1>{{contract_number}}</h1><p>{{parties}}</p>'
+        );
+        $paymentPlan = $this->paymentPlan($version);
+        $values = app(ContractPlaceholders::class)->values($version, $template, $paymentPlan);
+        // The size limit protects against oversized legal text, not a long payment table.
+        $this->assertRenderableContent($version, strtr($template, [...$values, ContractPlaceholders::PAYMENT_SCHEDULE => '']));
+        $body = strtr($template, $values);
         $contractSummary = $this->summary($version);
 
         $temporaryDirectory = storage_path('app/mpdf');
@@ -161,7 +168,8 @@ class ContractPdfService
             'body' => $body,
             'contractSummary' => $contractSummary,
             'draft' => $draft,
-            'paymentPlan' => $this->paymentPlan($version),
+            'paymentPlan' => $paymentPlan,
+            'scheduleInBody' => str_contains($template, ContractPlaceholders::PAYMENT_SCHEDULE),
             'rentTerms' => $this->rentTerms($version),
             'signatures' => $signatures,
             'images' => $this->images($settings, $signatures),
@@ -175,39 +183,6 @@ class ContractPdfService
         }
 
         return $pdf->Output('', Destination::STRING_RETURN);
-    }
-
-    private function replacePlaceholders(?string $body, ContractVersion $version): string
-    {
-        $body = ContractTemplateTokenService::normalise($body);
-        $snapshot = $version->unit_snapshot ?? [];
-        $company = $version->contract->company ?? null;
-        $parties = $version->parties
-            ->map(fn ($party) => e(($party->snapshot['name'] ?? $party->party?->name ?? '—').' ('.$this->partyRoleLabel($party->role).')'))
-            ->implode('<br>');
-        $formatDate = fn ($date) => $date ? $date->format('Y-m-d') : '—';
-
-        $values = [
-            '{{contract_number}}' => e($version->contract->contract_number),
-            '{{contract_type}}' => e($version->contract->contract_type?->getLabel() ?? (string) $version->contract->contract_type),
-            '{{company_name}}' => e($company?->name ?? ''),
-            '{{total_amount}}' => e(number_format((float) $version->total_amount, 2)),
-            '{{currency}}' => e($version->currency ?? ''),
-            '{{start_date}}' => e($formatDate($version->start_date)),
-            '{{end_date}}' => e($formatDate($version->end_date)),
-            '{{delivery_date}}' => e($formatDate($version->delivery_date)),
-            '{{unit_number}}' => e($this->snapshotValue($snapshot, 'unit_number', 'planned_unit_code')),
-            '{{property_name}}' => e($this->snapshotValue($snapshot, 'property_name')),
-            '{{project_name}}' => e($this->snapshotValue($snapshot, 'project_name')),
-            '{{parties}}' => $parties,
-            // Terms are rendered once, in the controlled terms section below
-            // the legal template body. Keeping legacy placeholders harmless
-            // prevents duplicate clauses in PDFs made from older templates.
-            '{{terms}}' => '',
-            '{{contract_terms}}' => '',
-        ];
-
-        return strtr($body ?: '<h1>{{contract_number}}</h1><p>{{parties}}</p>{{terms}}', $values);
     }
 
     /**
@@ -294,42 +269,10 @@ class ContractPdfService
         $snapshot = $version->unit_snapshot ?? [];
 
         return [
-            'unit' => $this->snapshotValue($snapshot, 'unit_number', 'planned_unit_code'),
-            'property' => $this->snapshotValue($snapshot, 'property_name'),
-            'project' => $this->snapshotValue($snapshot, 'project_name'),
+            'unit' => ContractPlaceholders::snapshotValue($snapshot, 'unit_number', 'planned_unit_code'),
+            'property' => ContractPlaceholders::snapshotValue($snapshot, 'property_name'),
+            'project' => ContractPlaceholders::snapshotValue($snapshot, 'project_name'),
         ];
-    }
-
-    /** Supports current snapshots and older snapshots that stored nested records. */
-    private function snapshotValue(array $snapshot, string ...$keys): string
-    {
-        foreach ($keys as $key) {
-            $value = $snapshot[$key] ?? null;
-            if (is_string($value) || is_numeric($value)) {
-                return (string) $value;
-            }
-            if (is_array($value)) {
-                foreach (['name', 'unit_number', 'code', 'label'] as $labelKey) {
-                    if (isset($value[$labelKey]) && (is_string($value[$labelKey]) || is_numeric($value[$labelKey]))) {
-                        return (string) $value[$labelKey];
-                    }
-                }
-            }
-        }
-
-        return '—';
-    }
-
-    private function partyRoleLabel(?string $role): string
-    {
-        return match ($role) {
-            'buyer' => __('Buyer'),
-            'seller' => __('Seller'),
-            'landlord' => __('Landlord'),
-            'tenant' => __('Tenant'),
-            'guarantor' => __('Guarantor'),
-            default => $role ?: '—',
-        };
     }
 
     /** @param array<int, ContractSignature> $signatures */

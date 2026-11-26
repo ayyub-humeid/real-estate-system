@@ -416,44 +416,11 @@
     </table>
     <h2 class="section-title">{{ __('Legal document content') }}</h2>
     <div class="legal-body">{!! $body !!}</div>
-    <h2 class="section-title">{{ __('contract_domain.pdf.payment_distribution') }}</h2>
-    @if ($paymentPlan)
-        @unless ($paymentPlan['issued'])
-            <p class="notice">{{ __('contract_domain.pdf.schedule_not_issued') }}</p>
-        @endunless
-        @unless ($paymentPlan['reconciles'])
-            <p class="notice">{{ __('contract_domain.pdf.schedule_mismatch') }}</p>
-        @endunless
-        @php($kinds = ['down_payment' => __('contract_finance.installment_kinds.down_payment'), 'installment' => __('contract_finance.installment_kinds.installment'), 'deposit' => __('contract_finance.installment_kinds.deposit'), 'other' => __('contract_finance.installment_kinds.other')])
-        <table class="schedule">
-            <thead>
-                <tr>
-                    <th class="num" style="width:8%">#</th>
-                    <th style="width:30%">{{ __('contract_domain.pdf.payment_kind') }}</th>
-                    <th class="num" style="width:27%">{{ __('contract_domain.pdf.payment_due') }}</th>
-                    <th class="num" style="width:35%">{{ __('contract_domain.pdf.payment_amount') }}</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach ($paymentPlan['installments'] as $installment)
-                    <tr>
-                        <td class="num">{{ $installment->sequence }}</td>
-                        <td>{{ $kinds[$installment->kind?->value ?? (string) $installment->kind] ?? ($installment->kind?->value ?? '—') }}</td>
-                        <td class="num">{{ $installment->due_date?->format('Y-m-d') ?? '—' }}</td>
-                        <td class="num">{{ number_format((float) $installment->amount, 2) }} {{ $paymentPlan['currency'] }}</td>
-                    </tr>
-                @endforeach
-            </tbody>
-            <tfoot>
-                <tr>
-                    <td colspan="3">{{ __('contract_domain.pdf.payment_total') }}</td>
-                    <td class="num">{{ number_format((float) $paymentPlan['total'], 2) }} {{ $paymentPlan['currency'] }}</td>
-                </tr>
-            </tfoot>
-        </table>
-    @else
-        <p class="notice">{{ __('contract_domain.pdf.schedule_missing') }}</p>
-    @endif
+    {{-- A template that places the schedule inside its own text must not print it twice. --}}
+    @unless ($scheduleInBody)
+        <h2 class="section-title">{{ __('contract_domain.pdf.payment_distribution') }}</h2>
+        @include('pdf.partials.payment-schedule')
+    @endunless
     <h2 class="section-title">{{ __('Contract terms') }}</h2>
     @forelse($contractVersion->terms as $term)
         <section class="term">
@@ -486,7 +453,9 @@
             </tr>
         </table>
     @endif
-    @if ($images['company_stamp'] ?? null)
+    {{-- The company's signature block already carries the seal, so it is not repeated. --}}
+    @php($stampSigned = collect($signatures)->contains(fn ($signature) => $signature->signing_method === 'company_authorized' && ($images['stamp_' . $signature->id] ?? null)))
+    @if (($images['company_stamp'] ?? null) && ! $stampSigned)
         <table class="company-seal">
             <tr>
                 <td class="company-seal-art">

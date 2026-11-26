@@ -29,6 +29,7 @@ class Dashboard extends BaseDashboard
     {
         return [
             AccountWidget::class,
+            \App\Filament\Widgets\ContractTemplateSetupWidget::class,
             OperationalOverviewWidget::class,
             FinancialVarianceWidget::class,
             OccupancyStats::class,

@@ -21,21 +21,35 @@ class ContractTemplateResource extends Resource
 
     protected static ?string $navigationGroup = '💼 Sales & Marketing';
 
-    public static function getNavigationGroup(): ?string { return __('💼 Sales & Marketing'); }
-    public static function getNavigationLabel(): string { return __('Contract templates'); }
-    public static function getModelLabel(): string { return __('Contract template'); }
-    public static function getPluralModelLabel(): string { return __('Contract templates'); }
+    public static function getNavigationGroup(): ?string
+    {
+        return __('💼 Sales & Marketing');
+    }
+    public static function getNavigationLabel(): string
+    {
+        return __('Contract templates');
+    }
+    public static function getModelLabel(): string
+    {
+        return __('Contract template');
+    }
+    public static function getPluralModelLabel(): string
+    {
+        return __('Contract templates');
+    }
 
     public static function form(Forms\Form $form): Forms\Form
     {
         return $form->schema([
             Forms\Components\Select::make('company_id')->label(__('Company'))
                 ->options(Company::withoutGlobalScopes()->orderBy('name')->pluck('name', 'id'))
-                ->visible(fn (): bool => auth()->user()->isSuperAdmin())
-                ->required(fn (): bool => auth()->user()->isSuperAdmin()),
+                ->visible(fn(): bool => auth()->user()->isSuperAdmin())
+                ->required(fn(): bool => auth()->user()->isSuperAdmin()),
             Forms\Components\TextInput::make('name')->label(__('Name'))->required(),
             Forms\Components\Select::make('contract_type')->label(__('Contract type'))
                 ->options(ContractType::options())
+                // The setup warning links here with the missing kind already chosen.
+                ->default(fn(): ?string => ContractType::tryFrom((string) request()->query('contract_type'))?->value)
                 ->required(),
             Forms\Components\Toggle::make('is_active')->label(__('Active'))->default(true),
         ]);
@@ -48,7 +62,7 @@ class ContractTemplateResource extends Resource
                 ->columnSpanFull()
                 ->schema([
                     Infolists\Components\TextEntry::make('name')->label(__('Name'))->weight('bold'),
-                    Infolists\Components\TextEntry::make('contract_type')->label(__('Contract type'))->formatStateUsing(fn ($state): string => $state instanceof ContractType ? $state->getLabel() : ContractType::tryFrom((string) $state)?->getLabel() ?? (string) $state)->badge(),
+                    Infolists\Components\TextEntry::make('contract_type')->label(__('Contract type'))->formatStateUsing(fn($state): string => $state instanceof ContractType ? $state->getLabel() : ContractType::tryFrom((string) $state)?->getLabel() ?? (string) $state)->badge(),
                     Infolists\Components\IconEntry::make('is_active')->label(__('Active'))->boolean(),
                 ])->columns(3),
         ]);
@@ -58,7 +72,7 @@ class ContractTemplateResource extends Resource
     {
         return $table->columns([
             Tables\Columns\TextColumn::make('name')->label(__('Name'))->searchable(),
-            Tables\Columns\TextColumn::make('contract_type')->label(__('Contract type'))->formatStateUsing(fn ($state): string => $state instanceof ContractType ? $state->getLabel() : ContractType::tryFrom((string) $state)?->getLabel() ?? (string) $state)->badge(),
+            Tables\Columns\TextColumn::make('contract_type')->label(__('Contract type'))->formatStateUsing(fn($state): string => $state instanceof ContractType ? $state->getLabel() : ContractType::tryFrom((string) $state)?->getLabel() ?? (string) $state)->badge(),
             Tables\Columns\IconColumn::make('is_active')->label(__('Active'))->boolean(),
             Tables\Columns\TextColumn::make('versions_count')->counts('versions')->label(__('Versions')),
         ])->actions([

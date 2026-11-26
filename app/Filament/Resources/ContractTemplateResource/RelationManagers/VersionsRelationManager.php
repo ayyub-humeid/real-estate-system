@@ -4,6 +4,7 @@ namespace App\Filament\Resources\ContractTemplateResource\RelationManagers;
 
 use Filament\Forms;
 use App\Models\ContractTemplateVersion;
+use App\Services\ContractPlaceholders;
 use App\Services\ContractTemplateService;
 use App\Services\ContractTemplateTokenService;
 use App\Support\ContractPdfContentLimits;
@@ -72,6 +73,7 @@ class VersionsRelationManager extends RelationManager
                                     ])
                                     ->columnSpanFull(),
                                 Forms\Components\View::make('filament.forms.contract-template-variable-inserter')
+                                    ->viewData(['groups' => app(ContractPlaceholders::class)->catalogue($this->getOwnerRecord()->contract_type)])
                                     ->columnSpanFull(),
                                 Forms\Components\Actions::make([
                                     Forms\Components\Actions\Action::make('previewSample')
@@ -161,17 +163,12 @@ class VersionsRelationManager extends RelationManager
         return $data;
     }
 
-    private static function samplePreview(?string $body): string
+    private static function samplePreview(string $body): string
     {
-        return strtr($body ?: '<p>'.__('Start writing the legal contract text, then use the insert buttons to add contract information.').'</p>', [
-            '{{contract_number}}' => 'CON-2026-000001',
-            '{{company_name}}' => e(__('Madar Real Estate Development')),
-            '{{total_amount}}' => '250,000.00',
-            '{{currency}}' => 'USD',
-            '{{unit_number}}' => 'A-204',
-            '{{property_name}}' => e(__('Madar Residence')),
-            '{{project_name}}' => e(__('Madar Residence Project')),
-            '{{parties}}' => e(__('Madar Real Estate Development')).' ('.e(__('Seller')).')<br>'.e(__('Ahmed Khalil')).' ('.e(__('Buyer')).')',
-        ]);
+        $body = ContractPlaceholders::unwrapBlocks(
+            $body ?: '<p>'.__('Start writing the legal contract text, then use the insert buttons to add contract information.').'</p>'
+        );
+
+        return strtr($body, app(ContractPlaceholders::class)->samples($body));
     }
 }
