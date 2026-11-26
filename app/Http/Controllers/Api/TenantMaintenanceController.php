@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\MaintenanceStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreMaintenanceRequest;
 use App\Models\MaintenanceRequest;
@@ -81,7 +82,7 @@ class TenantMaintenanceController extends Controller
             'title'           => $request->title,
             'description'     => $request->description,
             'priority'        => $request->priority ?? 'medium',
-            'status'          => MaintenanceRequest::STATUS_NEW,
+            'status'          => MaintenanceStatus::New->value,
             // company_id تنحقن تلقائياً من HasCompany trait إذا كان
             // company_id موجود على المستخدم، أو من boot() بالموديل عبر unit->property
         ]);

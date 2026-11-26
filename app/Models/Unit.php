@@ -19,7 +19,7 @@ class Unit extends Model
     /** Leases (with payments), ownership and status history cascade from units. */
     protected function deletionChecks(): array
     {
-        $has = fn (string $table): \Closure => fn (): bool => \Illuminate\Support\Facades\DB::table($table)->where('unit_id', $this->id)->exists();
+        $has = fn(string $table): \Closure => fn(): bool => \Illuminate\Support\Facades\DB::table($table)->where('unit_id', $this->id)->exists();
 
         return [
             'leases' => $has('leases'),
@@ -29,7 +29,7 @@ class Unit extends Model
             'reservations' => $has('unit_reservations'),
             'contracts' => $has('contracts'),
             'ratings' => $has('ratings'),
-            'documents' => fn (): bool => $this->documents()->exists(),
+            'documents' => fn(): bool => $this->documents()->exists(),
         ];
     }
 
@@ -235,23 +235,23 @@ class Unit extends Model
         $query->when($filters['search'] ?? null, function ($query, $search) {
             $query->where(function ($q) use ($search) {
                 $q->where('unit_number', 'like', "%{$search}%")
-                  ->orWhereHas('property', function ($q) use ($search) {
-                      $q->where('name', 'like', "%{$search}%")
-                        ->orWhere('address', 'like', "%{$search}%")
-                        ->orWhere('description', 'like', "%{$search}%")
-                        ->orWhereHas('location', function ($q) use ($search) {
-                            $q->where('name', 'like', "%{$search}%")
-                              ->orWhereHas('parent', function ($q) use ($search) {
-                                  $q->where('name', 'like', "%{$search}%")
+                    ->orWhereHas('property', function ($q) use ($search) {
+                        $q->where('name', 'like', "%{$search}%")
+                            ->orWhere('address', 'like', "%{$search}%")
+                            ->orWhere('description', 'like', "%{$search}%")
+                            ->orWhereHas('location', function ($q) use ($search) {
+                                $q->where('name', 'like', "%{$search}%")
                                     ->orWhereHas('parent', function ($q) use ($search) {
                                         $q->where('name', 'like', "%{$search}%")
-                                          ->orWhereHas('parent', function ($q) use ($search) {
-                                              $q->where('name', 'like', "%{$search}%");
-                                          });
+                                            ->orWhereHas('parent', function ($q) use ($search) {
+                                                $q->where('name', 'like', "%{$search}%")
+                                                    ->orWhereHas('parent', function ($q) use ($search) {
+                                                        $q->where('name', 'like', "%{$search}%");
+                                                    });
+                                            });
                                     });
-                              });
-                        });
-                  });
+                            });
+                    });
             });
         });
 
@@ -321,4 +321,8 @@ class Unit extends Model
     {
         return $this->hasMany(Contract::class);
     }
+    // public function rentalUnits(): HasMany
+    // {
+    //     return $this->hasMany(Contract::class)->where('status', 'active')->where('type', 'rental')->get();
+    // }
 }

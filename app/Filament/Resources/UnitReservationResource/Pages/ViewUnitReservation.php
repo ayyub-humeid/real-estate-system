@@ -127,7 +127,9 @@ class ViewUnitReservation extends ViewRecord
                     ->searchable()
                     ->preload()
                     ->required()
-                    ->helperText(__('contract_domain.from_reservation.template_help')),
+                    ->helperText(fn (): string => ContractResource::hasActiveTemplate($this->record->company_id, $this->derivedContractType()->value)
+                        ? __('contract_domain.from_reservation.template_help')
+                        : __('contract_domain.template.none_for_type')),
                 Forms\Components\DatePicker::make('start_date')
                     ->label(__('Start date'))
                     ->default(now())
@@ -141,6 +143,10 @@ class ViewUnitReservation extends ViewRecord
                     ->visible(fn (): bool => $this->derivedContractType() === ContractType::Lease)
                     ->required(fn (): bool => $this->derivedContractType() === ContractType::Lease)
                     ->helperText(__('contract_domain.from_reservation.end_date_help')),
+                Forms\Components\Placeholder::make('rent_total')
+                    ->label(__('contract_domain.rent.summary'))
+                    ->visible(fn (): bool => $this->derivedContractType() === ContractType::Lease)
+                    ->content(fn (Forms\Get $get): string => $this->rentSummary($get)),
             ])
             ->action(function (array $data): void {
                 $this->runWorkflowAction(
@@ -150,6 +156,30 @@ class ViewUnitReservation extends ViewRecord
                     rethrowValidation: true,
                 );
             });
+    }
+
+    /** What the agreed rent adds up to over the term being entered. */
+    private function rentSummary(Forms\Get $get): string
+    {
+        $terms = \App\Support\RentTerms::summarise(
+            $this->record->agreed_amount,
+            $this->record->rent_frequency,
+            $get('start_date'),
+            $get('end_date'),
+        );
+
+        if (! $terms['frequency']) {
+            return __('contract_domain.rent.summary_incomplete');
+        }
+        if (! $terms['periods']) {
+            return __('contract_domain.rent.summary_term_mismatch', ['frequency' => $terms['frequency']->getLabel()]);
+        }
+
+        return __('contract_domain.rent.summary_total', [
+            'count' => $terms['periods'],
+            'total' => number_format((float) $terms['total'], 2),
+            'currency' => (string) $this->record->currency,
+        ]);
     }
 
     private function derivedContractType(): ContractType

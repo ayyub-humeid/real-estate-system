@@ -53,7 +53,6 @@ class RoleResource extends ShieldRoleResource
      */
     private const HIDDEN_LEGACY_RESOURCE_CLASSES = [
         ContactResource::class,
-        ExpenseResource::class,
         LeaseResource::class,
         RentalRequestResource::class,
     ];
@@ -269,6 +268,9 @@ class RoleResource extends ShieldRoleResource
         'Listings Management' => [
             'Listing lifecycle' => ['exact:publish_listing', 'exact:pause_listing', 'exact:archive_listing'],
             'Listing pricing' => ['exact:change_listing_price'],
+        ],
+        'Expenses' => [
+            'Expense workflow' => ['exact:pay_expense', 'exact:cancel_expense'],
         ],
         'Data Export' => [
             'Export company data' => ['exact:export_contract', 'exact:export_unit', 'exact:export_lead', 'exact:export_project', 'exact:export_expense', 'exact:export_payment'],

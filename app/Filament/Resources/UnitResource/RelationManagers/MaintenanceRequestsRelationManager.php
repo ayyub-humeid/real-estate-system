@@ -2,13 +2,16 @@
 
 namespace App\Filament\Resources\UnitResource\RelationManagers;
 
+use App\Enums\MaintenancePriority;
+use App\Enums\MaintenanceStatus;
+use App\Filament\Support\MaintenanceUnitNotice;
+use App\Models\MaintenanceRequest;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class MaintenanceRequestsRelationManager extends RelationManager
 {
@@ -47,30 +50,21 @@ class MaintenanceRequestsRelationManager extends RelationManager
                             ->schema([
                                 Forms\Components\Select::make('status')
                                     ->label(__('Status'))
-                                    ->options([
-                                        'new' => __('New'),
-                                        'pending' => __('Pending'),
-                                        'in_progress' => __('In Progress'),
-                                        'resolved' => __('Resolved'),
-                                        'cancelled' => __('Cancelled'),
-                                    ])
-                                    ->default('new')
-                                    ->required(),
+                                    ->options(MaintenanceStatus::options())
+                                    ->default(MaintenanceStatus::New->value)
+                                    ->required()
+                                    ->helperText(__('maintenance.help.status')),
                                 Forms\Components\Select::make('priority')
                                     ->label(__('Priority'))
-                                    ->options([
-                                        'low' => __('Low'),
-                                        'medium' => __('Medium'),
-                                        'high' => __('High'),
-                                        'emergency' => __('Emergency'),
-                                    ])
-                                    ->default('medium')
+                                    ->options(MaintenancePriority::options())
+                                    ->default(MaintenancePriority::Medium->value)
                                     ->required(),
                             ]),
 
                         Forms\Components\Select::make('assigned_to_id')
                             ->label(__('Assign Technician'))
-                            ->relationship('technician', 'name')
+                            ->relationship('technician', 'name', fn (Builder $query) => $query
+                                ->where('company_id', $this->getOwnerRecord()->company_id))
                             ->searchable()
                             ->preload(),
 
@@ -109,37 +103,13 @@ class MaintenanceRequestsRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('status')
                     ->label(__('Status'))
                     ->badge()
-                    ->colors([
-                        'gray' => 'new',
-                        'warning' => 'pending',
-                        'info' => 'in_progress',
-                        'success' => 'resolved',
-                        'danger' => 'cancelled',
-                    ])
-                    ->formatStateUsing(fn (?string $state): string => match ($state) {
-                        'new' => __('New'),
-                        'pending' => __('Pending'),
-                        'in_progress' => __('In Progress'),
-                        'resolved' => __('Resolved'),
-                        'cancelled' => __('Cancelled'),
-                        default => $state ?? '—',
-                    }),
+                    ->color(fn (?string $state): string => MaintenanceStatus::tryFrom((string) $state)?->getColor() ?? 'gray')
+                    ->formatStateUsing(fn (?string $state): string => MaintenanceStatus::labelFor($state)),
                 Tables\Columns\TextColumn::make('priority')
                     ->label(__('Priority'))
                     ->badge()
-                    ->colors([
-                        'gray' => 'low',
-                        'info' => 'medium',
-                        'warning' => 'high',
-                        'danger' => 'emergency',
-                    ])
-                    ->formatStateUsing(fn (?string $state): string => match ($state) {
-                        'low' => __('Low'),
-                        'medium' => __('Medium'),
-                        'high' => __('High'),
-                        'emergency' => __('Emergency'),
-                        default => $state ?? '—',
-                    }),
+                    ->color(fn (?string $state): string => MaintenancePriority::tryFrom((string) $state)?->getColor() ?? 'gray')
+                    ->formatStateUsing(fn (?string $state): string => MaintenancePriority::labelFor($state)),
                 Tables\Columns\TextColumn::make('actual_cost')
                     ->label(__('Actual Cost'))
                     ->money('USD'),
@@ -152,21 +122,10 @@ class MaintenanceRequestsRelationManager extends RelationManager
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
                     ->label(__('Status'))
-                    ->options([
-                        'new' => __('New'),
-                        'pending' => __('Pending'),
-                        'in_progress' => __('In Progress'),
-                        'resolved' => __('Resolved'),
-                        'cancelled' => __('Cancelled'),
-                    ]),
+                    ->options(MaintenanceStatus::options()),
                 Tables\Filters\SelectFilter::make('priority')
                     ->label(__('Priority'))
-                    ->options([
-                        'low' => __('Low'),
-                        'medium' => __('Medium'),
-                        'high' => __('High'),
-                        'emergency' => __('Emergency'),
-                    ]),
+                    ->options(MaintenancePriority::options()),
             ])
             ->headerActions([
                 Tables\Actions\CreateAction::make()
@@ -175,11 +134,13 @@ class MaintenanceRequestsRelationManager extends RelationManager
                         $data['company_id'] = $this->getOwnerRecord()->company_id;
 
                         return $data;
-                    }),
+                    })
+                    ->after(fn (MaintenanceRequest $record) => MaintenanceUnitNotice::send($record)),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make()->label(__('View')),
-                Tables\Actions\EditAction::make()->label(__('Edit')),
+                Tables\Actions\EditAction::make()->label(__('Edit'))
+                    ->after(fn (MaintenanceRequest $record) => MaintenanceUnitNotice::send($record)),
                 Tables\Actions\DeleteAction::make()->label(__('Delete')),
             ])
             ->bulkActions([

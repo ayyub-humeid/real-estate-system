@@ -23,7 +23,9 @@ class StatusHistoriesRelationManager extends RelationManager
             ->formatStateUsing(fn (?string $state): string => $state ? (UnitStatus::tryFrom($state)?->getLabel() ?? $state) : __('Legacy baseline')),
         Tables\Columns\TextColumn::make('to_status')->label(__('To'))->badge()
             ->formatStateUsing(fn (?string $state): string => $state ? (UnitStatus::tryFrom($state)?->getLabel() ?? $state) : __('—')),
-        Tables\Columns\TextColumn::make('reason')->label(__('Reason'))->wrap()->placeholder(__('—')),
+        // System changes store a code; reasons typed by a person are shown as written.
+        Tables\Columns\TextColumn::make('reason')->label(__('Reason'))->wrap()->placeholder(__('—'))
+            ->formatStateUsing(fn (string $state): string => trans()->has('unit.history_reasons.'.$state) ? __('unit.history_reasons.'.$state) : $state),
         Tables\Columns\TextColumn::make('changedBy.name')->label(__('Changed by'))->placeholder(__('System')),
         Tables\Columns\TextColumn::make('changed_at')->label(__('Changed at'))->dateTime()->sortable(),
     ])->defaultSort('changed_at', 'desc'); }

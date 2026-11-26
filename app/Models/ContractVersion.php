@@ -8,8 +8,14 @@ use Illuminate\Database\Eloquent\Relations\{BelongsTo, HasMany, MorphMany};
 class ContractVersion extends Model
 {
     use HasCompany;
-    protected $fillable = ['company_id', 'contract_id', 'version_number', 'status', 'template_version_id', 'total_amount', 'currency', 'start_date', 'end_date', 'delivery_date', 'unit_snapshot', 'reservation_snapshot', 'created_by', 'submitted_at', 'approved_at'];
-    protected $casts = ['status' => ContractVersionStatus::class, 'total_amount' => 'decimal:2', 'start_date' => 'date', 'end_date' => 'date', 'delivery_date' => 'date', 'unit_snapshot' => 'array', 'reservation_snapshot' => 'array', 'submitted_at' => 'datetime', 'approved_at' => 'datetime'];
+    protected $fillable = ['company_id', 'contract_id', 'version_number', 'status', 'template_version_id', 'total_amount', 'rent_amount', 'rent_frequency', 'currency', 'start_date', 'end_date', 'delivery_date', 'unit_snapshot', 'reservation_snapshot', 'created_by', 'submitted_at', 'approved_at'];
+    protected $casts = ['status' => ContractVersionStatus::class, 'total_amount' => 'decimal:2', 'rent_amount' => 'decimal:2', 'start_date' => 'date', 'end_date' => 'date', 'delivery_date' => 'date', 'unit_snapshot' => 'array', 'reservation_snapshot' => 'array', 'submitted_at' => 'datetime', 'approved_at' => 'datetime'];
+
+    /** How a rental's total was built up: rent per period × number of payments. */
+    public function rentTerms(): array
+    {
+        return \App\Support\RentTerms::summarise($this->rent_amount, $this->rent_frequency, $this->start_date, $this->end_date);
+    }
     public function contract(): BelongsTo
     {
         return $this->belongsTo(Contract::class);

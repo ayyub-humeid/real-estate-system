@@ -19,6 +19,7 @@ use App\Models\{
     User,
 };
 use App\Support\ContractPdfContentLimits;
+use App\Support\RentTerms;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -39,6 +40,8 @@ class ContractDraftService
             Company::withoutGlobalScopes()->lockForUpdate()->findOrFail($companyId);
             $targets = $this->normaliseTargets($data, $companyId);
 
+            $amounts = $this->rentAwareAmounts($targets['type'], $data, $targets['reservation']?->agreed_amount);
+
             $contract = Contract::withoutGlobalScopes()->create([
                 'company_id' => $companyId,
                 'contract_number' => $this->nextNumber($companyId),
@@ -58,7 +61,9 @@ class ContractDraftService
                 'version_number' => 1,
                 'status' => ContractVersionStatus::Draft,
                 'template_version_id' => $data['template_version_id'] ?? null,
-                'total_amount' => filled($data['total_amount'] ?? null) ? $data['total_amount'] : $targets['reservation']?->agreed_amount,
+                'total_amount' => $amounts['total_amount'],
+                'rent_amount' => $amounts['rent_amount'],
+                'rent_frequency' => $amounts['rent_frequency'],
                 'currency' => filled($data['currency'] ?? null) ? strtoupper((string) $data['currency']) : $targets['reservation']?->currency,
                 'start_date' => $data['start_date'] ?? null,
                 'end_date' => $data['end_date'] ?? null,
@@ -109,6 +114,7 @@ class ContractDraftService
             $company = Company::withoutGlobalScopes()->findOrFail($locked->company_id);
             $companyParty = app(CompanyLegalPartyService::class)->resolve($company);
             $customerParty = Party::withoutGlobalScopes()->findOrFail($locked->customer_party_id);
+            $rent = $this->reservationRentTerms($contractType, $locked, $data);
 
             return $this->create($actor, [
                 'company_id' => $locked->company_id,
@@ -116,7 +122,9 @@ class ContractDraftService
                 'contract_type' => $contractType->value,
                 'template_version_id' => $data['template_version_id'] ?? null,
                 'start_date' => $data['start_date'] ?? null,
-                'end_date' => $data['end_date'] ?? null,
+                'end_date' => $rent['end_date'],
+                'rent_amount' => $rent['rent_amount'],
+                'rent_frequency' => $rent['rent_frequency'],
                 'parties' => [
                     ['party_id' => $customerParty->id, 'role' => $customerRole],
                     ['party_id' => $companyParty->id, 'role' => $companyRole],
@@ -147,8 +155,11 @@ class ContractDraftService
                 $this->invalid('version', __('Only a draft or returned version can be edited.'));
             }
 
+            $amounts = $this->rentAwareAmounts($locked->contract->contract_type, $data);
             $updates = [
-                'total_amount' => $data['total_amount'] ?? null,
+                'total_amount' => $amounts['total_amount'],
+                'rent_amount' => $amounts['rent_amount'],
+                'rent_frequency' => $amounts['rent_frequency'],
                 'currency' => filled($data['currency'] ?? null) ? strtoupper((string) $data['currency']) : null,
                 'start_date' => $data['start_date'] ?? null,
                 'end_date' => $data['end_date'] ?? null,
@@ -179,6 +190,71 @@ class ContractDraftService
 
             return $locked->fresh(['parties.party', 'terms']);
         });
+    }
+
+    /**
+     * A rental is agreed per period, so the signed total follows from the rent
+     * and the term rather than being typed in. A sale keeps its entered amount.
+     *
+     * @return array{total_amount: mixed, rent_amount: ?string, rent_frequency: ?string}
+     */
+    private function rentAwareAmounts(ContractType $type, array $data, mixed $fallbackTotal = null): array
+    {
+        $total = filled($data['total_amount'] ?? null) ? $data['total_amount'] : $fallbackTotal;
+        $rent = $data['rent_amount'] ?? null;
+        $frequency = $data['rent_frequency'] ?? null;
+
+        // Legacy drafts and sales keep the amount exactly as it was given.
+        if ($type !== ContractType::Lease || blank($rent) || blank($frequency)) {
+            return ['total_amount' => $total, 'rent_amount' => null, 'rent_frequency' => null];
+        }
+
+        $terms = RentTerms::summarise($rent, $frequency, $data['start_date'] ?? null, $data['end_date'] ?? null);
+
+        if (! $terms['frequency']) {
+            $this->invalid('rent_frequency', __('contract_domain.rent.frequency_invalid'));
+        }
+        if (! $terms['periods']) {
+            $this->invalid('end_date', __('contract_domain.rent.term_not_whole', ['frequency' => $terms['frequency']->getLabel()]));
+        }
+        if (! $terms['total']) {
+            $this->invalid('rent_amount', __('contract_domain.rent.amount_invalid'));
+        }
+
+        return [
+            'total_amount' => $terms['total'],
+            'rent_amount' => (string) $rent,
+            'rent_frequency' => $terms['frequency']->value,
+        ];
+    }
+
+    /**
+     * A rent reservation stores the rent per payment, its frequency and the
+     * term. The contract's end date follows the term unless one was chosen.
+     *
+     * @return array{end_date: mixed, rent_amount: ?string, rent_frequency: ?string}
+     */
+    private function reservationRentTerms(ContractType $type, UnitReservation $reservation, array $data): array
+    {
+        $endDate = $data['end_date'] ?? null;
+
+        if ($type !== ContractType::Lease || blank($reservation->rent_frequency)) {
+            return ['end_date' => $endDate, 'rent_amount' => null, 'rent_frequency' => null];
+        }
+
+        $termMonths = $reservation->lease_term_unit === 'year'
+            ? (int) $reservation->lease_term_value * 12
+            : (int) $reservation->lease_term_value;
+
+        $frequency = $reservation->rent_frequency instanceof \App\Enums\RentFrequency
+            ? $reservation->rent_frequency->value
+            : (string) $reservation->rent_frequency;
+
+        return [
+            'end_date' => filled($endDate) ? $endDate : RentTerms::endDate($data['start_date'] ?? null, $termMonths),
+            'rent_amount' => (string) $reservation->agreed_amount,
+            'rent_frequency' => $frequency,
+        ];
     }
 
     private function company(User $actor, array $data): int

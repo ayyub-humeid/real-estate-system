@@ -124,6 +124,8 @@ class VersionsRelationManager extends RelationManager
                     ->visible(fn (ContractVersion $record): bool => in_array($record->status, [ContractVersionStatus::Draft, ContractVersionStatus::RevisionRequired], true) && auth()->user()->can('update_contract_version'))
                     ->fillForm(fn (ContractVersion $record): array => [
                         'total_amount' => $record->total_amount,
+                        'rent_amount' => $record->rent_amount,
+                        'rent_frequency' => $record->rent_frequency,
                         'currency' => $record->currency,
                         'template_version_id' => $record->template_version_id,
                         'start_date' => $record->start_date,
@@ -160,6 +162,7 @@ class VersionsRelationManager extends RelationManager
     private function draftForm(ContractVersion $record): array
     {
         $companyId = $this->getOwnerRecord()->company_id;
+        $isLease = fn (): bool => $this->getOwnerRecord()->contract_type === \App\Enums\ContractType::Lease;
 
         return [
             Forms\Components\Select::make('template_version_id')
@@ -181,10 +184,17 @@ class VersionsRelationManager extends RelationManager
                 ->helperText($record->template_version_id
                     ? __('You may change the template while this version is a draft. Existing contract terms are preserved to avoid losing deal-specific edits.')
                     : __('Select the matching legal template. Its default terms will be added to this legacy draft.')),
-            Forms\Components\TextInput::make('total_amount')->label(__('Total amount'))->numeric()->minValue(0)->required(),
+            Forms\Components\TextInput::make('total_amount')->label(__('Total amount'))->numeric()->minValue(0)
+                // A rental's total is the rent across its term; see the rent fields below.
+                ->readOnly($isLease)
+                ->required(fn (): bool => ! $isLease())
+                ->helperText(fn (): ?string => $isLease() ? __('contract_domain.rent.total_help') : null),
             Forms\Components\TextInput::make('currency')->label(__('Currency'))->length(3)->required()->dehydrateStateUsing(fn (?string $state): ?string => $state ? strtoupper($state) : null),
-            Forms\Components\DatePicker::make('start_date')->label(__('Start date')),
-            Forms\Components\DatePicker::make('end_date')->label(__('End date')),
+            ...\App\Filament\Support\RentTermFields::make($isLease),
+            Forms\Components\DatePicker::make('start_date')->label(__('Start date'))
+                ->live()->afterStateUpdated(\App\Filament\Support\RentTermFields::recalculate($isLease)),
+            Forms\Components\DatePicker::make('end_date')->label(__('End date'))
+                ->live()->afterStateUpdated(\App\Filament\Support\RentTermFields::recalculate($isLease)),
             Forms\Components\DatePicker::make('delivery_date')->label(__('Delivery date')),
             Forms\Components\Repeater::make('parties')
                 ->label(__('Contract parties'))

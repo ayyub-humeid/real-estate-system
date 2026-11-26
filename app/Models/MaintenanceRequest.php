@@ -2,22 +2,34 @@
 
 namespace App\Models;
 
+use App\Enums\MaintenancePriority;
+use App\Enums\MaintenanceStatus;
 use Illuminate\Database\Eloquent\Model;
 
 class MaintenanceRequest extends Model
 {
     use \App\Traits\HasCompany;
-    
+
     protected static function boot()
     {
         parent::boot();
-        
+
         static::creating(function ($model) {
             if (empty($model->company_id) && $model->unit_id) {
                 $unit = Unit::with('property')->find($model->unit_id);
                 if ($unit && $unit->property) {
                     $model->company_id = $unit->property->company_id;
                 }
+            }
+        });
+
+        // The completion date follows the status, so it cannot be forgotten.
+        static::saving(function (self $model): void {
+            if ($model->status === MaintenanceStatus::Resolved->value) {
+                $model->completed_at ??= now();
+            } elseif ($model->exists && $model->isDirty('status')
+                && $model->getOriginal('status') === MaintenanceStatus::Resolved->value && $model->isOpen()) {
+                $model->completed_at = null;
             }
         });
     }
@@ -45,18 +57,11 @@ class MaintenanceRequest extends Model
         'actual_cost' => 'decimal:2',
     ];
 
-    // Status Constants
-    const STATUS_NEW = 'new';
-    const STATUS_PENDING = 'pending';
-    const STATUS_IN_PROGRESS = 'in_progress';
-    const STATUS_RESOLVED = 'resolved';
-    const STATUS_CANCELLED = 'cancelled';
-
-    // Priority Constants
-    const PRIORITY_LOW = 'low';
-    const PRIORITY_MEDIUM = 'medium';
-    const PRIORITY_HIGH = 'high';
-    const PRIORITY_EMERGENCY = 'emergency';
+    /** A record saved without a status gets the database default, which is "new". */
+    public function isOpen(): bool
+    {
+        return MaintenanceStatus::tryFrom((string) ($this->status ?? MaintenanceStatus::New->value))?->isOpen() ?? false;
+    }
 
     public function unit(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
@@ -82,17 +87,17 @@ class MaintenanceRequest extends Model
 
     public function scopeOpen($query)
     {
-        return $query->whereIn('status', [self::STATUS_NEW, self::STATUS_PENDING, self::STATUS_IN_PROGRESS]);
+        return $query->whereIn('status', MaintenanceStatus::openValues());
     }
 
     public function scopeResolved($query)
     {
-        return $query->where('status', self::STATUS_RESOLVED);
+        return $query->where('status', MaintenanceStatus::Resolved->value);
     }
 
     public function scopeHighPriority($query)
     {
-        return $query->whereIn('priority', [self::PRIORITY_HIGH, self::PRIORITY_EMERGENCY]);
+        return $query->whereIn('priority', [MaintenancePriority::High->value, MaintenancePriority::Emergency->value]);
     }
 
     public function scopeByTechnician($query, $userId)

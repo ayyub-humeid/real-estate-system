@@ -1,6 +1,8 @@
 <?php
 
 return [
+    'contract_header_note' => 'سطر إضافي في الترويسة',
+    'contract_header_note_help' => 'يظهر أسفل بيانات الشركة في ملفات العقود، لاسم الفرع أو رقم الترخيص أو اسم قانوني ثانٍ.',
     'language' => 'اللغة',
     'language_description' => 'اختر اللغة المستخدمة في مساحة العمل الخاصة بك.',
     'save_language' => 'حفظ اللغة',

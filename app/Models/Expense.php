@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\ExpenseStatus;
+use App\Services\ExpenseRules;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -10,10 +12,12 @@ class Expense extends Model
     use \App\Traits\HasCompany;
     use \App\Models\Concerns\PreventsDeletionWithHistory;
 
+    /** Only an expense that never reached the books may be deleted. */
     protected function deletionChecks(): array
     {
         return [
-            'paid_expense' => $this->getOriginal('status') === self::STATUS_PAID,
+            'paid_expense' => $this->getOriginal('status') === ExpenseStatus::Paid->value || $this->getOriginal('paid_at') !== null,
+            'cancelled_expense' => $this->getOriginal('status') === ExpenseStatus::Cancelled->value,
         ];
     }
 
@@ -22,29 +26,43 @@ class Expense extends Model
         parent::boot();
 
         static::creating(function ($model) {
-            if (empty($model->company_id)) {
-                // Try to get from property first
-                if ($model->property_id) {
-                    $property = Property::find($model->property_id);
-                    if ($property) {
-                        $model->company_id = $property->company_id;
-                    }
-                }
-                // Fallback: derive from unit -> property
-                if (empty($model->company_id) && $model->unit_id) {
-                    $unit = Unit::with('property')->find($model->unit_id);
-                    if ($unit && $unit->property) {
-                        $model->company_id = $unit->property->company_id;
-                    }
-                }
-            }
+            $model->created_by ??= auth()->id();
         });
+
+        // Every write path (panel, service, import, seeder) obeys the same rules.
+        static::saving(function (self $expense): void {
+            // "saving" runs before "creating", so the company must be known here
+            // for the rules to compare the linked records against it.
+            if (! $expense->exists && empty($expense->company_id)) {
+                $expense->company_id = $expense->resolveCompanyId();
+            }
+
+            app(ExpenseRules::class)->apply($expense);
+        });
+    }
+
+    /** A company user records for their own company; otherwise it follows the property or unit. */
+    private function resolveCompanyId(): ?int
+    {
+        $user = auth()->user();
+
+        if ($user && ! $user->isSuperAdmin()) {
+            return $user->company_id;
+        }
+
+        if ($this->property_id) {
+            return Property::find($this->property_id)?->company_id;
+        }
+
+        return $this->unit_id ? Unit::find($this->unit_id)?->company_id : null;
     }
 
     protected $fillable = [
         'company_id',
         'property_id',
         'unit_id',
+        'employee_id',
+        'party_id',
         'created_by',
         'title',
         'description',
@@ -53,6 +71,7 @@ class Expense extends Model
         'currency',
         'status',
         'expense_date',
+        'salary_month',
         'paid_at',
         'payment_method',
         'receipt_path',
@@ -62,25 +81,23 @@ class Expense extends Model
 
     protected $casts = [
         'expense_date' => 'date',
+        'salary_month' => 'date',
         'paid_at'      => 'date',
+        'cancelled_at' => 'datetime',
         'amount'       => 'decimal:2',
     ];
 
-    // Category Constants
-    const CATEGORIES = [
-        'maintenance' => 'Maintenance',
-        'utilities'   => 'Utilities',
-        'salaries'    => 'Salaries',
-        'insurance'   => 'Insurance',
-        'taxes'       => 'Taxes',
-        'marketing'   => 'Marketing',
-        'other'       => 'Other',
-    ];
+    /** Paid and cancelled expenses are history: their figures no longer change. */
+    public function isLocked(): bool
+    {
+        return $this->exists
+            && in_array($this->getOriginal('status'), [ExpenseStatus::Paid->value, ExpenseStatus::Cancelled->value], true);
+    }
 
-    // Status Constants
-    const STATUS_PENDING   = 'pending';
-    const STATUS_PAID      = 'paid';
-    const STATUS_CANCELLED = 'cancelled';
+    public function canMoveTo(ExpenseStatus $to): bool
+    {
+        return ExpenseStatus::tryFrom((string) $this->status)?->canTransitionTo($to) ?? false;
+    }
 
     public function property(): BelongsTo
     {
@@ -90,6 +107,22 @@ class Expense extends Model
     public function unit(): BelongsTo
     {
         return $this->belongsTo(Unit::class);
+    }
+
+    public function employee(): BelongsTo
+    {
+        return $this->belongsTo(Employee::class)->withTrashed();
+    }
+
+    /** The supplier or person being paid, when it is not an employee. */
+    public function party(): BelongsTo
+    {
+        return $this->belongsTo(Party::class);
+    }
+
+    public function canceller(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'cancelled_by');
     }
 
     /** Expenses carry no project of their own; they reach it through the unit or the property. */
@@ -107,12 +140,12 @@ class Expense extends Model
 
     public function scopePending($query)
     {
-        return $query->where('status', self::STATUS_PENDING);
+        return $query->where('status', ExpenseStatus::Pending->value);
     }
 
     public function scopePaid($query)
     {
-        return $query->where('status', self::STATUS_PAID);
+        return $query->where('status', ExpenseStatus::Paid->value);
     }
 
     public function scopeByCategory($query, $category)

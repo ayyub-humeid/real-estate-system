@@ -42,6 +42,23 @@ class ExpensePolicy
         return $user->can('update_expense');
     }
 
+    /** Workflow permission: settle a pending expense. */
+    public function pay(User $user, Expense $expense): bool
+    {
+        return $user->can('pay_expense') && $this->ownsRecord($user, $expense);
+    }
+
+    /** Workflow permission: cancel a pending expense or reverse a paid one. */
+    public function cancel(User $user, Expense $expense): bool
+    {
+        return $user->can('cancel_expense') && $this->ownsRecord($user, $expense);
+    }
+
+    private function ownsRecord(User $user, Expense $expense): bool
+    {
+        return $user->isSuperAdmin() || (int) $user->company_id === (int) $expense->company_id;
+    }
+
     /**
      * Determine whether the user can delete the model.
      */

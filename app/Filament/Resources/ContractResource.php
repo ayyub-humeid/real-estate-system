@@ -9,6 +9,7 @@ use App\Filament\Resources\ContractResource\RelationManagers;
 use App\Filament\Resources\PartyResource;
 use App\Enums\{ContractStatus, ContractType};
 use App\Models\{Company, Contract, ContractParty, ContractTemplateVersion, Party, ProjectPlannedUnit, Property, Unit, UnitReservation};
+use App\Filament\Support\RentTermFields;
 use App\Services\CompanyLegalPartyService;
 use Filament\Forms;
 use Filament\Forms\Get;
@@ -95,6 +96,22 @@ class ContractResource extends Resource
                         $set('planned_unit_id', $reservation->unit->planned_unit_id);
                         $set('total_amount', $reservation->agreed_amount);
                         $set('currency', $reservation->currency);
+                    }
+                    if ($reservation && filled($reservation->rent_frequency)) {
+                        // A rental's agreed amount is the rent per payment, so the
+                        // contract total is the rent across the whole term.
+                        $frequency = $reservation->rent_frequency instanceof \App\Enums\RentFrequency
+                            ? $reservation->rent_frequency->value
+                            : (string) $reservation->rent_frequency;
+                        $months = $reservation->lease_term_unit === 'year'
+                            ? (int) $reservation->lease_term_value * 12
+                            : (int) $reservation->lease_term_value;
+                        $start = now()->toDateString();
+                        $set('rent_amount', $reservation->agreed_amount);
+                        $set('rent_frequency', $frequency);
+                        $set('start_date', $start);
+                        $set('end_date', \App\Support\RentTerms::endDate($start, $months));
+                        $set('total_amount', \App\Support\RentTerms::summarise($reservation->agreed_amount, $frequency, $start, \App\Support\RentTerms::endDate($start, $months))['total']);
                     }
                     if ($reservation) {
                         // The reservation already settled the deal's type and
@@ -187,13 +204,24 @@ class ContractResource extends Resource
                 ->preload()
                 ->required()
                 ->disabled(fn (Get $get): bool => ! self::formCompanyId($get) || ! $get('contract_type'))
-                ->helperText(__('Only active template versions matching this contract type are available.')),
+                // A contract cannot be printed without its legal template, so an
+                // empty list has to say what to do rather than block in silence.
+                ->helperText(fn (Get $get): string => match (true) {
+                    ! self::formCompanyId($get) || ! $get('contract_type') => __('contract_domain.template.choose_type_first'),
+                    ! self::hasActiveTemplate(self::formCompanyId($get), (string) $get('contract_type')) => __('contract_domain.template.none_for_type'),
+                    default => __('Only active template versions matching this contract type are available.'),
+                }),
             Forms\Components\TextInput::make('total_amount')
                 ->label(__('Total amount'))
                 ->numeric()
                 ->minValue(0)
-                ->required()
-                ->helperText(__('Filled automatically from the selected reservation when available.')),
+                // A rental's total is the rent across its term, so it is
+                // calculated from the rent terms below instead of typed in.
+                ->readOnly(fn (Get $get): bool => RentTermFields::isLeaseForm($get))
+                ->required(fn (Get $get): bool => ! RentTermFields::isLeaseForm($get))
+                ->helperText(fn (Get $get): string => RentTermFields::isLeaseForm($get)
+                    ? __('contract_domain.rent.total_help')
+                    : __('Filled automatically from the selected reservation when available.')),
             Forms\Components\Select::make('currency')
                 ->label(__('Currency'))
                 ->options(Currency::options())
@@ -201,8 +229,15 @@ class ContractResource extends Resource
                 ->native(false)
                 ->searchable()
                 ->required(),
-            Forms\Components\DatePicker::make('start_date')->label(__('Start date')),
-            Forms\Components\DatePicker::make('end_date')->label(__('End date')),
+            ...RentTermFields::make(RentTermFields::isLeaseForm(...)),
+            Forms\Components\DatePicker::make('start_date')
+                ->label(__('Start date'))
+                ->live()
+                ->afterStateUpdated(RentTermFields::recalculate(RentTermFields::isLeaseForm(...))),
+            Forms\Components\DatePicker::make('end_date')
+                ->label(__('End date'))
+                ->live()
+                ->afterStateUpdated(RentTermFields::recalculate(RentTermFields::isLeaseForm(...))),
             Forms\Components\DatePicker::make('delivery_date')->label(__('Delivery date')),
             Forms\Components\Repeater::make('parties')
                 ->label(__('Contract parties'))
@@ -381,6 +416,21 @@ class ContractResource extends Resource
         return [
             $company->selfParty->id => __('Company').' — '.($company->selfParty->name ?: $company->name),
         ] + $parties;
+    }
+
+    /** Whether this company has a usable legal template for that kind of contract. */
+    public static function hasActiveTemplate(?int $companyId, ?string $contractType): bool
+    {
+        if (! $companyId || ! $contractType) {
+            return false;
+        }
+
+        return ContractTemplateVersion::withoutGlobalScopes()
+            ->where('company_id', $companyId)
+            ->whereHas('template', fn (Builder $query) => $query
+                ->where('is_active', true)
+                ->where('contract_type', $contractType))
+            ->exists();
     }
 
     public static function formCompanyId(Get $get): ?int

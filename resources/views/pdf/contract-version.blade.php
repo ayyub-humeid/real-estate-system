@@ -265,6 +265,44 @@
             max-height: 28px;
         }
 
+        .schedule {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0 0 8px;
+        }
+
+        .schedule th,
+        .schedule td {
+            border: 1px solid #dbe2ea;
+            padding: 5px 8px;
+            font-size: 9pt;
+        }
+
+        .schedule th {
+            background: #f2f5f8;
+            color: #172033;
+            font-weight: bold;
+        }
+
+        .schedule tfoot td {
+            background: #f5f7fa;
+            font-weight: bold;
+        }
+
+        .schedule .num {
+            direction: ltr;
+            text-align: center;
+        }
+
+        .notice {
+            border: 1px solid #e3c08a;
+            background: #fdf7ec;
+            color: #6b4a12;
+            font-size: 8.5pt;
+            padding: 6px 9px;
+            margin: 0 0 10px;
+        }
+
         .footer {
             position: fixed;
             bottom: -10mm;
@@ -314,6 +352,9 @@
                 @if ($companyRegistration)
                     <div class="company-meta">{{ $companyRegistration }}</div>
                 @endif
+                @if ($settings?->contract_header_note)
+                    <div class="company-meta">{{ $settings->contract_header_note }}</div>
+                @endif
             </td>
             <td class="header-reference" style="width:18%">
                 <span class="reference">{{ $contract->contract_number }}<br>V{{ $contractVersion->version_number }}</span>
@@ -351,6 +392,18 @@
                     {{ $contractVersion->end_date?->format('Y-m-d') ?? '—' }}</div></td>
         </tr>
     </table>
+    @if ($rentTerms)
+        <table class="summary">
+            <tr>
+                <td><div class="field-label">{{ __('contract_domain.rent.amount') }}</div><div
+                        class="field-value amount-value">{{ $rentTerms['rent'] }} {{ $contractVersion->currency }}</div></td>
+                <td><div class="field-label">{{ __('contract_domain.rent.frequency') }}</div><div
+                        class="field-value">{{ $rentTerms['frequency'] }}</div></td>
+                <td><div class="field-label">{{ __('contract_domain.pdf.payments_count') }}</div><div
+                        class="field-value num">{{ $rentTerms['periods'] ?? '—' }}</div></td>
+            </tr>
+        </table>
+    @endif
     <h2 class="section-title">{{ __('Contract parties') }}</h2>
     @php($partyRoles = ['buyer' => __('Buyer'), 'seller' => __('Seller'), 'landlord' => __('Landlord'), 'tenant' => __('Tenant'), 'guarantor' => __('Guarantor')])
     <table class="summary">
@@ -363,6 +416,44 @@
     </table>
     <h2 class="section-title">{{ __('Legal document content') }}</h2>
     <div class="legal-body">{!! $body !!}</div>
+    <h2 class="section-title">{{ __('contract_domain.pdf.payment_distribution') }}</h2>
+    @if ($paymentPlan)
+        @unless ($paymentPlan['issued'])
+            <p class="notice">{{ __('contract_domain.pdf.schedule_not_issued') }}</p>
+        @endunless
+        @unless ($paymentPlan['reconciles'])
+            <p class="notice">{{ __('contract_domain.pdf.schedule_mismatch') }}</p>
+        @endunless
+        @php($kinds = ['down_payment' => __('contract_finance.installment_kinds.down_payment'), 'installment' => __('contract_finance.installment_kinds.installment'), 'deposit' => __('contract_finance.installment_kinds.deposit'), 'other' => __('contract_finance.installment_kinds.other')])
+        <table class="schedule">
+            <thead>
+                <tr>
+                    <th class="num" style="width:8%">#</th>
+                    <th style="width:30%">{{ __('contract_domain.pdf.payment_kind') }}</th>
+                    <th class="num" style="width:27%">{{ __('contract_domain.pdf.payment_due') }}</th>
+                    <th class="num" style="width:35%">{{ __('contract_domain.pdf.payment_amount') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach ($paymentPlan['installments'] as $installment)
+                    <tr>
+                        <td class="num">{{ $installment->sequence }}</td>
+                        <td>{{ $kinds[$installment->kind?->value ?? (string) $installment->kind] ?? ($installment->kind?->value ?? '—') }}</td>
+                        <td class="num">{{ $installment->due_date?->format('Y-m-d') ?? '—' }}</td>
+                        <td class="num">{{ number_format((float) $installment->amount, 2) }} {{ $paymentPlan['currency'] }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="3">{{ __('contract_domain.pdf.payment_total') }}</td>
+                    <td class="num">{{ number_format((float) $paymentPlan['total'], 2) }} {{ $paymentPlan['currency'] }}</td>
+                </tr>
+            </tfoot>
+        </table>
+    @else
+        <p class="notice">{{ __('contract_domain.pdf.schedule_missing') }}</p>
+    @endif
     <h2 class="section-title">{{ __('Contract terms') }}</h2>
     @forelse($contractVersion->terms as $term)
         <section class="term">

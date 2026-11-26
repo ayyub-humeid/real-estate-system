@@ -26,6 +26,7 @@ class CompanySetting extends Model
         'website',
         'contract_terms',
         'contract_footer_text',
+        'contract_header_note',
         'contract_header_color',
         'show_contract_stamp',
         'receipt_terms',

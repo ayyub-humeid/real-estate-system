@@ -30,6 +30,7 @@ return [
         'child_locations' => 'مواقع فرعية',
         'company_identity' => 'صفة الهوية القانونية لشركة',
         'closed_acquisition' => 'ارتباطاً باستحواذ مكتمل أو ملغى',
+        'cancelled_expense' => 'إلغاء مسجّل',
         'paid_expense' => 'حالة الدفع (تم الدفع)',
         'commitments' => 'التزامات مالية',
         'actual_costs' => 'تكاليف فعلية',

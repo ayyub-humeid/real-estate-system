@@ -2,6 +2,9 @@
 
 namespace App\Filament\Exports;
 
+use App\Enums\ExpenseCategory;
+use App\Enums\ExpenseStatus;
+use App\Enums\PaymentMethod;
 use App\Filament\Exports\Contracts\HasNumericExportColumns;
 use App\Models\Expense;
 use Filament\Actions\Exports\ExportColumn;
@@ -29,7 +32,7 @@ class ExpenseExporter extends CompanyDataExporter implements HasNumericExportCol
 
     public static function modifyQuery(Builder $query): Builder
     {
-        return $query->with(['property.projectProperties.project:id,name', 'unit.project:id,name', 'unit.property.projectProperties.project:id,name', 'creator:id,name']);
+        return $query->with(['property.projectProperties.project:id,name', 'unit.project:id,name', 'unit.property.projectProperties.project:id,name', 'employee.user:id,name', 'party:id,name', 'creator:id,name']);
     }
 
     public static function getColumns(): array
@@ -39,20 +42,26 @@ class ExpenseExporter extends CompanyDataExporter implements HasNumericExportCol
                 ->formatStateUsing(fn ($state): ?string => $state?->format('Y-m-d')),
             ExportColumn::make('title')->label(static::label('title')),
             ExportColumn::make('category')->label(static::label('category'))
-                ->formatStateUsing(fn (?string $state): ?string => $state ? __('expense_export.categories.'.$state) : null),
+                ->formatStateUsing(fn (?string $state): ?string => $state ? ExpenseCategory::labelFor($state) : null),
             ExportColumn::make('amount')->label(static::label('amount'))
                 ->formatStateUsing(fn ($state): ?float => static::number($state)),
             ExportColumn::make('currency')->label(static::label('currency')),
             ExportColumn::make('status')->label(static::label('status'))
-                ->formatStateUsing(fn (?string $state): ?string => $state ? __('expense_export.statuses.'.$state) : null),
+                ->formatStateUsing(fn (?string $state): ?string => $state ? ExpenseStatus::labelFor($state) : null),
             ExportColumn::make('project')->label(static::label('project'))
                 ->state(fn (Expense $record): ?string => $record->effectiveProject()?->name),
             ExportColumn::make('property.name')->label(static::label('property')),
             ExportColumn::make('unit.unit_number')->label(static::label('unit')),
-            ExportColumn::make('payment_method')->label(static::label('payment_method')),
+            ExportColumn::make('employee.user.name')->label(static::label('employee')),
+            ExportColumn::make('salary_month')->label(static::label('salary_month'))
+                ->formatStateUsing(fn ($state): ?string => $state?->format('Y-m')),
+            ExportColumn::make('party.name')->label(static::label('payee')),
+            ExportColumn::make('payment_method')->label(static::label('payment_method'))
+                ->formatStateUsing(fn (?string $state): ?string => $state ? PaymentMethod::labelFor($state) : null),
             ExportColumn::make('reference_number')->label(static::label('reference')),
             ExportColumn::make('paid_at')->label(static::label('paid_at'))
                 ->formatStateUsing(fn ($state): ?string => $state?->format('Y-m-d')),
+            ExportColumn::make('cancellation_reason')->label(static::label('cancellation_reason'))->enabledByDefault(false),
             ExportColumn::make('description')->label(static::label('description'))->enabledByDefault(false),
             ExportColumn::make('creator.name')->label(static::label('created_by'))->enabledByDefault(false),
             ExportColumn::make('id')->label(static::label('record_id'))->enabledByDefault(false),

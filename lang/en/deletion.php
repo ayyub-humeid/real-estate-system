@@ -30,6 +30,7 @@ return [
         'child_locations' => 'child locations',
         'company_identity' => 'is the legal identity of a company',
         'closed_acquisition' => 'a completed or cancelled acquisition',
+        'cancelled_expense' => 'a cancellation on record',
         'paid_expense' => 'already been paid',
         'commitments' => 'financial commitments',
         'actual_costs' => 'actual costs',

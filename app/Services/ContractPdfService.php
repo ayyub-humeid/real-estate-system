@@ -2,9 +2,11 @@
 
 namespace App\Services;
 
-use App\Enums\{ContractDocumentType, ContractVersionStatus};
-use App\Models\{CompanySetting, ContractSignature, ContractVersion, Document, DocumentVersion, User};
+use App\Enums\{ContractDocumentType, ContractPaymentScheduleStatus, ContractType, ContractVersionStatus, RentFrequency};
+use App\Models\{CompanySetting, ContractPaymentSchedule, ContractSignature, ContractVersion, Document, DocumentVersion, User};
 use App\Support\ContractPdfContentLimits;
+use App\Support\RentTerms;
+use Brick\Math\BigDecimal;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -159,6 +161,8 @@ class ContractPdfService
             'body' => $body,
             'contractSummary' => $contractSummary,
             'draft' => $draft,
+            'paymentPlan' => $this->paymentPlan($version),
+            'rentTerms' => $this->rentTerms($version),
             'signatures' => $signatures,
             'images' => $this->images($settings, $signatures),
         ])->render();
@@ -204,6 +208,76 @@ class ContractPdfService
         ];
 
         return strtr($body ?: '<h1>{{contract_number}}</h1><p>{{parties}}</p>{{terms}}', $values);
+    }
+
+    /**
+     * The agreed distribution of the contract value: every payment the signing
+     * parties commit to, with its due date. A legal contract has to state this,
+     * and the PDF says plainly when the instalments do not add up to the agreed
+     * amount or have not been issued yet.
+     *
+     * @return array{issued: bool, currency: string, installments: \Illuminate\Support\Collection, total: string, reconciles: bool}|null
+     */
+    private function paymentPlan(ContractVersion $version): ?array
+    {
+        $schedules = ContractPaymentSchedule::withoutGlobalScopes()
+            ->where('contract_id', $version->contract_id)
+            ->where('contract_version_id', $version->id)
+            ->whereIn('status', [
+                ContractPaymentScheduleStatus::Issued->value,
+                ContractPaymentScheduleStatus::PendingApproval->value,
+                ContractPaymentScheduleStatus::Draft->value,
+            ])
+            ->with(['installments' => fn ($query) => $query->whereNotIn('status', ['cancelled', 'replaced'])->orderBy('sequence')])
+            ->get();
+
+        // An issued schedule is the one the parties are bound by; otherwise show
+        // the latest working revision so a draft preview is still complete.
+        $schedule = $schedules->firstWhere('status', ContractPaymentScheduleStatus::Issued)
+            ?? $schedules->sortByDesc('revision_number')->first();
+
+        if (! $schedule || $schedule->installments->isEmpty()) {
+            return null;
+        }
+
+        $total = $schedule->installments->reduce(
+            fn (BigDecimal $carry, $installment): BigDecimal => $carry->plus(BigDecimal::of((string) $installment->amount)),
+            BigDecimal::zero(),
+        );
+        $agreed = BigDecimal::of((string) ($version->total_amount ?? 0));
+
+        return [
+            'issued' => $schedule->status === ContractPaymentScheduleStatus::Issued,
+            'currency' => (string) $schedule->currency,
+            'installments' => $schedule->installments,
+            'total' => (string) $total->toScale(2),
+            'reconciles' => $total->toScale(2)->isEqualTo($agreed->toScale(2)),
+        ];
+    }
+
+    /**
+     * How a rental's agreed amount was reached, which a lease contract must set
+     * out: the rent per payment, how often it falls due and how many payments.
+     *
+     * @return array{rent: string, frequency: string, periods: ?int}|null
+     */
+    private function rentTerms(ContractVersion $version): ?array
+    {
+        if ($version->contract->contract_type !== ContractType::Lease || blank($version->rent_amount)) {
+            return null;
+        }
+
+        $terms = RentTerms::summarise($version->rent_amount, $version->rent_frequency, $version->start_date, $version->end_date);
+
+        if (! $terms['frequency']) {
+            return null;
+        }
+
+        return [
+            'rent' => number_format((float) $version->rent_amount, 2),
+            'frequency' => (string) $terms['frequency']->getLabel(),
+            'periods' => $terms['periods'],
+        ];
     }
 
     private function assertRenderableContent(ContractVersion $version, string $body): void

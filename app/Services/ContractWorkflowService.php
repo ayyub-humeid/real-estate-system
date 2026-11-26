@@ -503,7 +503,7 @@ class ContractWorkflowService
         $next = ((int) $contract->versions()->max('version_number')) + 1;
         $draft = ContractVersion::withoutGlobalScopes()->create(array_merge(
             $source->only([
-                'company_id', 'contract_id', 'template_version_id', 'total_amount', 'currency',
+                'company_id', 'contract_id', 'template_version_id', 'total_amount', 'rent_amount', 'rent_frequency', 'currency',
                 'start_date', 'end_date', 'delivery_date', 'unit_snapshot', 'reservation_snapshot',
             ]),
             [

@@ -146,6 +146,11 @@ class CompanySettingResource extends Resource
                             ->rows(2)
                             ->placeholder(__('This contract is legally binding...')),
 
+                        Forms\Components\TextInput::make('contract_header_note')
+                            ->label(__('settings.contract_header_note'))
+                            ->maxLength(255)
+                            ->helperText(__('settings.contract_header_note_help')),
+
                         Forms\Components\ColorPicker::make('contract_header_color')
                             ->label(__('Contract Header Color'))
                             ->default('#1e40af'),

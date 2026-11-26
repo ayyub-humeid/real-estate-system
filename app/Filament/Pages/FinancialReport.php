@@ -111,7 +111,7 @@ class FinancialReport extends Page implements HasForms
             ->when($endDate, fn($q) => $q->where('payment_date', '<=', $endDate))
             ->sum('amount');
 
-        $expenses = Expense::where('status', 'paid')
+        $expenses = Expense::where('status', \App\Enums\ExpenseStatus::Paid->value)
             ->when($propertyId, fn($q) => $q->where('property_id', $propertyId))
             ->when($startDate, fn($q) => $q->where('expense_date', '>=', $startDate))
             ->when($endDate, fn($q) => $q->where('expense_date', '<=', $endDate))

@@ -10,6 +10,11 @@ class ListMaintenanceRequests extends ListRecords
 {
     protected static string $resource = MaintenanceRequestResource::class;
 
+    public function getTitle(): string
+    {
+        return __('maintenance.navigation');
+    }
+
     protected function getHeaderActions(): array
     {
         return [

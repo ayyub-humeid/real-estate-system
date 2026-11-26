@@ -2,8 +2,9 @@
 
 namespace App\Filament\Resources;
 
+use App\Enums\MaintenancePriority;
+use App\Enums\MaintenanceStatus;
 use App\Filament\Resources\MaintenanceRequestResource\Pages;
-use App\Filament\Resources\MaintenanceRequestResource\RelationManagers;
 use App\Models\MaintenanceRequest;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -11,7 +12,6 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class MaintenanceRequestResource extends Resource
 {
@@ -21,6 +21,12 @@ class MaintenanceRequestResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-wrench-screwdriver';
     protected static ?string $navigationGroup = '💼 Operations';
     protected static ?int $navigationSort = 3;
+
+    public static function getNavigationLabel(): string
+    {
+        return __('maintenance.navigation');
+    }
+
 public static function shouldRegisterNavigation(): bool
 {
     $user = auth()->user();
@@ -58,6 +64,10 @@ public static function canViewAny(): bool
             ->preload()
             ->required()
             ->live()
+            ->afterStateUpdated(function (Forms\Set $set): void {
+                $set('unit_id', null);
+                $set('assigned_to_id', null);
+            })
             ->visible(fn () => auth()->user()->isSuperAdmin());
     }
 
@@ -83,7 +93,8 @@ public static function canViewAny(): bool
                                         ->getOptionLabelFromRecordUsing(fn ($record) => $record->displayName())
                                         ->searchable()
                                         ->preload()
-                                        ->required(),
+                                        ->required()
+                                        ->helperText(__('maintenance.help.unit')),
 
                                     Forms\Components\TextInput::make('title')
                                         ->label(__('Title'))
@@ -113,6 +124,8 @@ public static function canViewAny(): bool
                                         Forms\Components\Repeater::make('images')
                                             ->label(__('Images'))
                                         ->relationship('images')
+                                        // Photos are optional: no empty required row on a new request.
+                                        ->defaultItems(0)
                                         ->schema([
                                             Forms\Components\FileUpload::make('path')
                                                 ->label(__('Photo'))
@@ -134,21 +147,24 @@ public static function canViewAny(): bool
                                 ->schema([
                                     Forms\Components\Select::make('status')
                                         ->label(__('Status'))
-                                        ->options(static::statusOptions())
-                                        ->default('new')
+                                        ->options(MaintenanceStatus::options())
+                                        ->default(MaintenanceStatus::New->value)
                                         ->required()
-                                        ->native(false),
+                                        ->native(false)
+                                        ->helperText(__('maintenance.help.status')),
 
                                     Forms\Components\Select::make('priority')
                                         ->label(__('Priority'))
-                                        ->options(static::priorityOptions())
-                                        ->default('medium')
+                                        ->options(MaintenancePriority::options())
+                                        ->default(MaintenancePriority::Medium->value)
                                         ->required()
                                         ->native(false),
 
                                     Forms\Components\Select::make('assigned_to_id')
                                         ->label(__('Assigned Technician'))
-                                        ->relationship('technician', 'name')
+                                        // Only people from the request's own company can be assigned.
+                                        ->relationship('technician', 'name', fn (Builder $query, Forms\Get $get) => $query
+                                            ->where('company_id', $get('company_id') ?: auth()->user()->company_id))
                                         ->searchable()
                                         ->preload()
                                         ->placeholder(__('Select a user...')),
@@ -174,7 +190,8 @@ public static function canViewAny(): bool
                                     Forms\Components\DateTimePicker::make('scheduled_at')
                                         ->label(__('Scheduled at')),
                                     Forms\Components\DateTimePicker::make('completed_at')
-                                        ->label(__('Completed at')),
+                                        ->label(__('Completed at'))
+                                        ->helperText(__('maintenance.help.completed_at')),
                                 ]),
                         ])->columnSpan(1),
                     ])
@@ -206,24 +223,13 @@ public static function canViewAny(): bool
                 Tables\Columns\TextColumn::make('status')
                     ->label(__('Status'))
                     ->badge()
-                    ->colors([
-                        'gray' => 'new',
-                        'warning' => 'pending',
-                        'info' => 'in_progress',
-                        'success' => 'resolved',
-                        'danger' => 'cancelled',
-                    ])
-                    ->formatStateUsing(fn (?string $state) => $state ? __('maintenance.statuses.'.$state) : __('—')),
+                    ->color(fn (?string $state): string => MaintenanceStatus::tryFrom((string) $state)?->getColor() ?? 'gray')
+                    ->formatStateUsing(fn (?string $state): string => MaintenanceStatus::labelFor($state)),
                 Tables\Columns\TextColumn::make('priority')
                     ->label(__('Priority'))
                     ->badge()
-                    ->colors([
-                        'gray' => 'low',
-                        'info' => 'medium',
-                        'warning' => 'high',
-                        'danger' => 'emergency',
-                    ])
-                    ->formatStateUsing(fn (?string $state) => $state ? __('maintenance.priorities.'.$state) : __('—')),
+                    ->color(fn (?string $state): string => MaintenancePriority::tryFrom((string) $state)?->getColor() ?? 'gray')
+                    ->formatStateUsing(fn (?string $state): string => MaintenancePriority::labelFor($state)),
                 Tables\Columns\TextColumn::make('actual_cost')
                     ->label(__('Actual Cost'))
                     ->money('USD')
@@ -237,10 +243,10 @@ public static function canViewAny(): bool
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
                     ->label(__('Status'))
-                    ->options(static::statusOptions()),
+                    ->options(MaintenanceStatus::options()),
                 Tables\Filters\SelectFilter::make('priority')
                     ->label(__('Priority'))
-                    ->options(static::priorityOptions()),
+                    ->options(MaintenancePriority::options()),
                 Tables\Filters\Filter::make('open_only')
                     ->label(__('Open Only'))
                     ->query(fn (Builder $query): Builder => $query->open())
@@ -266,20 +272,6 @@ public static function canViewAny(): bool
         return [
             //
         ];
-    }
-
-    private static function statusOptions(): array
-    {
-        return collect(['new', 'pending', 'in_progress', 'resolved', 'cancelled'])
-            ->mapWithKeys(fn (string $status) => [$status => __('maintenance.statuses.'.$status)])
-            ->all();
-    }
-
-    private static function priorityOptions(): array
-    {
-        return collect(['low', 'medium', 'high', 'emergency'])
-            ->mapWithKeys(fn (string $priority) => [$priority => __('maintenance.priorities.'.$priority)])
-            ->all();
     }
 
     public static function getPages(): array

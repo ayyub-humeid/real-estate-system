@@ -36,7 +36,7 @@ class MaintenanceRequestNotification extends Notification implements ShouldQueue
         return (new MailMessage)
                     ->subject('New Maintenance Request: ' . $this->maintenanceRequest->unit->property->name)
                     ->greeting('Hello ' . $notifiable->name . '!')
-                    ->line('A new maintenance request has been submitted for Unit ' . $this->maintenanceRequest->unit->name)
+                    ->line('A new maintenance request has been submitted for Unit ' . $this->maintenanceRequest->unit->unit_number)
                     ->line('Description: ' . $this->maintenanceRequest->description)
                     ->action('View Request', \App\Filament\Resources\MaintenanceRequestResource::getUrl('view', ['record' => $this->maintenanceRequest->id]))
                     ->line('Thank you for using our system!');
@@ -51,7 +51,7 @@ class MaintenanceRequestNotification extends Notification implements ShouldQueue
     {
         return \Filament\Notifications\Notification::make()
             ->title(__('New Maintenance Request'))
-            ->body(__('Unit :unit requires attention.', ['unit' => $this->maintenanceRequest->unit->name]))
+            ->body(__('Unit :unit requires attention.', ['unit' => $this->maintenanceRequest->unit->unit_number]))
             ->icon('heroicon-o-wrench-screwdriver')
             ->iconColor('warning')
             ->actions([
@@ -69,7 +69,7 @@ class MaintenanceRequestNotification extends Notification implements ShouldQueue
     {
         return \Filament\Notifications\Notification::make()
             ->title(__('New Maintenance Request'))
-            ->body(__('Unit :unit requires attention.', ['unit' => $this->maintenanceRequest->unit->name]))
+            ->body(__('Unit :unit requires attention.', ['unit' => $this->maintenanceRequest->unit->unit_number]))
             ->icon('heroicon-o-wrench-screwdriver')
             ->iconColor('warning')
             ->actions([
