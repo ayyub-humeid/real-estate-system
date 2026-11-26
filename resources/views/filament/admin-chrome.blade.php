@@ -244,6 +244,24 @@
         color: #e2e8f0 !important;
     }
 
+    /* ── Date inputs and their calendar ───────────────────────────────
+       The calendar defaults to the panel's navy slate; use the same neutral
+       surface as the select menus. */
+    html.dark .fi-input-wrp:has(.fi-fo-date-time-picker) {
+        background-color: #26262a !important;
+    }
+    html.dark .fi-fo-date-time-picker-panel {
+        background-color: #202024 !important;
+        border: 1px solid rgba(148, 163, 184, .20) !important;
+        box-shadow: 0 18px 42px rgba(0, 0, 0, .42) !important;
+    }
+    /* The month name is its own <select>, which Filament paints separately. */
+    html.dark .fi-fo-date-time-picker-panel select,
+    html.dark .fi-fo-date-time-picker-panel select option {
+        background-color: #202024 !important;
+        color: #e2e8f0 !important;
+    }
+
     /* =====================================================================
        Light-mode explicit safeguards
        Ensure form labels, inputs, and all text are readable in light mode.
