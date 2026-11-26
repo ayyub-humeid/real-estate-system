@@ -6,8 +6,11 @@ use App\Enums\{
     ContractInstallmentKind,
     ContractPaymentScheduleStatus,
     ContractStatus,
+    ContractType,
     ContractVersionStatus,
+    RentFrequency,
 };
+use App\Support\RentTerms;
 use App\Models\{
     Contract,
     ContractFinancialEvent,
@@ -100,6 +103,97 @@ class ContractFinancialService
         };
 
         return $this->createDraft($actor, $contract, $version, [...$data, 'installments' => $lines]);
+    }
+
+    /**
+     * Generates and issues a lease's rent schedule from its own terms, as part of
+     * activation. A simple rent's payment plan is fully determined by the rent and
+     * the term, both already approved and signed on the version, so no second
+     * schedule approval is required: one installment of the rent per period.
+     *
+     * Returns null — leaving the manual schedule workflow available and the rent
+     * roll's "No schedule" badge in place — when the lease has no usable rent terms
+     * or already has a schedule. It never throws, because a schedule that cannot be
+     * generated must not stop a legitimate activation. Authorization is the
+     * activation's own: call it only from inside the activation transaction, after
+     * the contract is Active and the version is Signed.
+     */
+    public function issueLeaseSchedule(User $actor, Contract $contract, ContractVersion $version): ?ContractPaymentSchedule
+    {
+        if ($contract->contract_type !== ContractType::Lease || blank($version->rent_amount) || blank($version->rent_frequency)) {
+            return null;
+        }
+
+        $frequency = RentFrequency::tryFrom((string) $version->rent_frequency);
+        $periods = $frequency ? RentTerms::periods($frequency, RentTerms::monthsBetween($version->start_date, $version->end_date)) : null;
+        $currency = strtoupper((string) $version->currency);
+        if (! $frequency || ! $periods || ! $version->start_date || ! preg_match('/^[A-Z]{3}$/', $currency)) {
+            return null;
+        }
+
+        try {
+            $rent = $this->money($version->rent_amount, 'rent_amount');
+        } catch (ValidationException) {
+            return null;
+        }
+        if (! $rent->isGreaterThan(BigDecimal::zero())) {
+            return null;
+        }
+
+        // Never build a second schedule over one a person may have prepared by hand.
+        $taken = ContractPaymentSchedule::withoutGlobalScopes()
+            ->where('contract_id', $contract->id)
+            ->whereIn('status', [
+                ContractPaymentScheduleStatus::Draft->value,
+                ContractPaymentScheduleStatus::PendingApproval->value,
+                ContractPaymentScheduleStatus::Issued->value,
+                ContractPaymentScheduleStatus::Superseded->value,
+            ])
+            ->lockForUpdate()
+            ->exists();
+        if ($taken) {
+            return null;
+        }
+
+        $schedule = ContractPaymentSchedule::withoutGlobalScopes()->create([
+            'company_id' => $contract->company_id,
+            'contract_id' => $contract->id,
+            'contract_version_id' => $version->id,
+            // A cancelled schedule still holds its number, which is unique per contract.
+            'revision_number' => ((int) ContractPaymentSchedule::withoutGlobalScopes()
+                ->where('contract_id', $contract->id)
+                ->max('revision_number')) + 1,
+            'status' => ContractPaymentScheduleStatus::Issued->value,
+            'currency' => $currency,
+            // The installments below are the rent, period by period, so their sum
+            // is the schedule total regardless of any override on the version.
+            'total_amount' => $this->string($rent->multipliedBy($periods)),
+            'created_by' => $actor->id,
+            'issued_by' => $actor->id,
+            'issued_at' => now(),
+        ]);
+
+        $monthsPerPeriod = RentTerms::monthsPerPeriod($frequency);
+        $start = $version->start_date->copy();
+        for ($index = 0; $index < $periods; $index++) {
+            ContractInstallment::withoutGlobalScopes()->create([
+                'company_id' => $contract->company_id,
+                'contract_payment_schedule_id' => $schedule->id,
+                'sequence' => $index + 1,
+                'kind' => ContractInstallmentKind::Installment->value,
+                'amount' => $this->string($rent),
+                'currency' => $currency,
+                // addMonthsNoOverflow makes 31 Jan + 1 month deterministically end-of-Feb.
+                'due_date' => $start->copy()->addMonthsNoOverflow($monthsPerPeriod * $index)->toDateString(),
+                'status' => 'scheduled',
+            ]);
+        }
+
+        $this->event($actor, $contract, 'schedule_created', 'schedule:'.$schedule->id.':created', $schedule);
+        $this->event($actor, $contract, 'schedule_issued', 'schedule:'.$schedule->id.':issued', $schedule);
+        DB::afterCommit(fn () => app(ContractFinancialNotificationDispatcher::class)->dispatchForSchedule($schedule->id, 'schedule_issued'));
+
+        return $schedule->fresh('installments');
     }
 
     /**

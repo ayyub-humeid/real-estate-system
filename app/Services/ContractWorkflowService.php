@@ -361,6 +361,9 @@ class ContractWorkflowService
             $this->history($lockedContract, $lockedVersion, $actor, $from, ContractStatus::Active->value, 'activated');
             app(SalesNotifier::class)->contractDecided($actor, $lockedVersion, 'contract_activated');
             $this->applyActivationOutcome($lockedContract, $actor);
+            // A lease's rent schedule is its approved terms, period by period, so
+            // it is issued now rather than rebuilt by hand before rent can be tracked.
+            app(ContractFinancialService::class)->issueLeaseSchedule($actor, $lockedContract, $lockedVersion);
 
             return $lockedContract->refresh();
         });
