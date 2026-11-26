@@ -288,7 +288,7 @@ class ContractFinancialService
             }
             $locked->installments()->update(['status' => 'cancelled', 'cancelled_by' => $actor->id, 'cancelled_at' => now(), 'cancellation_reason' => trim($reason)]);
             $locked->update(['status' => ContractPaymentScheduleStatus::Cancelled, 'cancelled_by' => $actor->id, 'cancelled_at' => now(), 'cancellation_reason' => trim($reason)]);
-            $this->event($actor, $locked->contract, 'schedule_cancelled', 'schedule:'.$locked->id.':cancelled', $locked, ['reason' => trim($reason)]);
+            $this->event($actor, $locked->contract, 'schedule_cancelled', 'schedule:'.$locked->id.':cancelled', $locked, payload: ['reason' => trim($reason)]);
             DB::afterCommit(fn () => app(ContractFinancialNotificationDispatcher::class)->dispatchForSchedule($locked->id, 'schedule_cancelled'));
 
             return $locked->refresh();
